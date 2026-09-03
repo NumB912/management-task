@@ -1,0 +1,97 @@
+services:
+  email-services:
+    build: "./email-services"
+    container_name: task-management-email-services
+    ports:
+      - "3001:3001"
+    env_file: ./email-services/.env
+    depends_on:
+      mailhog: 
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - tm-network
+  # app:
+  #   build: ./task-management
+  #   ports:
+  #     - "3000:3000"
+  #   env_file: ./task-management/.env
+  #   depends_on:
+  #     mongodb:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     mailhog:
+  #       condition: service_started
+  #     email-services:
+  #       condition: service_started
+  #   volumes:
+  #     - ./task-management:/app
+  #     - /app/node_modules
+  #     - /app/.next             
+  #   networks: [tm-network]
+
+  mongodb:
+    image: mongo:7
+    container_name: task-management-mongodb
+    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - "0.0.0.0:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}) }" | mongosh --port 27017 --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tm-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: task-management-redis
+    ports:
+      - "0.0.0.0:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tm-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: task-management-rabbitmq
+    ports:
+      - "0.0.0.0:5672:5672/tcp"
+      - "0.0.0.0:15672:15672/tcp"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tm-network
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: task-management-mailhog
+    ports:
+      - "0.0.0.0:1025:1025"
+      - "0.0.0.0:8025:8025"
+    networks:
+      - tm-network
+
+volumes:
+  mongo-data:
+  redis-data:
+
+networks:
+  tm-network:
+    driver: bridge

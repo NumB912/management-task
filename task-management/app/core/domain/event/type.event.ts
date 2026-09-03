@@ -1,0 +1,2 @@
+
+export type type= "direct"|"fanout"|"topic"

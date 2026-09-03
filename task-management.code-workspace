@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "task-management",
+			"path": "."
+		},
+		{
+			"name": "email-services",
+			"path": "../todolist-clean-architicture/email-services"
+		}
+	],
+	"settings": {}
+}
