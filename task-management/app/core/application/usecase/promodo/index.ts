@@ -1,0 +1,1 @@
+export {CreatePromodoUsecase} from "./createPromodo.usecase";

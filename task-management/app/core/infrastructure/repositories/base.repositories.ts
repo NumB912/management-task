@@ -58,7 +58,6 @@ export abstract class BaseRepository<TDocument, TEntity, ID = string> implements
   }
 
   async update(id: ID, data: Partial<TEntity>, session?: ClientSession): Promise<Partial<TEntity> | null> {
-    console.log(this.toPresistencePartial(data))
     const doc = await this.model.findByIdAndUpdate(
       id,
       { $set: this.toPresistencePartial(data) },

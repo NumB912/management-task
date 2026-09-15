@@ -19,7 +19,7 @@ const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule 
   const editor = useTaskInputEditor({ listId, defaultConfirmRule });
   const { handleDone, isSubmitting } = useCreateTaskSubmit({
     listId: listId,
-    sectionId: editor.confirmSection ?? sectionId,
+    sectionId: editor.confirmSection ?? sectionId,  
     confirmList: editor.confirmList,
     value: editor.value,
     confirmedRule: editor.confirmRule as Pick<IRuleModel,"end_date"|"priority"|"repeat"|"start_date"|"tags"|"task"|"timer">,
@@ -105,7 +105,7 @@ const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule 
 
       <TaskAttributesBar
         lists={editor.lists}
-        confirmListName={editor.listTaskInfo[editor.confirmList]?.list?.name ?? "Hộp thư"}
+        confirmListName={editor.listInfo[editor.confirmList]?.list?.name}
         onSelectList={editor.handleAddListBehind}
         confirmedRule={editor.confirmRule as Pick<IRuleModel,"end_date"|"priority"|"repeat"|"start_date"|"tags"|"task"|"timer">}
         onChangeRule={(partial) =>
@@ -113,7 +113,7 @@ const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule 
         }
         onSelectPriority={editor.handleAddpriorityBehind}
         confirmSectionName={
-          editor.listTaskInfo[editor.confirmList]?.list?.sections?.find(
+          editor.listInfo[editor.confirmList]?.list?.sections?.find(
             (section) => section.id == editor.confirmSection
           )?.name ?? ""
         }

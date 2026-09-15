@@ -5,7 +5,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useRouter , usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -70,44 +70,18 @@ import { IFilterModel } from "../../model/filter.model";
 import { DeleteFilterDialog } from "../../components/filters/deleteFilter";
 const layout = ({
   children,
-  modal,
+
 }: {
   children: React.ReactNode;
-  modal: React.ReactNode;
 }) => {
-  const inboxCount = useWorkspaceStore((s) => s.inboxCount);
-  const todayCount = useWorkspaceStore((s) => s.todayCount);
-  const nextDayCount = useWorkspaceStore((s) => s.nextDayCount);
-  const hydrate = useWorkspaceStore((s) => s.hydrate);
-  const listTaskInfo = useWorkspaceStore(useShallow((s) => s.listTaskInfo));
-  const { data, isSuccess } = useWorkspace();
-  useEffect(() => {
-    if (isSuccess && data) {
-      hydrate({
-        inboxCount:
-          data.lists.find(
-            (list) => list.list.name.toLocaleLowerCase() === "inbox",
-          )?.taskCount ?? 0,
-        todayCount: data?.today[0]?.taskCount ?? 0,
-        nextDayCount: data?.next7Days[0]?.taskCount ?? 0,
-        lists: data.lists ?? [],
-        filters: data.filters ?? [],
-        inbox:
-          data.lists.find(
-            (list) => list.list.name.toLocaleLowerCase() === "inbox",
-          )?.list.id ?? null,
-        tags: data.tags ?? [],
-      });
-    }
-  }, [isSuccess, data, hydrate]);
+  const listInfo = useWorkspaceStore(useShallow((s) => s.listInfo));
+  const {getTodayTaskCount,getNextDayCount,getInboxCount,filterInfo,tagInfo} = useWorkspaceStore()
   const pathName = usePathname();
   const [openList, setOpenList] = useState<boolean>(true);
   const [openFilter, setOpenFilter] = useState<boolean>(true);
   const [openTag, setOpenTag] = useState<boolean>(true);
   const [openShareTag, setOpenShareTag] = useState<boolean>(true);
-
   const { open } = useShareModalStore();
-
   const [editingList, setEditingList] = useState<{
     id: string;
     name: string;
@@ -118,35 +92,33 @@ const layout = ({
   } | null>(null);
   const [deleteTag, setDeleteTag] = useState<ITagModel | null>(null);
   const [deleteFilter, setdeleteFilter] = useState<IFilterModel | null>(null);
-  
   const [editTag, setEditTag] = useState<ITagModel | null>(null);
-  const [editFilter,setEditFilter] = useState<IFilterModel|null>(null)
-  const [openAddFilter,setOpenAddFilter] = useState<boolean>(false);
+  const [editFilter, setEditFilter] = useState<IFilterModel | null>(null);
+  const [openAddFilter, setOpenAddFilter] = useState<boolean>(false);
   const [openAddTag, setOpenAddTag] = useState<boolean>(false);
   const [openAddList, setOpenAddList] = useState<boolean>(false);
-  const [openEditFilter,setOpenEditFilter] = useState<boolean>(false);
   const tabs = [
     {
       title: "Hôm nay",
       href: "/dashboard/work/today",
       Icon: Inbox,
-      count: todayCount,
+      count: getTodayTaskCount(),
     },
     {
       title: "Hộp thư",
       href: "/dashboard/work/inbox",
       Icon: Calendar,
-      count: inboxCount,
+      count: getInboxCount(),
     },
     {
       title: "Sắp tới",
       href: "/dashboard/work/up-comming",
       Icon: CalendarDays,
-      count: nextDayCount,
+      count: getNextDayCount(),
     },
   ];
 
-  const listEntries = Object.entries(listTaskInfo);
+  const listEntries = Object.entries(listInfo);
   return (
     <div className="flex h-screen relative overflow-hidden overflow-y-scroll">
       <Sidebar className={cn("absolute left-0")}>
@@ -271,7 +243,10 @@ const layout = ({
                             className="flex justify-between items-center group/list-item w-full p-2!"
                           >
                             <span className="flex items-center gap-2 pl-1">
-                              <Folder data-icon="inline-start" className={cn("w-4! h-4!")} />
+                              <Folder
+                                data-icon="inline-start"
+                                className={cn("w-4! h-4!")}
+                              />
                               <span className="flex items-center gap-1 text-sm min-w-0">
                                 <span className="truncate max-w-30">
                                   {info.list.name}
@@ -342,9 +317,9 @@ const layout = ({
                   </span>
                   <Button
                     variant={"ghost"}
-                    onClick={(e)=>{
-                      e.stopPropagation()
-                      setOpenAddFilter(prev=>!prev)
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenAddFilter((prev) => !prev);
                     }}
                     className={cn(
                       "rounded p-0.5 aspect-square hover:bg-transparent! hover:text-primary group-hover/list-label:visible! invisible!",
@@ -355,7 +330,7 @@ const layout = ({
                 </SidebarGroupLabel>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {(data?.filters ?? []).length === 0 && (
+                {(Object.values(filterInfo) ?? []).length === 0 && (
                   <div className="bg-muted/10 my-2 mx-3 rounded-md text-neutral-500">
                     <p className="text-sm px-3 py-2 leading-6">
                       Chưa có bộ lọc nào, bạn hãy thêm bộ lọc để tìm kiểm thêm
@@ -363,29 +338,28 @@ const layout = ({
                     </p>
                   </div>
                 )}
-                {(data?.filters ?? [])?.map((filter: any) => (
+                {(Object.values(filterInfo) ?? [])?.map((filter: any) => (
                   <EntityRow
                     key={filter.id}
                     link={`/dashboard/work/filters/${filter.id}`}
                     icon={<Filter data-icon="inline-start" size={16} />}
                     name={filter.name}
                     actionGroups={[
-  
                       [
                         {
                           label: "Chỉnh sửa",
                           icon: <Pencil size={14} />,
                           onClick: () => {
-                            setEditFilter(filter)
+                            setEditFilter(filter);
                           },
-                        }
+                        },
                       ],
                       [
                         {
                           label: "Xóa",
                           icon: <Trash size={14} />,
                           onClick: () => {
-                            setdeleteFilter(filter)
+                            setdeleteFilter(filter);
                           },
                           variant: "destructive",
                         },
@@ -428,7 +402,7 @@ const layout = ({
                 </SidebarGroupLabel>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {(data?.tags ?? []).length === 0 && (
+                {(Object.values(tagInfo) ?? []).length === 0 && (
                   <div className="bg-muted/10 my-2 mx-3 rounded-md text-neutral-500">
                     <p className="text-sm px-3 py-2 leading-6">
                       Chưa có thẻ nào, bạn hãy thêm thẻ để tìm kiểm thêm dễ dàng
@@ -436,13 +410,18 @@ const layout = ({
                     </p>
                   </div>
                 )}
-                {(data?.tags ?? [])
+                {(Object.values(tagInfo) ?? [])
                   .filter((tag: ITagModel) => !tag.isShareTag)
                   .map((tag: ITagModel) => (
                     <EntityRow
                       key={tag.id}
                       link={`/dashboard/work/tags/${tag.id}`}
-                      icon={<Tag data-icon="inline-start" className={cn("w-3! h-3!")}/>}
+                      icon={
+                        <Tag
+                          data-icon="inline-start"
+                          className={cn("w-3! h-3!")}
+                        />
+                      }
                       name={tag.name}
                       actionGroups={[
                         [
@@ -465,62 +444,63 @@ const layout = ({
                     />
                   ))}
 
-                   {(data?.tags.filter((tag: ITagModel) => tag.isShareTag) ?? []).length !== 0 && (
-                                      <Collapsible
-                  open={openShareTag}
-                  onOpenChange={setOpenShareTag}
-                  className="pl-3"
-                >
-                  <CollapsibleTrigger
-                    className={cn(
-                      "hover:bg-primary/10! group/tag-label rounded-md w-full pl-1!",
-                    )}
-                    asChild
+                {(Object.values(tagInfo).filter((tag: ITagModel) => tag.isShareTag) ?? [])
+                  .length !== 0 && (
+                  <Collapsible
+                    open={openShareTag}
+                    onOpenChange={setOpenShareTag}
+                    className="pl-3"
                   >
-                    <SidebarGroupLabel className="flex justify-between text-xs text-neutral-500 font-bold">
-                      <span className="flex items-center">
-                        <ChevronDown
-                          size={15}
-                          className={cn(
-                            `transition-all ${openTag ? "rotate-180" : "rotate-0"} group-hover/tag-label:visible invisible`,
-                          )}
-                        />
-                        <span>Thẻ được chia sẻ</span>
-                      </span>
-                    </SidebarGroupLabel>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    {(data?.tags ?? [])
-                      .filter((tag: ITagModel) => tag.isShareTag)
-                      .map((tag: ITagModel) => (
-                        <EntityRow
-                          key={tag.id}
-                          link={`/dashboard/work/tags/${tag.id}`}
-                          icon={<Tag data-icon="inline-start" size={16} />}
-                          name={tag.name}
-                          actionGroups={[
-                            [
-                              {
-                                label: "Chỉnh sửa",
-                                icon: <Pencil size={14} />,
-                                onClick: () => {
-                                  setEditTag(tag);
+                    <CollapsibleTrigger
+                      className={cn(
+                        "hover:bg-primary/10! group/tag-label rounded-md w-full pl-1!",
+                      )}
+                      asChild
+                    >
+                      <SidebarGroupLabel className="flex justify-between text-xs text-neutral-500 font-bold">
+                        <span className="flex items-center">
+                          <ChevronDown
+                            size={15}
+                            className={cn(
+                              `transition-all ${openTag ? "rotate-180" : "rotate-0"} group-hover/tag-label:visible invisible`,
+                            )}
+                          />
+                          <span>Thẻ được chia sẻ</span>
+                        </span>
+                      </SidebarGroupLabel>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      {(Object.values(tagInfo)?? [])
+                        .filter((tag: ITagModel) => tag.isShareTag)
+                        .map((tag: ITagModel) => (
+                          <EntityRow
+                            key={tag.id}
+                            link={`/dashboard/work/tags/${tag.id}`}
+                            icon={<Tag data-icon="inline-start" size={16} />}
+                            name={tag.name}
+                            actionGroups={[
+                              [
+                                {
+                                  label: "Chỉnh sửa",
+                                  icon: <Pencil size={14} />,
+                                  onClick: () => {
+                                    setEditTag(tag);
+                                  },
                                 },
-                              },
-                              {
-                                label: "Xóa",
-                                icon: <Trash size={14} />,
-                                onClick: () => {
-                                  setDeleteTag(tag);
+                                {
+                                  label: "Xóa",
+                                  icon: <Trash size={14} />,
+                                  onClick: () => {
+                                    setDeleteTag(tag);
+                                  },
                                 },
-                              },
-                            ],
-                          ]}
-                        />
-                      ))}
-                  </CollapsibleContent>
-                </Collapsible>
-                    )}
+                              ],
+                            ]}
+                          />
+                        ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </CollapsibleContent>
             </Collapsible>
           </SidebarGroup>
@@ -528,7 +508,9 @@ const layout = ({
       </Sidebar>
       <div className="flex-1 min-w-0 flex flex-col h-full">
         <NavComponent />
-        <div className="flex-1 min-h-0 overflow-x-auto px-5 w-full">{children}</div>
+        <div className="flex-1 min-h-0 overflow-x-auto px-5 w-full">
+          {children}
+        </div>
       </div>
       <AddListDialog open={openAddList} onClose={() => setOpenAddList(false)} />
       <EditListDialog list={editingList} onClose={() => setEditingList(null)} />
@@ -540,11 +522,20 @@ const layout = ({
       <DeleteTagDialog onClose={() => setDeleteTag(null)} tag={deleteTag} />
       <EditTagDialog onClose={() => setEditTag(null)} tag={editTag} />
 
-      <AddFilterDialog open={openAddFilter} onClose={(()=>setOpenAddFilter(false))}/>
-      <EditFilterDialog open={!!editFilter} filter={editFilter} onClose={(()=>setEditFilter(null))}/>
-      <DeleteFilterDialog onClose={() => setdeleteFilter(null)} filter={deleteFilter} />
+      <AddFilterDialog
+        open={openAddFilter}
+        onClose={() => setOpenAddFilter(false)}
+      />
+      <EditFilterDialog
+        open={!!editFilter}
+        filter={editFilter}
+        onClose={() => setEditFilter(null)}
+      />
+      <DeleteFilterDialog
+        onClose={() => setdeleteFilter(null)}
+        filter={deleteFilter}
+      />
       <ShareModalClient />
-      {modal}
     </div>
   );
 };

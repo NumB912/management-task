@@ -11,3 +11,5 @@ export type Minute = "00" | "15" | "30" | "45";
 
 export type ITime = `${Hour}:${Minute}`|null;
 export type mode = "day"|"week"|"month"|"none"|"specific"
+
+export type ViewMode = "month" | "week" | "day";

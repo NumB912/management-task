@@ -13,7 +13,9 @@ export interface IRule {
   start_date?: Date;
   list:string,
   end_date?: Date;
-  timer?: string;
+  endTimer?:number|null;
+  timer?: number|null;
+  color:string,
   repeat: IRepeat;
   tags: string[],
   priority?: 1 | 2 | 3 | 4,

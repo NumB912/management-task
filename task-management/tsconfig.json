@@ -32,6 +32,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "next.config.ts"  ],
+, "next.config.ts", "public/timeWorker.js"  ],
   "exclude": ["node_modules"]
 }

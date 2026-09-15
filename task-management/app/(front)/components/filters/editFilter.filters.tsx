@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { QueryClient, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarIcon, Check, X } from "lucide-react";
@@ -45,6 +45,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { IFilterModel } from "../../model/filter.model";
 import { workSpaceKeys } from "../../feature/hook/useWorkSpaceQuery.hook";
+import { filterKeys } from "../../feature/hook/useFilterQuery.hook";
 
 interface editFilterDialogProps {
   open: boolean;
@@ -64,43 +65,51 @@ const getSafeTime = (dateVal: any): number | null => {
 };
 
 const PRIORITY_OPTIONS: {
-  value: Ipriority;
+  value: Ipriority | null;
   label: string;
   className: string;
 }[] = [
-    {
-      value: 1,
-      label: "P1",
-      className: cn(
-        "text-red-600! border-red-300!",
-        "data-[state=on]:bg-red-500! data-[state=on]:text-white!"
-      ),
-    },
-    {
-      value: 2,
-      label: "P2",
-      className: cn(
-        "text-orange-600! border-orange-300!",
-        "data-[state=on]:bg-orange-500! data-[state=on]:text-white!"
-      ),
-    },
-    {
-      value: 3,
-      label: "P3",
-      className: cn(
-        "text-blue-600! border-blue-300!",
-        "data-[state=on]:bg-blue-500! data-[state=on]:text-white!"
-      ),
-    },
-    {
-      value: 4,
-      label: "P4",
-      className: cn(
-        "text-muted-foreground border-border",
-        "data-[state=on]:bg-muted-foreground! data-[state=on]:text-white!"
-      ),
-    },
-  ];
+  {
+    value: 1,
+    label: "P1",
+    className: cn(
+      "text-red-600! border-red-300!",
+      "data-[state=on]:bg-red-500! data-[state=on]:text-white!"
+    ),
+  },
+  {
+    value: 2,
+    label: "P2",
+    className: cn(
+      "text-orange-600! border-orange-300!",
+      "data-[state=on]:bg-orange-500! data-[state=on]:text-white!"
+    ),
+  },
+  {
+    value: 3,
+    label: "P3",
+    className: cn(
+      "text-blue-600! border-blue-300!",
+      "data-[state=on]:bg-blue-500! data-[state=on]:text-white!"
+    ),
+  },
+  {
+    value: 4,
+    label: "P4",
+    className: cn(
+      "text-muted-foreground border-border",
+      "data-[state=on]:bg-muted-foreground! data-[state=on]:text-white!"
+    ),
+  },
+  {
+    value: null,
+    label: "Không yêu cầu",
+    className: cn(
+      "text-gray-500 border-border",
+      "data-[state=on]:bg-gray-800! data-[state=on]:text-white!"
+    ),
+  },
+];
 
 const SPECIALS_OPTIONS: { value: ISpecials; label: string }[] = [
   { value: "none", label: "Không" },
@@ -122,16 +131,16 @@ export function EditFilterDialog({
 }: Readonly<editFilterDialogProps>) {
   const [name, setName] = useState(filter?.name ?? "");
   const [description, setDescription] = useState(filter?.description ?? "");
-  const [priority, setPriority] = useState<Ipriority | undefined>(filter?.priority);
+  const [priority, setPriority] = useState<Ipriority | null>(filter?.priority??null);
   const [specials, setSpecials] = useState<ISpecials>(filter?.specials ?? "none");
   const [status, setStatus] = useState<IStatus>(filter?.status ?? "pending");
-  const [startDate, setStartDate] = useState<Date | null>(() => parseToDate(filter?.start_date??null));
-  const [endDate, setEndDate] = useState<Date | null>(() => parseToDate(filter?.end_date??null));
+  const [startDate, setStartDate] = useState<Date | null>(() => parseToDate(filter?.start_date ?? null));
+  const [endDate, setEndDate] = useState<Date | null>(() => parseToDate(filter?.end_date ?? null));
   const [error, setError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>(filter?.tags ?? []);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const tagInfo = useWorkspaceStore(useShallow((s) => s.tagInfo));
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
@@ -145,7 +154,7 @@ export function EditFilterDialog({
     if (filter) {
       setName(filter.name);
       setDescription(filter.description ?? "");
-      setPriority(filter.priority);
+      setPriority(filter.priority??null);
       setSpecials(filter.specials);
       setStatus(filter.status);
       setStartDate(parseToDate(filter.start_date));
@@ -160,7 +169,8 @@ export function EditFilterDialog({
     mutationFn: (payload: any) =>
       filterApi.update(filter?.id!, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: workSpaceKeys.index() })
+      queryClient.invalidateQueries({ queryKey: workSpaceKeys.index() });
+      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter?.id!) });
       toast.success("Đã cập nhật filter");
       onClose();
     },
@@ -181,7 +191,7 @@ export function EditFilterDialog({
     setError(validate(value));
   };
 
-  const validateDateRange = (start?: Date|null, end?: Date|null) => {
+  const validateDateRange = (start?: Date | null, end?: Date | null) => {
     const startTime = getSafeTime(start);
     const endTime = getSafeTime(end);
 
@@ -193,12 +203,12 @@ export function EditFilterDialog({
   };
 
   const handleStartDateChange = (date: Date | undefined) => {
-    setStartDate(date??null);
+    setStartDate(date ?? null);
     validateDateRange(date, endDate);
   };
 
   const handleEndDateChange = (date: Date | undefined) => {
-    setEndDate(date??null);
+    setEndDate(date ?? null);
     validateDateRange(startDate, date);
   };
 
@@ -224,10 +234,15 @@ export function EditFilterDialog({
     const trimmedDesc = description.trim();
 
     if (trimmedName !== filter.name) payload.name = trimmedName;
+
     if (trimmedDesc !== (filter.description ?? "")) {
-      payload.description = trimmedDesc || undefined;
+      payload.description = (trimmedDesc || null) as any;
     }
-    if (priority !== filter.priority) payload.priority = priority;
+
+    if (priority !== filter.priority) {
+      payload.priority = (priority ?? null) as any;
+    }
+
     if (specials !== filter.specials) payload.specials = specials;
     if (status !== filter.status) payload.status = status;
 
@@ -266,7 +281,6 @@ export function EditFilterDialog({
       onClose();
       return;
     }
-    console.log(changed)
     mutate(changed);
   };
 
@@ -326,15 +340,15 @@ export function EditFilterDialog({
                 <Label className="font-bold">Độ ưu tiên</Label>
                 <ToggleGroup
                   type="single"
-                  value={priority?.toString()}
+                  value={priority?.toString() ?? "none"}
                   onValueChange={(v) =>
-                    setPriority(v ? (Number(v) as Ipriority) : undefined)
+                    setPriority(v !== "none" ? (Number(v) as Ipriority) : null)
                   }
                 >
                   {PRIORITY_OPTIONS.map((p) => (
                     <ToggleGroupItem
-                      key={p.value}
-                      value={p.value.toString()}
+                      key={p.label}
+                      value={p.value?.toString() ?? "none"}
                       className={cn("border! rounded!", p.className)}
                     >
                       {p.label}
@@ -487,7 +501,7 @@ export function EditFilterDialog({
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={startDate??undefined}
+                        selected={startDate ?? undefined}
                         onSelect={handleStartDateChange}
                         locale={vi}
                       />

@@ -1,7 +1,7 @@
 
 import { IRuleWithId } from "../../domain/entities/rule.entities";
 
-export type ICreateRuleDTO = Pick<IRuleWithId,"priority"|"tags"|"repeat"|"timer"|"end_date"|"start_date"> & {
+export type ICreateRuleDTO = Pick<IRuleWithId,"priority"|"tags"|"repeat"|"timer"|"end_date"|"start_date"|"endTimer"|"color"> & {
   repeat: {
     mode: string;
     every: number;

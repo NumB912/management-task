@@ -292,32 +292,32 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
           />
 
           <div className="w-full grid grid-cols-1 py-2 gap-2 justify-center items-center border-gray-200">
-            <Select value={rule.timer ?? undefined}>
-              <SelectTrigger className={cn("w-full flex items-center gap-2")}>
-                <div className="flex gap-2 items-center">
-                  <Clock className="w-5 h-5" />
-                  <SelectValue placeholder={"Thời gian bắt đầu"} />
-                </div>
-              </SelectTrigger>
-              <SelectContent
-                style={{ zIndex: 70 }}
-                className={cn("max-h-50 overflow-y-auto")}
-              >
-                <SelectGroup>
-                  {TIME_OPTIONS.map((timer) => (
-                    <SelectItem
-                      key={timer}
-                      value={timer??""}
-                      onClick={() => {
-                        setTimer(timer);
-                      }}
-                    >
-                      {timer}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+  <Select
+  value={timer?.toString() ?? undefined}
+  onValueChange={(value) => setTimer(Number(value))}
+>
+  <SelectTrigger className={cn("w-full flex items-center gap-2")}>
+    <div className="flex gap-2 items-center">
+      <Clock className="w-5 h-5" />
+      <SelectValue placeholder={"Thời gian bắt đầu"} />
+    </div>
+  </SelectTrigger>
+  <SelectContent
+    style={{ zIndex: 70 }}
+    className={cn("max-h-50 overflow-y-auto")}
+  >
+    <SelectGroup>
+      {TIME_OPTIONS.map((timerOption) => (
+        <SelectItem
+          key={timerOption.title}
+          value={timerOption.value.toString()}
+        >
+          {timerOption.title}
+        </SelectItem>
+      ))}
+    </SelectGroup>
+  </SelectContent>
+</Select>
             <RepeatProvider
               value={{
                 setRepeat,

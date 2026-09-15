@@ -39,17 +39,17 @@ services:
     container_name: task-management-mongodb
     command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
     ports:
-      - "0.0.0.0:27017:27017"
+      - "27017:27017"
     volumes:
       - mongo-data:/data/db
     healthcheck:
-      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}) }" | mongosh --port 27017 --quiet
+      # Sửa 'localhost:27017' thành '127.0.0.1:27017'
+      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]}) }" | mongosh --port 27017 --quiet
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - tm-network
-
+      - tm-network  
   redis:
     image: redis:7-alpine
     container_name: task-management-redis
@@ -83,7 +83,7 @@ services:
     image: mailhog/mailhog:latest
     container_name: task-management-mailhog
     ports:
-      - "0.0.0.0:1025:1025"
+      - "0.0.0.0:3050:1025"
       - "0.0.0.0:8025:8025"
     networks:
       - tm-network

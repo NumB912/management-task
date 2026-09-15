@@ -78,12 +78,11 @@ export const useUpdateTaskSubmit = ({
     const onError = (error: unknown) => {
       toast.error(getErrorMessage(error));
     };
-
+  console.log(confirmedRule)
     const onSuccess = ()=>{
       onSubmitSuccess()
       onUpdateTask(taskId, task as Partial<ITaskModel>);
     }
-
     mutate({
         data:task,
         taskId:taskId

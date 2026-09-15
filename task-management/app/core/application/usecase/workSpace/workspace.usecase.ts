@@ -14,13 +14,7 @@ interface WorkSpaceDTO {
 }
 
 interface ListWithTaskCount {
-    list: {
-        sections: { id: string, name: string }[],
-        isShareList: boolean,
-        name: string,
-        user: string,
-        id:string,
-    };
+    list: IList;
     taskCount: number;
 }
 

@@ -8,7 +8,7 @@ import { useEffect } from "react";
 
 const page = () => {
   const {setTitle} = useHeader();
-  const {inbox} = useWorkspaceStore()
+  const {inbox,listInfo} = useWorkspaceStore()
   const {data} = useList(inbox??"")
   useEffect(() => {
     setTitle("Hộp thư");
@@ -16,7 +16,7 @@ const page = () => {
   if(!data){
     return
   }
-  return <SectionList listId={data?.id} sections={data?.sections??[]} />;
+  return <SectionList listId={data?.id} sections={listInfo[inbox!].list.sections??[]} />;
 };
 
 export default page;

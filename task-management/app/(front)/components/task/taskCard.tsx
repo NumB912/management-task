@@ -49,7 +49,8 @@ import EditTask from "./editTask";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import { Ipriority, IStatus } from "../../model/type/type";
-import { toast } from "sonner";
+import { useCreateTag } from "../../feature/hook/useTagMutation.hook";
+import { formatTimer } from "../../utils/formatTimer";
 
 
 export interface TaskProp {
@@ -111,20 +112,27 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
     const lists = useWorkspaceStore(
         useShallow((state) => state.getListWithName("")),
     );
+    const allTags = useWorkspaceStore(
+        useShallow((state) => state.getTagWithName("")),
+    );
+    const [isUpdatingTags,setIsUpdatingTags] = useState<boolean>(false)
     const taskRef = useRef<HTMLDivElement>(null);
     const { mutate: updateRule } = useUpdateRule(task.list)
     const { mutate: updateTask } = useUpdateTask(task.list)
     const { mutate: deleteTask } = useRemoveTask(task.list)
     const { mutate: updateStatusTask } = useUpdateTaskStatus(task.list)
-
+    const {mutate:createTag} = useCreateTag()
+   const handleConfirmTags = (tags: string[]) => {
+       updateRule(
+           { taskId: task.id, data: { ...task.rule, tags } },
+           { onSuccess: () => setOpenTagEdit(false) },
+       );
+   }
+   
     if (!task && depth > 4 || !task.id) {
         return;
     }
 
-    const onMoveTask = (e: React.DragEvent<HTMLDivElement>) => {
-        // console.log(e.clientX,e.clientY)
-        // console.log(taskRef.current?.getBoundingClientRect().x, taskRef.current?.getBoundingClientRect().y)
-    }
 
     const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
         onUpdateTask?.(id, data)
@@ -133,6 +141,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
             data: data
         }, {
             onError: () => {
+
             }
         })
     }
@@ -155,7 +164,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
         onDelete(taskId)
         deleteTask(taskId, {
             onError: () => {
-
+            
             }
         })
 
@@ -164,7 +173,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
     return (
         <div className="task flex flex-col flex-1">
             {!isOpenTaskEdit && (
-                <div onMouseMove={onMoveTask} ref={taskRef}>
+                <div ref={taskRef}>
                     <ContextMenu
                         open={openContextMenu}
                         onOpenChange={(open) => setOpenContextMenu(open)}
@@ -172,7 +181,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                         <ContextMenuTrigger asChild>
                             <div className="w-full hover:bg-gray-200 cursor-pointer p-2 relative">
                                 <Link
-                                    href={`/dashboard/work/tasks/${task.id}`}
+                                    href={`/dashboard/tasks/${task.id}`}
                                     className="inset-0 absolute"
                                 />
                                 <div
@@ -201,7 +210,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                                     </div>
 
                                     <div className="w-full flex flex-col">
-                                        <p className="text-sm">{task.name}</p>
+                                        <p className="text-sm truncate min-w-30 max-w-50">{task.name}</p>
                                         <div className="flex items-center gap-0.5 text-neutral-500 flex-wrap">
                                             {task.rule?.start_date && (
                                                 <CalendarComponent
@@ -222,7 +231,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                                             )}
 
                                             {task.rule?.timer && (
-                                                <div className="p-1">{task.rule.timer}</div>
+                                                <div className="p-1 text-xs">{formatTimer(task.rule?.timer)}</div>
                                             )}
 
                                             {task.rule?.repeat?.mode !== "none" && (
@@ -237,7 +246,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                                             <div className="flex items-center gap-0.5 text-sm text-gray-500">
                                                 {task.rule.tags.slice(0, 3).map((tag) => (
                                                     <Link
-                                                        href={`/dashboard/work/tasks?tag=${tag}`}
+                                                        href={`/dashboard/tags/${tag}`}
                                                         key={tag}
                                                         className={cn(
                                                             "flex items-center gap-0.5 p-0.5! bg-transparent! text-neutral-600 hover:bg-transparent! hover:underline z-30",
@@ -553,7 +562,15 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                 onUpdateTask={handleUpdateTask}
                 task={task}
             />
-            <TagCombobox task={task} open={openTagEdit} setOpen={setOpenTagEdit} />
+         <TagCombobox
+        open={openTagEdit}
+        onOpenChange={setOpenTagEdit}
+        selectedTags={task.rule?.tags ?? []}
+        allTags={allTags}
+        isPending={isUpdatingTags}
+        onCreateTag={(name) => createTag({ name })}
+        onConfirm={handleConfirmTags}
+    />
         </div>
     );
 };

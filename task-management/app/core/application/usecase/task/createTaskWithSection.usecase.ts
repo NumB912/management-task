@@ -10,11 +10,12 @@ import { IUnitWork } from "@/app/core/domain/entities/unitwork.entities";
 import { CreateRuleUsecase } from "../rule";
 import { AddTagsForMemberUsecase } from "../tag";
 import { ICreateTaskDTO } from "@/app/core/DTO/task/task.DTO";
+import { pickRandomColor } from "@/app/core/domain/type/filterLogic.type";
 
 interface CreateTaskDTO {
   listId: string;
   userId: string;
-  sectionId:string;
+  sectionId: string;
   data: ICreateTaskDTO;
 }
 
@@ -30,15 +31,15 @@ export class CreateTaskWithSection implements IUsecase<void> {
   ) { }
 
   async execute(createTaskDTO: CreateTaskDTO): Promise<void> {
-    const { data, listId, userId,sectionId } = createTaskDTO
+    const { data, listId, userId, sectionId } = createTaskDTO
     const rule = data.rule
-    const [list,section] =await Promise.all([this.getListOrThrow(listId),this.getSectionOrThrow(sectionId)])
+    const [list, section] = await Promise.all([this.getListOrThrow(listId), this.getSectionOrThrow(sectionId)])
     const HaveTag = await this.TagRepository.isUserHaveTag({
-      userId:userId,
-      tagNames:rule.tags??[]
+      userId: userId,
+      tagNames: rule.tags ?? []
     })
-    if(!list.sections[0]){
-      throw new AppError("NOT_FOUND","Không tìm thấy section",404)
+    if (!list.sections[0]) {
+      throw new AppError("NOT_FOUND", "Không tìm thấy section", 404)
     }
     try {
       await this.unitWork.startTransaction();
@@ -49,34 +50,33 @@ export class CreateTaskWithSection implements IUsecase<void> {
           name: data.name,
           section: section.id,
           path: path,
-          list:listId,
+          list: listId,
         },
         session,
       );
       const getTagsInList = await this.ListRepository.findById(listId)
       const listTag = getTagsInList?.shared_tags.map((tag) => tag.tag) ?? []
-      const ShareTag = HaveTag.map((tag)=>tag.name) ?? []
+      const ShareTag = HaveTag.map((tag) => tag.name) ?? []
       const tagNotInList = ShareTag.filter((tag) => listTag?.every((tagList) => tagList !== tag)) ?? []
       const TagInlist = listTag.filter((tagList) => ShareTag.includes(tagList)) ?? []
       let tagCreateList: string[] = []
       if (tagNotInList.length > 0) {
         tagCreateList = tagNotInList
       }
+
+            console.log(pickRandomColor())
       const [ruleCreate] = await Promise.all([this.CreateRuleUsecase.execute({
         taskId: task.id,
         rule: {
-          repeat: rule.repeat,
-          end_date: rule?.end_date,
-          priority: rule?.priority,
-          start_date: rule?.start_date,
+          ...rule,
+          color: rule.color ?? pickRandomColor(),
           tags: [...tagCreateList, ...TagInlist],
-          timer: rule?.timer,
           task: task.id,
-          path: path,     
-          list:listId
+          path: path,
+          list: listId,
         },
-        session: session
-      })
+        session: session,
+      }),
         , this.ListRepository.pushTagsIntoList({
           listId: listId,
           share_tags: tagCreateList.map((tag) => {
@@ -91,7 +91,7 @@ export class CreateTaskWithSection implements IUsecase<void> {
 
       const updatedTask = await this.TaskRepository.update(
         task.id,
-        { rule: ruleCreate.rule.id},
+        { rule: ruleCreate.rule.id },
         session,
       );
 
@@ -100,8 +100,8 @@ export class CreateTaskWithSection implements IUsecase<void> {
       }
 
 
-      if(list.isShareList){
-          await this.AddTagsForMemberUsecase.execute({
+      if (list.isShareList) {
+        await this.AddTagsForMemberUsecase.execute({
           listIds: [list.id],
           newTags: ShareTag,
           session: session
@@ -109,11 +109,11 @@ export class CreateTaskWithSection implements IUsecase<void> {
       }
 
       await this.SectionRepository.pushTaskIntoSection(
-       {
-         id:section.id,
-        tasks: [task.id],
-        session,
-       }
+        {
+          id: section.id,
+          tasks: [task.id],
+          session,
+        }
       );
 
       await this.unitWork.commitTransaction();

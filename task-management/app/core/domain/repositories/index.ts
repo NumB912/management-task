@@ -5,4 +5,5 @@ export type {ISectionRepository} from "./ISection.repository"
 export type {IUserRepository} from "./IUser.repository"
 export type {ITagRepository} from "./ITag.repository"
 export type {ITaskRepository} from "./ITask.repository"
+export type {IPromodoRepository} from "./IPromodo.repository"
 

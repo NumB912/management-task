@@ -7,8 +7,6 @@ import {
   IListDocument,
   IListPopulateDocument,
   IMemberDocument,
-  ISectionDocument,
-  ITaskDocument,
 } from "./database/interface";
 import { ListMapper } from "./mapper/list.mapper";
 import { IListWithId } from "../../domain/entities/list.entities";
@@ -20,8 +18,7 @@ import { Rubik_Doodle_Shadow } from "next/font/google";
 @injectable()
 export class ListRepository
   extends BaseRepository<IListDocument, IListWithId, string>
-  implements IListRepository
-{
+  implements IListRepository {
   protected toDomain(doc: IListDocument): IListWithId {
     return this.ListMapper.toDomain(doc);
   }
@@ -81,60 +78,66 @@ export class ListRepository
     const next7DaysEnd = new Date(todayStart);
     next7DaysEnd.setDate(next7DaysEnd.getDate() + 7);
     next7DaysEnd.setHours(23, 59, 59, 999);
-    const lists = await this.db.List.aggregate([
-      { $match: { ...baseAccessMatch } },
-      {
-        $lookup: {
-          from: "tasks",
-          let: { sectionIds: "$sections" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $in: ["$section", "$$sectionIds"],
-                },
-                status: { $in: ["pending"] },
-              },
-            },
-            { $count: "count" },
-          ],
-          as: "taskCount",
-        },
-      },
-      {
-        $lookup: {
-          from: "sections",
-          foreignField: "list",
-          localField: "_id",
-          as: "sections",
-          pipeline: [
-            {
-              $project: {
-                _id: 1,
-                name: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $addFields: {
-          taskCount: {
-            $ifNull: [{ $arrayElemAt: ["$taskCount.count", 0] }, 0],
+const lists = await this.db.List.aggregate([
+  { $match: { ...baseAccessMatch } },
+  {
+    $lookup: {
+      from: "tasks",
+      let: { sectionIds: "$sections" },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $in: ["$section", "$$sectionIds"] },
+            status: { $in: ["pending"] },
           },
         },
-      },
-      {
-        $project: {
-          _id: 1,
-          user: 1,
-          name: 1,
-          isShareList: 1,
-          taskCount: 1,
-          sections: 1,
+        { $count: "count" },
+      ],
+      as: "taskCount",
+    },
+  },
+  {
+    $lookup: {
+      from: "sections",
+      foreignField: "list",
+      localField: "_id",
+      as: "sections",
+      pipeline: [
+        {
+          $lookup: {
+            from: "tasks",
+            foreignField: "section",
+            localField: "_id",
+            as: "tasks",
+            pipeline: [
+              {
+                $lookup: {
+                  from: "rules",
+                  foreignField: "task",
+                  localField: "_id",
+                  as: "rules",
+                },
+              },
+              {
+                $set: {
+                  rule: { $arrayElemAt: ["$rules", 0] },
+                },
+              },
+              { $unset: "rules" },
+            ],
+          },
         },
+      ],
+    },
+  },
+  {
+    $addFields: {
+      taskCount: {
+        $ifNull: [{ $arrayElemAt: ["$taskCount.count", 0] }, 0],
       },
-    ]).session(session ?? null);
+    },
+  },
+]).session(session ?? null);
     const findListsByRuleDateRange = (start: Date, end: Date) =>
       this.db.List.aggregate([
         { $match: baseAccessMatch },
@@ -182,16 +185,7 @@ export class ListRepository
     ]);
     return {
       lists: lists.map((doc) => ({
-        list: {
-          id:doc._id.toString(),
-          sections:doc.sections.map((section:any) => ({
-            id:section._id.toString(),
-            name:section.name,
-          })),
-          isShareList: doc.isShareList,
-          name: doc.name,
-          user: doc.user.toString(),
-        },
+        list: this.ListMapper.toDomainPopulate(doc),
         taskCount: doc.taskCount ?? 0,
       })),
       inbox: null,
@@ -426,12 +420,12 @@ export class ListRepository
           },
         },
       ])) as unknown as {
-      _id: Types.ObjectId;
-      members: {
         _id: Types.ObjectId;
-        user: Types.ObjectId;
-      }[];
-    };
+        members: {
+          _id: Types.ObjectId;
+          user: Types.ObjectId;
+        }[];
+      };
 
     if (!doc) {
       return null;

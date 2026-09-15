@@ -1,11 +1,12 @@
-import { ITime, mode } from "../type/type";
+import { mode } from "../type/type";
 export interface IRuleModel {
   id: string;
   task: string;
   list:string,
   start_date?: Date|null; 
   end_date?: Date|null;   
-  timer?: ITime|null;
+  timer?: number|null;
+  endTimer?:number|null;
   repeat: IRepeat;
   tags:string[],
   priority?:1|2|3|4,

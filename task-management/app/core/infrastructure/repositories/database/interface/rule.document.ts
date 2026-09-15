@@ -21,7 +21,9 @@ export interface IRuleDocument extends IBaseDocument {
   list:Types.ObjectId,
   repeat: IRepeatSubdocument;
   tags: string[];
-  timer?: string;
+  color:string;
+  timer?: number|null;
+  endTimer?:number|null;
   task?: Types.ObjectId;
 }
 

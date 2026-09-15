@@ -109,19 +109,16 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
 
   toPersistencePartial(entity: Partial<IFilterWithId>): Partial<IFilterDocument> {
     const update: Partial<IFilterDocument> = {};
-    if (entity.id) update._id = new Types.ObjectId(entity.id);
-    if (entity.name) update.name = entity.name;
-    if (entity.tags!=undefined) {
-      update.tags = entity.tags
-    }
-    if (entity.user) update.user = new Types.ObjectId(entity.user);
-    if (entity.start_date!=undefined) update.start_date = entity.start_date;
-    if (entity.end_date!=undefined) update.end_date = entity.end_date;
-    if (entity.description!=undefined) update.description = entity.description;
-    if (entity.priority) update.priority = entity.priority;
-    if (entity.specials) update.specials = entity.specials;
-    if (entity.status) update.status = entity.status;
-    console.log(update)
+    if (entity.id !== undefined) update._id = new Types.ObjectId(entity.id);
+    if (entity.name !== undefined) update.name = entity.name;
+    if (entity.tags !== undefined) update.tags = entity.tags;
+    if (entity.user !== undefined) update.user = new Types.ObjectId(entity.user);
+    if (entity.start_date !== undefined) update.start_date = entity.start_date;
+    if (entity.end_date !== undefined) update.end_date = entity.end_date;
+    if (entity.description !== undefined) update.description = entity.description;
+    if (entity.priority !== undefined) update.priority = entity.priority;
+    if (entity.specials !== undefined) update.specials = entity.specials;
+    if (entity.status !== undefined) update.status = entity.status;
     return update;
   }
 

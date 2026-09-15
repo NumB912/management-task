@@ -6,7 +6,7 @@ export interface IFilterDocument extends IBaseDocument {
   user: Types.ObjectId;
   start_date?:Date|null,
   end_date?:Date|null,
-  priority?:priority
+  priority?:priority|null
   tags: string[];
   description:string,
   specials:"overdue"|"today"|"next 7 days"|"none",

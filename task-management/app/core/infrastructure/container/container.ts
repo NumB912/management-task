@@ -6,7 +6,7 @@ import RabbitMQ from "../event/rabbit.event";
 import Publisher from "../event/publisher.event";
 import Consumer from "../event/consumer.event";
 import OTPService from "../service/otp.service";
-import { RuleRepository, FilterRepository, ListRepository, MemberRepository, SectionRepository, TagRepository, TaskRepository, UserRepository } from "../repositories";
+import { RuleRepository, FilterRepository, ListRepository, MemberRepository, SectionRepository, TagRepository, TaskRepository, UserRepository, PromodoRepository } from "../repositories";
 import { DatabaseModels } from "../repositories/database/clientSchema.database";
 import { UnitWorkMongo } from "../repositories/unitWork/mongoUnitWork.repository";
 import {
@@ -21,6 +21,7 @@ import {
   UpdateListUsecase, UpdateRuleUsecase, UpdateSectionUsecase, UpdateTagOnlyMeUsecase,
   UpdateTaskUsecase, GetAllListUsecase,
   GetTaskByIdUsecase,
+  CreatePromodoUsecase,
 } from "@/app/core/application";
 import { GetAllTagsUsecase } from "../../application/usecase/tag/getAllTag.usecase";
 import { UpdateTagUsecase } from "../../application/usecase/tag/updateTagWithShare.usecase";
@@ -40,6 +41,7 @@ import { SectionMapper } from "../repositories/mapper/section.mapper";
 import { ListMapper } from "../repositories/mapper/list.mapper";
 import { MemberMapper } from "../repositories/mapper/member.mapper";
 import { FilterMapper } from "../repositories/mapper/filter.mapper";
+import { PromodoMapper } from "../repositories/mapper/promodo.mapper";
 import { RefreshTokenUseCase } from "../../application/usecase/user/refresh_token.usecase";
 import { ICache } from "../../domain";
 import { WorkSpaceUsecase } from "../../application/usecase/workSpace/workspace.usecase";
@@ -55,6 +57,7 @@ import { MoveToSectionUsecase } from "../../application/usecase/task/moveToSecti
 import { GetAllListSectionUsecase } from "../../application/usecase/list/getListSection.usecase";
 import { GetTodayUsecase } from "../../application/usecase/task/today.usecase";
 import { GetUpcomingUsecase } from "../../application/usecase/task/upComming.usecase";
+import { GetPromodoUsecase } from "../../application/usecase/promodo/getPromodo.usecase";
 
 export class Container {
   private static instancePromise: Promise<DependencyContainer> | null = null;
@@ -92,6 +95,7 @@ export class Container {
     this.registerTaskStatusUsecase();
     this.registerService();
     this.registerAuthUsecase();
+    this.registerPromodoUsecases()
     return this.c;
   }
 
@@ -105,6 +109,7 @@ export class Container {
     this.c.register(TYPES.FilterRepository, { useClass: FilterRepository });
     this.c.register(TYPES.UserRepository, { useClass: UserRepository });
     this.c.register(TYPES.MemberRepository, { useClass: MemberRepository });
+    this.c.register(TYPES.PromodoRepository, { useClass: PromodoRepository });
   }
 
   private registerUnitWork(): void {
@@ -170,6 +175,11 @@ export class Container {
     this.c.register(TYPES.UpdateTagOnlyMeUsecase, { useFactory: (c) => new UpdateTagOnlyMeUsecase(c.resolve(TYPES.TagRepository), c.resolve(TYPES.ListRepository), c.resolve(TYPES.RuleRepository), c.resolve(TYPES.UnitWork)) });
     this.c.register(TYPES.SynsMemberTagUsecase, { useFactory: (c) => new SyncMemberTagsUseCase(c.resolve(TYPES.TagRepository)) });
     this.c.register(TYPES.AddTagsForMemberUsecase, { useFactory: (c) => new AddTagsForMemberUsecase(c.resolve(TYPES.MemberRepository), c.resolve(TYPES.SynsMemberTagUsecase)) });
+  }
+
+  private registerPromodoUsecases(): void {
+    this.c.register(TYPES.createPromodoUsecase, { useFactory: (c) => new CreatePromodoUsecase(c.resolve(TYPES.PromodoRepository),c.resolve(TYPES.UnitWork)) });
+    this.c.register(TYPES.getPromodoUsecase, { useFactory: (c) => new GetPromodoUsecase(c.resolve(TYPES.PromodoRepository),c.resolve(TYPES.UnitWork)) });
   }
 
   private registerFilterUsecase(): void {
@@ -240,6 +250,7 @@ export class Container {
     this.c.register(TYPES.ListMapper, { useValue: new ListMapper(this.c.resolve(TYPES.UserMapper), this.c.resolve(TYPES.SectionMapper)) });
     this.c.register(TYPES.MemberMapper, { useValue: new MemberMapper(this.c.resolve(TYPES.UserMapper)) });
     this.c.register(TYPES.FilterMapper, { useValue: new FilterMapper(this.c.resolve(TYPES.TagMapper), this.c.resolve(TYPES.UserMapper)) });
+    this.c.register(TYPES.PromodoMapper, { useValue: new PromodoMapper() });
   }
 
   private registerIcache(): void {

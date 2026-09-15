@@ -17,7 +17,6 @@ export class UpdateFilterUsecase implements IUsecase<Partial<
     if (!id) {
       throw new AppError("NOT_FOUND", `Không tìm thấy dữ liệu`, 404);
     }
-
     const isExistFilter = await this.filterRepository.findOne({
       id: id,
       user: user_id

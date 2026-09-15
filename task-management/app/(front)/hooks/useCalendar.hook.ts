@@ -4,7 +4,6 @@ import {
   DEFAULT_REPEAT_CONFIG,
 } from "../components/calendar/repeat/repeat.types";
 import { IRepeat } from "../model/rule/rule.model";
-import { ITime } from "../model/type/type";
 interface Days {
   year: number;
   month: number;
@@ -27,7 +26,7 @@ interface CalendarState {
   days: Days;
   repeat: IRepeat;
   defaultRepeat:IRepeat;
-  timer?:ITime|null
+  timer?:number|null
 }
 
 type CalendarAction =
@@ -45,7 +44,7 @@ type CalendarAction =
   | { type: "TODAY" }
   | { type: "CHOOSE_TODAY" }
   | { type: "CHOOSE_NEXT_WEEK" }
-  | { type: "SET_TIMER"; payload?: ITime }
+  | { type: "SET_TIMER"; payload?: number }
   | {type:"CHOOSE_TOMORROW"};
 
 const initialState: CalendarState = {
@@ -168,7 +167,7 @@ export const useCalendar = (init:Partial<CalendarState>) => {
     setYear: (y: number) => dispatch({ type: "SET_YEAR", payload: y }),
     setDays: (d: Days) => dispatch({ type: "SET_DAYS", payload: d }),
     setRepeat: (r: IRepeat) => dispatch({ type: "SET_REPEAT", payload: r }),
-    setTimer:(r?:ITime)=>dispatch({type:"SET_TIMER",payload:r}),
+    setTimer:(r?:number)=>dispatch({type:"SET_TIMER",payload:r}),
     setDefaultRepeat: (r: IRepeat) => dispatch({ type: "SET_DEFAULT_REPEAT", payload: r }),
     nextMonth: () => dispatch({ type: "NEXT_MONTH" }),
     prevMonth: () => dispatch({ type: "PREV_MONTH" }),
