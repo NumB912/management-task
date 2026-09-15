@@ -32,21 +32,20 @@ const EditTask = ({
   listId,
   onUpdateTask,
 }: EditTaskProp) => {
-  const [confirmedRule, setConfirmedRule] = useState<ICreateRuleDTO>(() =>
-    buildRuleFromTask(task),
-  );
   const [hydrated, setHydrated] = useState(false);
   const editor = useTaskInputEditor({ listId });
+
   useEffect(() => {
     if (!isEditing || hydrated || editor.lists.length === 0) return;
     editor.hydrateFromTask(task);
-    setConfirmedRule(buildRuleFromTask(task));
+    editor.setConfirmRule(buildRuleFromTask(task));
     setHydrated(true);
-  }, [isEditing, hydrated, editor.lists.length, task,listId]);
+  }, [isEditing, hydrated, editor.lists.length, task, listId]);
+
   useEffect(() => {
     setHydrated(false);
     editor.setIsEmpty(false)
-  }, [task.id,listId]);
+  }, []);
 
   const { handleDone, isSubmitting } = useUpdateTaskSubmit({
     taskId: task.id,
@@ -54,7 +53,7 @@ const EditTask = ({
     confirmedSection: editor.confirmSection,
     confirmList: editor.confirmList,
     value: editor.value,
-    confirmedRule:confirmedRule ,
+    confirmedRule: editor.confirmRule as Pick<IRuleModel, "end_date" | "start_date" | "repeat" | "timer"|"tags"|"priority">,
     inputRef: editor.refDivInput as React.RefObject<HTMLDivElement>,
     onUpdateTask,
     onSubmitSuccess: () => {
@@ -63,7 +62,7 @@ const EditTask = ({
   });
 
   const handleClose = () => {
-    setConfirmedRule(buildRuleFromTask(task));
+    editor.setConfirmRule(buildRuleFromTask(task));
     editor.hydrateFromTask(task);
     setIsEditing(false);
     editor.setIsEmpty(false)
@@ -82,28 +81,26 @@ const EditTask = ({
 
 useEffect(() => {
   const el = editor.refDivInput.current;
-  if (!el) return;
+  if (!el || !isEditing || !hydrated) return;
 
   const existingChip = el.querySelector<HTMLElement>(".priority-chip");
-  const hasValidPriority = editor.confirmRule.priority&& editor.confirmRule.priority!=4;
-  if (editor.confirmRule.priority==4) {
-    existingChip?.remove();
-  }
-  const desiredText = `P${editor.confirmRule.priority}`;
-  const span = document.createElement("span");
-  if(hasValidPriority){
-      span.className = "priority-chip chip bg-primary-foreground text-primary!";
-      span.setAttribute("contenteditable", "false");
-      span.textContent = desiredText;
-      el.appendChild(span);
-      el.appendChild(document.createTextNode("\u00A0"));
+  const hasValidPriority = editor.confirmRule.priority && editor.confirmRule.priority != 4;
+  existingChip?.remove();
+
+  if (hasValidPriority) {
+    const span = document.createElement("span");
+    span.className = "priority-chip chip bg-primary-foreground text-primary!";
+    span.setAttribute("contenteditable", "false");
+    span.textContent = `P${editor.confirmRule.priority}`;
+    el.appendChild(span);
+    el.appendChild(document.createTextNode("\u00A0"));
   }
 
   el.querySelectorAll<HTMLElement>("[data-tag-chip]").forEach((chipEl) => {
     const id = chipEl.dataset.tagId;
-    if (id && !editor.confirmRule.tags!.includes(id)) chipEl.remove();
+    if (id && !(editor.confirmRule.tags ?? []).includes(id)) chipEl.remove();
   });
- editor.confirmRule.tags!.forEach((tagId) => {
+  (editor.confirmRule.tags ?? []).forEach((tagId) => {
     if (el.querySelector(`[data-tag-id="${tagId}"]`)) return;
     const span = document.createElement("span");
     span.className = "tag-chip chip bg-primary-foreground text-primary!";
@@ -112,10 +109,9 @@ useEffect(() => {
     span.dataset.tagId = tagId;
     span.textContent = tagId;
     el.appendChild(span);
-    const space = document.createTextNode("\u00A0")
-    el.appendChild(space)
+    el.appendChild(document.createTextNode("\u00A0"));
   });
-}, [isEditing,listId]);
+}, [isEditing, hydrated]); 
 
 useEffect(()=>{  
   const el = editor.refDivInput.current;
@@ -150,7 +146,7 @@ useEffect(()=>{
 
       <TaskAttributesBar
         lists={editor.lists}
-        confirmListName={editor.listTaskInfo[editor.confirmList]?.list?.name ?? "Hộp thư"}
+        confirmListName={editor.listInfo[editor.confirmList]?.list?.name ?? "Hộp thư"}
         onSelectList={editor.handleAddListBehind}
         confirmedRule={editor.confirmRule as Pick<IRuleModel,"end_date"|"priority"|"repeat"|"start_date"|"tags"|"task"|"timer">}
         onChangeRule={(partial) =>
@@ -158,13 +154,13 @@ useEffect(()=>{
         }
         onSelectPriority={editor.handleAddpriorityBehind}
         confirmSectionName={
-          editor.listTaskInfo[editor.confirmList]?.list?.sections?.find(
+          editor.listInfo[editor.confirmList]?.list?.sections?.find(
             (section) => section.id == editor.confirmSection
           )?.name ?? ""
         }
       />
 
-      <TaskActions onCancel={handleClose} onSubmit={handleDone} isSubmitting={isSubmitting} />
+      <TaskActions onCancel={handleClose} onSubmit={handleDone} isSubmitting={isSubmitting} buttonContent="Chỉnh sửa"/>
     </div>
   );
 };

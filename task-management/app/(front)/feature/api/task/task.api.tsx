@@ -27,7 +27,6 @@ export const taskApi = {
     const res = await axiosInstance.patch<{
       task:ITaskModel
     }>(`/tasks/${id}`, data);
-    console.log(res.data.task)
     return res.data;
   },
 

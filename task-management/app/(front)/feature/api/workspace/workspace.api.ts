@@ -7,7 +7,6 @@ export const workSpaceApi = {
     const res = await axiosInstance.get<{
       data:IWorkspaceGetDTO
     }>(`/workspace`);
-
     return res.data.data;
   },
 };

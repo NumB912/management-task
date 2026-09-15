@@ -1,95 +1,117 @@
 "use client";
-import LineSection from "@/app/(front)/components/lineSection";
 import { SectionCard } from "@/app/(front)/components/sectionCard.component";
 import AddTask from "@/app/(front)/components/task/addTask";
 import { TaskList } from "@/app/(front)/components/task/taskList.component";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/app/(front)/components/ui/card";
-import { tagApi } from "@/app/(front)/feature/api/tags/tag.api";
 import { useTag } from "@/app/(front)/feature/hook/tagQuery.hook";
 import { ITaskModel } from "@/app/(front)/model";
 import { useHeader } from "@/app/(front)/providers/header.provider";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
-import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, use, useState, useMemo } from "react";
+
 interface IListTaskGroup {
-  list: {
-    id: string;
-    name: string;
-  };
+  list: { id: string; name: string };
   tasks: ITaskModel[];
 }
+
 const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
   const { tagId } = use(params);
   const { setTitle } = useHeader();
-  const listInfo = useWorkspaceStore((state) => state.listTaskInfo)
-  const { data } = useTag(tagId)
-  const { inbox } = useWorkspaceStore()
-  const [section, setSection] = useState<{ id: string }>();
-  const [isAddTask, setIsAddTask] = useState<Record<string, boolean>>({})
-  useEffect(() => {
-    const firstSection = inbox ? listInfo[inbox]?.list?.sections?.[0] : undefined;
-    if (firstSection) {
-      setSection({ id: firstSection.id });
-    }
-  }, [inbox, listInfo]);
+  const { data } = useTag(tagId);
+  const [isAddTask, setIsAddTask] = useState<Record<string, boolean>>({});
+  const [isAddTaskEmpty, setIsAddTaskEmpty] = useState(false);
 
-  const listTag: IListTaskGroup[] = useMemo(() => {
-    if (!data?.tasks) return [];
+  // Select riêng từng field/hàm, tránh subscribe cả store
+  // (Select each field/function individually, avoid subscribing to the whole store)
+  const getTaskTag = useWorkspaceStore((s) => s.getTaskTag);
+  const inbox = useWorkspaceStore((s) => s.inbox);
+  const listInfo = useWorkspaceStore((s) => s.listInfo);
 
-    const groups: Record<string, IListTaskGroup> = {};
+  const tasks = useMemo(
+    () => getTaskTag(data?.tag.name ? [data.tag.name] : []),
+    [getTaskTag, data?.tag.name],
+  );
 
-    for (const task of data.tasks) {
+  // Khôi phục logic group theo list — đã có sẵn, chỉ bị comment
+  // (Restored the group-by-list logic — it already existed, just commented out)
+  const groups = useMemo<IListTaskGroup[]>(() => {
+    const map: Record<string, IListTaskGroup> = {};
+
+    for (const task of tasks) {
       const listId = task.list;
       const listMeta = listInfo[listId]?.list;
       if (!listMeta) continue;
 
-      if (!groups[listId]) {
-        groups[listId] = {
-          list: { id: listId, name: listMeta.name },
-          tasks: [],
-        };
+      if (!map[listId]) {
+        map[listId] = { list: { id: listId, name: listMeta.name }, tasks: [] };
       }
-      groups[listId].tasks.push(task);
+      map[listId].tasks.push(task);
     }
 
-    return Object.values(groups);
-  }, [data, listInfo]);
+    return Object.values(map);
+  }, [tasks, listInfo]);
+
   const handleIsAddTask = (id: string) => {
-    setIsAddTask((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  }
+    setIsAddTask((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   useEffect(() => {
     if (data?.tag) setTitle(data.tag.name);
-  }, [data]);
+  }, [data, setTitle]);
 
   if (!data || !data.tag) {
-    return
+    return null;
+  }
+
+  const inboxSectionId = inbox ? listInfo[inbox]?.list?.sections?.[0]?.id : undefined;
+
+  if (tasks.length === 0) {
+    return (
+      <div className="flex gap-3 h-full select-none">
+        <SectionCard
+          count={0}
+          onPlusClick={() => setIsAddTaskEmpty((prev) => !prev)}
+          title={inbox ? listInfo[inbox]?.list?.name ?? "Inbox" : "Inbox"}
+        >
+          {inboxSectionId && isAddTaskEmpty && (
+            <AddTask
+              isCreate={isAddTaskEmpty}
+              setIsCreate={() => setIsAddTaskEmpty((prev) => !prev)}
+              sectionId={inboxSectionId}
+              listId={inbox!}
+              defaultConfirmRule={{ tags: [data.tag.name] }}
+            />
+          )}
+          <TaskList tasks={tasks} />
+        </SectionCard>
+      </div>
+    );
   }
 
   return (
     <div className="flex gap-3 h-full select-none">
-      {listTag.map((listTag) => (
-        <SectionCard key={listTag.list.id} count={listTag?.tasks.length ?? 0} onPlusClick={() => {handleIsAddTask(listTag.list.id)}} title={listTag.list.name} >
-          {section && inbox && isAddTask[listTag.list.id] && (
-            <AddTask
-              isCreate={isAddTask[listTag.list.id]}
-              setIsCreate={() => handleIsAddTask(listTag.list.id)}
-              sectionId={section.id}
-              listId={listTag.list.id}
-              defaultConfirmRule={{ tags:[data.tag.name] }}
-            />
-          )}
-          <TaskList tasks={listTag?.tasks ?? []} />
-        </SectionCard>
-      ))}
+      {groups.map((group) => {
+        const firstSectionId = listInfo[group.list.id]?.list?.sections?.[0]?.id;
+
+        return (
+          <SectionCard
+            key={group.list.id}
+            count={group.tasks.length}
+            onPlusClick={() => handleIsAddTask(group.list.id)}
+            title={group.list.name}
+          >
+            {firstSectionId && isAddTask[group.list.id] && (
+              <AddTask
+                isCreate={isAddTask[group.list.id]}
+                setIsCreate={() => handleIsAddTask(group.list.id)}
+                sectionId={firstSectionId}
+                listId={group.list.id}
+                defaultConfirmRule={{ tags: [data.tag.name] }}
+              />
+            )}
+            <TaskList tasks={group.tasks} />
+          </SectionCard>
+        );
+      })}
     </div>
   );
 };

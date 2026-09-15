@@ -12,15 +12,16 @@ import { inboxKeys } from './useInbox.hook';
 import { IListModel, ITaskModel } from '../../model';
 import { workSpaceKeys } from './useWorkSpaceQuery.hook';
 import { tagKeys } from './tagQuery.hook';
+import { filterKeys } from './useFilterQuery.hook';
 
 const setTaskIntoList = (
   listId: string,
   taskId: string,
   updateTask: Partial<IUpdateTaskDTO>,
 ) => {
-  const { listTaskInfo, setListInfo } = useWorkspaceStore.getState();
+  const { listInfo, setListInfo } = useWorkspaceStore.getState();
 
-  const currentList = listTaskInfo[listId]?.list;
+  const currentList = listInfo[listId]?.list;
   if (!currentList?.sections) return;
 
   const updatedSections: typeof currentList.sections = currentList.sections.map((section) => ({
@@ -52,11 +53,11 @@ const isSameDayAsToday = (date?: string | Date | null): boolean => {
 function getRelevantQueryKeys({
   listId,
   data,
-  listTaskInfo,
+  listInfo,
 }: {
   listId: string;
   data: Partial<IUpdateTaskDTO>;
-  listTaskInfo: Record<string, any>;
+  listInfo: Record<string, any>;
 }) {
   const newListId = data.list;
   const listChanged = !!newListId && newListId !== listId;
@@ -65,9 +66,9 @@ function getRelevantQueryKeys({
     'dueDate' in data || 'rule' in data || 'completed' in data;
 
   const isCurrentListInbox =
-    listTaskInfo[listId]?.list.name.toLocaleLowerCase() === 'inbox';
+    listInfo[listId]?.list.name.toLocaleLowerCase() === 'inbox';
   const isNewListInbox =
-    !!newListId && listTaskInfo[newListId]?.list.name.toLocaleLowerCase() === 'inbox';
+    !!newListId && listInfo[newListId]?.list.name.toLocaleLowerCase() === 'inbox';
 
   const isNowToday = isSameDayAsToday(data.rule?.start_date);
   const affectsToday =
@@ -88,14 +89,14 @@ function getRelevantQueryKeys({
 function getRelevantQueryKeysForCreate({
   listId,
   data,
-  listTaskInfo,
+  listInfo,
 }: {
   listId: string;
   data: { rule?: { start_date?: null | Date }; list?: string };
-  listTaskInfo: Record<string, any>;
+  listInfo: Record<string, any>;
 }) {
   const targetListId = data.list ?? listId;
-  const isTargetListInbox = listTaskInfo[targetListId]?.list.name.toLocaleLowerCase() === 'inbox';
+  const isTargetListInbox = listInfo[targetListId]?.list.name.toLocaleLowerCase() === 'inbox';
   return {
     list: listKeys.detail(targetListId),
     inbox: isTargetListInbox ? [inboxKeys.all] : [],
@@ -105,20 +106,20 @@ function getRelevantQueryKeysForCreate({
 export const useCreateTask = (listId: string) => {
   const queryClient = useQueryClient();
 
-  const { listTaskInfo,incrementListCount } = useWorkspaceStore();
+  const { listInfo,incrementListCount } = useWorkspaceStore();
   return useMutation({
     mutationFn: (data: ICreateTaskDTO) => taskApi.create(data, listId),
     onSuccess: (_response, variables) => {
       const { list, inbox } = getRelevantQueryKeysForCreate({
         listId,
         data: variables,
-        listTaskInfo,
+        listInfo,
       });
 
       if(variables.rule.tags){
         queryClient.invalidateQueries({queryKey:tagKeys.all})
       }
-      
+      queryClient.invalidateQueries({queryKey:filterKeys.all})
       queryClient.invalidateQueries({ queryKey: list });
       inbox.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       queryClient.invalidateQueries({ queryKey: todayKeys.today })
@@ -137,7 +138,7 @@ export const useCreateTask = (listId: string) => {
 
 export const useCreateTaskWithSection = (listId: string, sectionId: string) => {
   const queryClient = useQueryClient();
-  const { listTaskInfo,incrementListCount } = useWorkspaceStore();
+  const { listInfo,incrementListCount } = useWorkspaceStore();
 
   return useMutation({
     mutationFn: (data: ICreateTaskWithSectionDTO) =>
@@ -163,7 +164,7 @@ export const useCreateTaskWithSection = (listId: string, sectionId: string) => {
             start_date: variables.rule.start_date
           }
         },
-        listTaskInfo,
+        listInfo,
       });
 
       if(variables.rule.tags){
@@ -171,6 +172,7 @@ export const useCreateTaskWithSection = (listId: string, sectionId: string) => {
       }
 
       inbox.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
+            queryClient.invalidateQueries({queryKey:filterKeys.all})
       queryClient.invalidateQueries({ queryKey: todayKeys.today })
       queryClient.invalidateQueries({ queryKey: inboxKeys.all })
       queryClient.invalidateQueries({queryKey:todayKeys.upComming})
@@ -190,7 +192,7 @@ export const useCreateTaskWithSection = (listId: string, sectionId: string) => {
 
 export const useUpdateTask = (listId: string) => {
   const queryClient = useQueryClient();
-  const { listTaskInfo,incrementListCount } = useWorkspaceStore();
+  const { listInfo,incrementListCount } = useWorkspaceStore();
 
   return useMutation({
     mutationFn: ({ data, taskId }: { taskId: string; data: Partial<IUpdateTaskDTO> }) =>
@@ -207,9 +209,10 @@ export const useUpdateTask = (listId: string) => {
       const { lists, inbox, today, upComming } = getRelevantQueryKeys({
         listId,
         data,
-        listTaskInfo,
+        listInfo,
       });
-      
+       queryClient.invalidateQueries({queryKey:filterKeys.all})
+      queryClient.invalidateQueries({queryKey:tagKeys.all})
       lists.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       inbox.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
       today.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
@@ -236,11 +239,6 @@ export const useUpdateRule = (listId: string) => {
       const previousTask = previousList?.sections
         ?.flatMap((section) => section.tasks ?? [])
         .find((task) => task.id === taskId);
-
-      if(data.tags){
-        queryClient.invalidateQueries({queryKey:tagKeys.all})
-      }
-
       return { previous: previousTask };
     },
 
@@ -260,6 +258,8 @@ export const useUpdateRule = (listId: string) => {
               queryClient.invalidateQueries({queryKey:tagKeys.all})
       }
 
+      queryClient.invalidateQueries({queryKey:filterKeys.all})
+      queryClient.invalidateQueries({queryKey:tagKeys.all})
       queryClient.invalidateQueries({ queryKey: todayKeys.upComming })
       queryClient.invalidateQueries({ queryKey: todayKeys.today })
       queryClient.invalidateQueries({ queryKey: listKeys.detail(listId) });
@@ -278,22 +278,12 @@ export const useRemoveTask = (listId?: string) => {
 
   return useMutation({
     mutationFn: (id: string) => taskApi.remove(id),
-    onMutate: async (id: string) => {
-      const task = queryClient.getQueryData<{
-        rule?: { start_date?: string | Date };
-        completed?: boolean;
-      }>(taskKeys.detail(id));
-
-      return {
-        wasInToday: isSameDayAsToday(task?.rule?.start_date),
-      };
-    },
     onSuccess: (_data, id, context) => {
       queryClient.removeQueries({ queryKey: taskKeys.detail(id) });
-
       if (listId) {
         queryClient.invalidateQueries({ queryKey: listKeys.detail(listId) });
       }
+      queryClient.invalidateQueries({queryKey:filterKeys.all})
       queryClient.invalidateQueries({queryKey:tagKeys.all})
       queryClient.invalidateQueries({ queryKey: todayKeys.today });
       queryClient.invalidateQueries({queryKey:todayKeys.upComming})
@@ -313,6 +303,8 @@ export const useUpdateTaskStatus = (listId:string) => {
       taskApi.updateStatus(taskId, data),
 
     onSuccess:()=>{
+      queryClient.invalidateQueries({queryKey:filterKeys.all})
+      queryClient.invalidateQueries({queryKey:tagKeys.all})
       queryClient.invalidateQueries({ queryKey: todayKeys.today });
       queryClient.invalidateQueries({queryKey:todayKeys.upComming})
       queryClient.invalidateQueries({ queryKey: listKeys.detail(listId) });

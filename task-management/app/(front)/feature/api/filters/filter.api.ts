@@ -11,7 +11,6 @@ export const filterApi = {
     const res = await axiosInstance.get<{
       filter: IFilterModel,tasks:ITaskModel[]
     }>(`/filters/${id}`);
-    console.log(res)
     return res.data;
   },
 
@@ -22,8 +21,7 @@ export const filterApi = {
     return res.data.filters;
   },
 
-  create: async (data: ICreateFilterPayload): Promise<IFilterModel> => {
-        console.log(data)
+  create: async (data: IFilterModel): Promise<IFilterModel> => {
     const res = await axiosInstance.post<{ filter: IFilterModel }>('/filters', data);
 
     return res.data.filter;
@@ -34,7 +32,7 @@ export const filterApi = {
     return res.data.filter;
   },
 
-  update: async (id: string, data: Partial<ICreateFilterPayload>): Promise<IFilterModel> => {
+  update: async (id: string, data:Partial<IFilterModel>): Promise<IFilterModel> => {
     const res = await axiosInstance.patch<{
       filter: IFilterModel
     }>(`/filters/${id}`, data);

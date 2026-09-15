@@ -29,6 +29,7 @@ export class CreateRuleUsecase implements IUsecase<{
         : ({ mode: "none" } as IRepeat);
       const ruleCreate = await this.RuleRepository.create(
         {
+          ...rule,
           start_date: rule?.start_date
             ? new Date(rule.start_date)
             : undefined,
@@ -36,12 +37,7 @@ export class CreateRuleUsecase implements IUsecase<{
             ? new Date(rule.end_date)
             : undefined,
           repeat: repeatProps,
-          timer: rule?.timer,
           task: taskId,
-          path:rule?.path,
-          tags:rule?.tags,
-          list:rule.list,
-          priority:rule.priority,
         },
         session,
       );

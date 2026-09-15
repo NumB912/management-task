@@ -1,13 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Check, ChevronsUpDown, Tag, X } from "lucide-react";
+import { useEffect, useState, ReactNode } from "react";
+import { Check, Tag, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -16,31 +11,54 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useWorkspaceStore } from "../states/workspace.state";
-import { useShallow } from "zustand/react/shallow";
-import { ITaskModel } from "../model";
-import { useUpdateRule, useUpdateTask } from "../feature/hook/useTaskMutation.hook";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { useCreateTag, useRemoveTagOnlyMe } from "../feature/hook/useTagMutation.hook";
+import { ITagModel } from "../model";
 
-interface TagComboboxProps {
-  task: ITaskModel;
-  setOpen:(open:boolean)=>void
-  open:boolean
+export interface TagComboboxProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  selectedTags: string[];
+  allTags: ITagModel[];
+  onConfirm: (tags: string[]) => void;
+  onCreateTag?: (name: string) => void;
+  isPending?: boolean;
+  trigger?: ReactNode;
+  placeholder?: string;
+  emptyText?: string;
+  confirmText?: string;
+  cancelText?: string;
+  createTagText?: (search: string) => string;
+  align?: "start" | "center" | "end";
+  className?: string;
 }
 
-const TagCombobox = ({ task,open,setOpen }: TagComboboxProps) => {
+const TagCombobox = ({
+  open,
+  onOpenChange,
+  selectedTags,
+  allTags,
+  onConfirm,
+  onCreateTag,
+  isPending = false,
+  trigger,
+  placeholder = "Tìm hoặc tạo tag...",
+  emptyText = "Không tìm thấy tag.",
+  confirmText = "Xác nhận",
+  cancelText = "Huỷ",
+  createTagText = (s) => `Tạo tag "${s}"`,
+  align = "start",
+  className = "w-64 p-0",
+}: TagComboboxProps) => {
   const [search, setSearch] = useState("");
-  const allTags = useWorkspaceStore(useShallow((s) => s.getTagWithName("")));
-  const { mutate, isPending } = useUpdateRule(task.list);
-  const {mutate:CreateTag} = useCreateTag()
-  const taskTags = task.rule?.tags ?? [];
-  const [pendingTags, setPendingTags] = useState<string[]>(taskTags);
+  const [pendingTags, setPendingTags] = useState<string[]>(selectedTags);
+
   useEffect(() => {
     if (open) {
-      setPendingTags(taskTags);
+      setPendingTags(selectedTags);
+      setSearch("");
     }
+
   }, [open]);
 
   const toggleTag = (tag: string) => {
@@ -54,33 +72,24 @@ const TagCombobox = ({ task,open,setOpen }: TagComboboxProps) => {
     setPendingTags((prev) => prev.filter((t) => t !== tag));
   };
 
-  const handleAddTag = ()=>{
-          CreateTag({
-            name:search.trim()
-          })
-          toggleTag(search.trim());
-          setSearch("");
-  }
+  const handleAddTag = () => {
+    const name = search.trim();
+    onCreateTag?.(name);
+    toggleTag(name);
+    setSearch("");
+  };
 
   const hasChanges =
-    pendingTags.length !== taskTags.length ||
-    pendingTags.some((t) => !taskTags.includes(t));
+    pendingTags.length !== selectedTags.length ||
+    pendingTags.some((t) => !selectedTags.includes(t));
 
   const handleConfirm = () => {
-    mutate(
-      {
-        taskId: task.id,
-        data: { ...task.rule, tags: pendingTags } ,
-      },
-      {
-        onSuccess: () => setOpen(false),
-      },
-    );
+    onConfirm(pendingTags);
   };
 
   const handleCancel = () => {
-    setPendingTags(taskTags);
-    setOpen(false);
+    setPendingTags(selectedTags);
+    onOpenChange(false);
   };
 
   const filteredTags = allTags.filter((t) =>
@@ -88,6 +97,7 @@ const TagCombobox = ({ task,open,setOpen }: TagComboboxProps) => {
   );
 
   const canCreate =
+    !!onCreateTag &&
     search.trim().length > 0 &&
     !allTags.some((t) => t.name.toLowerCase() === search.trim().toLowerCase());
 
@@ -95,20 +105,18 @@ const TagCombobox = ({ task,open,setOpen }: TagComboboxProps) => {
     <DropdownMenu
       open={open}
       onOpenChange={(next) => {
-        if (!next) {
-          setPendingTags(taskTags);
-        }
-        setOpen(next);
+        if (!next) setPendingTags(selectedTags);
+        onOpenChange(next);
       }}
     >
       <DropdownMenuTrigger asChild>
-        <div className="h-0 w-0"></div>
+        {trigger ?? <div className="h-0 w-0" />}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-64 p-0" align="start">
+      <DropdownMenuContent className={className} align={align}>
         <Command>
           <CommandInput
-            placeholder="Tìm hoặc tạo tag..."
+            placeholder={placeholder}
             value={search}
             onValueChange={setSearch}
           />
@@ -131,7 +139,7 @@ const TagCombobox = ({ task,open,setOpen }: TagComboboxProps) => {
           )}
 
           <CommandList>
-            <CommandEmpty>Không tìm thấy tag.</CommandEmpty>
+            <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
               {filteredTags.map((tag) => {
                 const isSelected = pendingTags.includes(tag.name);
@@ -143,7 +151,7 @@ const TagCombobox = ({ task,open,setOpen }: TagComboboxProps) => {
                   >
                     <Tag className="mr-1 h-4 w-4" />
                     {tag.name}
-                                      <Check
+                    <Check
                       className={cn(
                         "mr-2 h-4 w-4",
                         isSelected ? "opacity-100" : "opacity-0",
@@ -153,12 +161,9 @@ const TagCombobox = ({ task,open,setOpen }: TagComboboxProps) => {
                 );
               })}
               {canCreate && (
-                <CommandItem
-                  value={search}
-                  onSelect={handleAddTag}
-                >
+                <CommandItem value={search} onSelect={handleAddTag}>
                   <Tag className="mr-2 h-4 w-4" />
-                  Tạo tag "{search.trim()}"
+                  {createTagText(search.trim())}
                 </CommandItem>
               )}
             </CommandGroup>
@@ -173,7 +178,7 @@ const TagCombobox = ({ task,open,setOpen }: TagComboboxProps) => {
               onClick={handleCancel}
               disabled={isPending}
             >
-              Huỷ
+              {cancelText}
             </Button>
             <Button
               type="button"
@@ -182,7 +187,7 @@ const TagCombobox = ({ task,open,setOpen }: TagComboboxProps) => {
               onClick={handleConfirm}
               disabled={isPending || !hasChanges}
             >
-              Xác nhận
+              {confirmText}
             </Button>
           </div>
         </Command>

@@ -1,11 +1,11 @@
-import { Schema, Types } from "mongoose";
+import { Schema, Types, HydratedDocument } from "mongoose";
 import { IRuleDocument } from "../interface";
 export const RuleSchema = new Schema<IRuleDocument>({
   start_date: { type: Date, required: false },
   end_date: { type: Date, required: false },
   path: { type: String, require: true },
   priority: { type: Number, enum: { values: [1, 2, 3, 4], message: "Lỗi không được lấy dữ liệu vượt qua từ 1-4" }, default: 4 },
-  list:{type:Types.ObjectId,require:true,ref:"list"},
+  list: { type: Types.ObjectId, require: true, ref: "list" },
   repeat: {
     type: new Schema(
       {
@@ -36,13 +36,24 @@ export const RuleSchema = new Schema<IRuleDocument>({
     default: { mode: "none" },
     required: false,
   },
-  tags: { type: [{ type: String, required: true}] },
+  tags: { type: [{ type: String, required: true }] },
   timer: {
-    type: String,
-    match: /^([01]\d|2[0-3]):[0-5]\d$/,
+    type: Number,
+    min: [0, "endTimer phải từ 0 đến 86400"],
+    max: [86400, "endTimer phải từ 0 đến 86400"],
     required: false,
   },
-  task: { type: Schema.Types.ObjectId, required: false, ref: "task"},
+  endTimer: {
+    type: Number,
+    required: false,
+    min: [0, "endTimer phải từ 0 đến 86400"],
+    max: [86400, "endTimer phải từ 0 đến 86400"],
+  },
+  color: {
+    type: String,
+    required: true
+  },
+  task: { type: Schema.Types.ObjectId, required: false, ref: "task" },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, required: false, default: null },
   deleted_at: { type: Date, require: false, default: null }

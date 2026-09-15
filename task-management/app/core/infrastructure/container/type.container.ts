@@ -10,6 +10,9 @@ export const TYPES = {
   CheckOwnerTagUsecase:Symbol.for("CheckOwnerTagUsecase"),
   WorkSpaceUsecase:Symbol.for("WorkSpaceUsecase"),
 
+  createPromodoUsecase:Symbol.for("createPromodoUsecase"),
+  getPromodoUsecase:Symbol.for("getPromodoUsecase"),
+
   GetProfileUsecase:Symbol.for("GetProfileUsecase"),
   GetTodayUsecase:Symbol.for("GetTodayUsecase"),
   GetUpcomingUsecase:Symbol.for("GetUpcomingUsecase"),
@@ -82,6 +85,8 @@ export const TYPES = {
   DeleteFilterUsecase: Symbol.for("DeleteFilterUsecase"),
   UpdateTagsInFilterUsecase:Symbol.for("UpdateTagsInFilterUsecase"),
 
+  PromodoRepository: Symbol.for("PromodoRepository"),
+
   UserRepository:Symbol.for("UserRepository"),
   RegisterEmailUsecase:Symbol.for("RegisterUserCase"),
   ResetPasswordUsecase:Symbol.for("ResetPasswordUsecase"),
@@ -104,5 +109,6 @@ export const TYPES = {
   MemberMapper:Symbol.for("MemberMapper"),
   ListMapper:Symbol.for("ListMapper"),
   FilterMapper:Symbol.for("FilterMapper"),
-  TaskMapper:Symbol.for("TaskMapper")
+  TaskMapper:Symbol.for("TaskMapper"),
+  PromodoMapper:Symbol.for("PromodoMapper")
 };

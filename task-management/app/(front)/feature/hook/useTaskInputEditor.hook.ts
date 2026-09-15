@@ -28,7 +28,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
   const refDivInput = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState<boolean>(true);
-  const { getTagWithName, listTaskInfo, getListWithName } = useWorkspaceStore();
+  const { getTagWithName, listInfo, getListWithName } = useWorkspaceStore();
   const [isOpenAddTag, setIsOpenAddTag] = useState<boolean>(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tag, setTag] = useState<string>("");
@@ -452,7 +452,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     setConfirmRule,
     isOpenList,
     setIsOpenList,
-    listTaskInfo,
+    listInfo,
     handleInput,
     handleAddTag,
     handleAddList,

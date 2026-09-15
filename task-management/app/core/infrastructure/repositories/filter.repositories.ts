@@ -20,7 +20,7 @@ export class FilterRepository
     return this.filterMapper.toDomainPartial(doc)
   }
   protected toPresistence(doc: IFilterWithId): Partial<IFilterDocument> {
-    return this.filterMapper.toPersistencePartial(doc)
+    return this.filterMapper.toPersistence(doc)
   }
   protected toPresistencePartial(doc: Partial<IFilterWithId>): Partial<IFilterDocument> {
     return this.filterMapper.toPersistencePartial(doc)

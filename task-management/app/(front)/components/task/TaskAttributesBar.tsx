@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import CalendarComponent from "../calendar/calendar.component";
 import { formatDate } from "../../utils/getDayOfMonth.utils";
 import { IRuleModel } from "../../model/rule/rule.model";
+import { formatTimer } from "../../utils/formatTimer";
 
 
 const PRIORITY_CONFIG = [
@@ -40,7 +41,7 @@ const TaskAttributesBar = ({
       <DropdownMenu>
         <DropdownMenuTrigger>
           <span className="p-1.5 border rounded-sm text-sm flex items-center gap-2 text-neutral-700">
-            <InboxIcon className="size-3" /> <span className="text-sm">{confirmListName}{confirmSectionName&&"/"+confirmSectionName}</span>
+            <InboxIcon className="size-3" /> <span className="text-sm">{confirmListName.toLocaleLowerCase()=="inbox"?"Hộp thư":confirmListName}{confirmSectionName&&"/"+confirmSectionName}</span>
           </span>
         </DropdownMenuTrigger>
         <DropdownMenuContent className={cn("max-h-50 min-w-50 p-0 rounded-none")}>
@@ -87,7 +88,7 @@ const TaskAttributesBar = ({
                 {confirmedRule.start_date ? formatDate(confirmedRule.start_date) : "Thêm ngày"}
               </span>
               {confirmedRule.timer && (
-                <span className="flex items-center gap-1 text-sm">{confirmedRule.timer}</span>
+                <span className="flex items-center gap-1 text-sm">{formatTimer(confirmedRule.timer)}</span>
               )}
               {confirmedRule.repeat?.mode !== "none" && <Repeat className="w-4 h-4" />}
             </Button>

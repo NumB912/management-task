@@ -225,15 +225,15 @@ const Section = ({
   if (!section) return null;
 
   return (
-    <div className={`${isOnDrag ? " min-w-xs min-h-xs bg-gray-100 rounded-md" : ""}`}>
+    <div className={`${isOnDrag ? " max-w-[min(40vw,500px)] min-w-65 w-full bg-gray-100 rounded-md" : ""}`}>
       <Card
         ref={sectionRef}
         data-section={`${section.id}`}
         key={section.id}
-        className={cn("ring-0 rounded-0 w-full max-w-xs! gap-2")}
+        className={cn("ring-0 rounded-0 gap-2 p-2")}
       >
         <CardHeader
-          className="font-bold flex text-md gap-1 justify-between z-50"
+          className="font-bold flex text-md gap-1 justify-between z-50 px-1"
           onMouseDown={MouseDown}
           onMouseUp={() => {
             if (dragTimeoutRef.current) {
@@ -338,10 +338,9 @@ const Section = ({
             )}
           </div>
         </CardHeader>
-        <CardContent className={cn("p-0! overflow-auto overflow-y-auto gap-0.5 flex flex-col items-center cursor-grab",
-    "max-h-[min(50vh,500px)] w-full min-w-[40vh]",       
-    "sm:max-h-[min(70vh,700px)] sm:max-w-lg!",  
-    "lg:max-h-[min(75vh,900px)] lg:max-w-md!",)}>
+        <CardContent className={cn( "p-0! gap-0.5 flex flex-col items-center",
+    "overflow-x-hidden overflow-y-auto",
+    "max-h-[min(50vh,500px)] min-w-65! w-full")}>
           <AddTask
             isCreate={isCreateTask}
             setIsCreate={setIsCreateTask}

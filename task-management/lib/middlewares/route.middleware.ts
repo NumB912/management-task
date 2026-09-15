@@ -18,6 +18,7 @@ export const routes: Route[] = [
     },
     { matcher: "/api/lists/allListSection", chain: [await verifyToken()] },
     { matcher: "/api/filters/:filterId", chain: [await verifyToken()] },
+    { matcher: "/api/promodo", chain: [await verifyToken()] },
     {
         matcher: "/api/lists/:listId", chain: [await verifyToken(), await checkPermission({
             "can edit": ["GET"],

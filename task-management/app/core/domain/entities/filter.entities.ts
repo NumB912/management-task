@@ -7,9 +7,9 @@ export interface IFilter{
     user:string,
     tags:string[],
     description?:string
-    priority?:Ipriority,
-    start_date?:Date,
-    end_date?:Date,
+    priority?:Ipriority|null,
+    start_date?:Date|null,
+    end_date?:Date|null,
     specials:ISpecials,
     status:IStatus
     created_at:Date

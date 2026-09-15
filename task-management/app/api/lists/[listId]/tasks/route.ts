@@ -23,22 +23,3 @@ export async function POST(
     });
   return NextResponse.json({ createList }, { status: 200 });
 }
-
-// export async function GET(
-//   req: NextRequest,
-//   { params }: { params: Promise<{ sectionId: string, listId: string; }> },
-// ) {
-//   const resolvedParams = await params;
-//   const { sectionId,listId } = resolvedParams;
-//   const getByID = await (await GetContainer())
-//     .resolve<GetAllTasksUsecase>(TYPES.GetAllTaskUsecase)
-//     .execute({
-//       section:sectionId,
-//       list:listId
-//     });
-
-//   return NextResponse.json(
-//     { message: "Thành công", data: getByID },
-//     { status: 200 },
-//   );
-// }

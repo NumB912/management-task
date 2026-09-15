@@ -2,6 +2,7 @@ export * from "./filters";
 export * from "./list";
 export * from "./member";
 export * from "./middleware";
+export * from "./promodo";
 export * from "./rule";
 export * from "./section";
 export * from "./tag";

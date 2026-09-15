@@ -13,6 +13,8 @@ import {
 import { IFilterDocument, IListDocument, IMemberDocument, IRuleDocument, ISectionDocument, ITagDocument, ITaskDocument, IUserDocument } from "./interface";
 import { MongodbClient } from "./mongoClient.Database";
 import { databaseConfig } from "@/app/core/config";
+import { IPromodoDocument } from "./interface/promodo.document";
+import { PromodoSchema } from "./schema/promodo.schema";
 const globalWithModels = globalThis as typeof globalThis & {
   _dbModels?: DatabaseModels;
 };
@@ -26,6 +28,7 @@ export class DatabaseModels {
   readonly Tag: Model<ITagDocument>;
   readonly User: Model<IUserDocument>;
   readonly Member: Model<IMemberDocument>;
+  readonly Promodo:Model<IPromodoDocument>
 
   private constructor(client: Mongoose) {
     this.Task = this.getOrCreate<ITaskDocument>(client, "task", TaskSchema);
@@ -40,6 +43,7 @@ export class DatabaseModels {
     this.Tag = this.getOrCreate<ITagDocument>(client, "tag", TagSchema);
     this.User = this.getOrCreate<IUserDocument>(client, "user", UserSchema)
     this.Member = this.getOrCreate<IMemberDocument>(client, "member", MemberSchema)
+    this.Promodo = this.getOrCreate<IPromodoDocument>(client, "promodo", PromodoSchema)
   }
 
   private getOrCreate<T>(client: Mongoose, name: string, schema: any): Model<T> {
