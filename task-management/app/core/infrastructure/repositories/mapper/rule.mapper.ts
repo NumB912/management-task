@@ -50,7 +50,6 @@ export class RuleMapper implements IMapper<IRuleDocument, IRuleWithId, IRulePopu
   }
 
   toDomainPopulate(doc: IRulePopulateDocument): IRule {
-    console.log(doc)
     return {
       id: doc._id.toString(),
       list:doc.list.toString(),

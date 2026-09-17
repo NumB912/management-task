@@ -30,7 +30,7 @@ export function AddListDialog({ open, onClose }: Readonly<AddListDialogProps>) {
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
       Object.values(s.listInfo).map((item) =>
-        item.list.name.trim().toLowerCase()
+        item.name.trim().toLowerCase()
       )
     )
   );

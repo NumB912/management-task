@@ -86,6 +86,8 @@ export const TaskList = ({ tasks }: TaskSectionProp) => {
                 className="flex gap-2 items-center bg-white w-full mt-2 rounded-md border border-gray-200 shadow  "
               >
                 <Task
+                key={value.id}
+                onUpdateTask={()=>{}}
                   task={value}
                   onDelete={deleteTask}
                   onUpdateStatus={handleUpdateTaskStatus}

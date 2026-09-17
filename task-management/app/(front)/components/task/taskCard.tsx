@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import ListDropDown from "../../component/ui/list.component";
 import CalendarComponent from "../calendar/calendar.component";
@@ -109,26 +109,29 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
     const [isOpenTaskEdit, setisOpenTaskEdit] = useState<boolean>(false);
     const [openTagEdit, setOpenTagEdit] = useState<boolean>(false);
     const [openContextMenu, setOpenContextMenu] = useState<boolean>(false);
-    const lists = useWorkspaceStore(
-        useShallow((state) => state.getListWithName("")),
+    const listGet = useWorkspaceStore(
+        (state) => state.getListWithName
     );
-    const allTags = useWorkspaceStore(
-        useShallow((state) => state.getTagWithName("")),
-    );
-    const [isUpdatingTags,setIsUpdatingTags] = useState<boolean>(false)
+    const addTask = useWorkspaceStore((state) => state.addTask)
+    const lists = useMemo(() => {
+        return listGet("")
+    }, [])
+
+    const [isUpdatingTags, setIsUpdatingTags] = useState<boolean>(false)
     const taskRef = useRef<HTMLDivElement>(null);
     const { mutate: updateRule } = useUpdateRule(task.list)
     const { mutate: updateTask } = useUpdateTask(task.list)
     const { mutate: deleteTask } = useRemoveTask(task.list)
     const { mutate: updateStatusTask } = useUpdateTaskStatus(task.list)
-    const {mutate:createTag} = useCreateTag()
-   const handleConfirmTags = (tags: string[]) => {
-       updateRule(
-           { taskId: task.id, data: { ...task.rule, tags } },
-           { onSuccess: () => setOpenTagEdit(false) },
-       );
-   }
-   
+    const { mutate: createTag } = useCreateTag()
+    const updateTaskStore = useWorkspaceStore((state) => state.updateTask)
+    const handleConfirmTags = (tags: string[]) => {
+        updateRule(
+            { taskId: task.id, data: { ...task.rule, tags } },
+            { onSuccess: () => setOpenTagEdit(false) },
+        );
+    }
+
     if (!task && depth > 4 || !task.id) {
         return;
     }
@@ -146,25 +149,26 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
         })
     }
 
-    const handleUpdateStatusTask = (taskId: string, status: IStatus) => {
-        setStatus(status)
-        onUpdateStatus?.(taskId, status)
-        updateStatusTask({
-            taskId: taskId,
-            data: {
-                status: status
-            }
-        }, {
-            onError: () => {
-                setStatus(task.status)
-            },
-        })
-    }
+   const handleUpdateStatusTask = (taskId: string, status: IStatus) => {
+    setStatus(status)
+    updateStatusTask({
+        taskId: taskId,
+        data: { status: status }
+    }, {
+        onError: (error) => {
+            console.log("2. onError chạy", error) 
+            setStatus(task.status)
+        },
+        onSuccess(data) {
+
+        },
+    })
+}
     const handleDeleteTask = (taskId: string) => {
         onDelete(taskId)
         deleteTask(taskId, {
             onError: () => {
-            
+
             }
         })
 
@@ -201,7 +205,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                                         )}
                                         <TaskCheckbox
                                             status={status}
-                                            priority={task?.rule?.priority??4}
+                                            priority={task?.rule?.priority ?? 4}
                                             onHandle={() => {
                                                 task.status !== "pending" ? handleUpdateStatusTask(task.id, "pending") : handleUpdateStatusTask(task.id, "done")
                                             }
@@ -402,6 +406,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                                             )}
                                             onClick={(e) => {
                                                 e.stopPropagation();
+
                                                 updateRule({
                                                     taskId: task.id,
                                                     data: {
@@ -444,13 +449,20 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                                                 )}
                                                 onClick={(e) => {
                                                     e.preventDefault();
+
+
                                                     updateRule({
                                                         taskId: task.id,
                                                         data: {
                                                             priority: p as 1 | 2 | 3 | 4,
                                                         },
                                                     });
-
+                                                    updateTaskStore(task.id, {
+                                                        rule: {
+                                                            ...task.rule,
+                                                            priority: p as 1 | 2 | 3 | 4,
+                                                        }
+                                                    })
                                                     setOpenContextMenu(false);
                                                 }}
                                             >
@@ -509,11 +521,11 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                                             ) : (
                                                 <ContextMenuItem
                                                     onSelect={() => {
-                                                        handleUpdateTask(task.id,{
-                                                         
-                                            
-                                                                list: list.id,
-                                                            
+                                                        handleUpdateTask(task.id, {
+
+
+                                                            list: list.id,
+
                                                         });
                                                     }}
                                                 >
@@ -562,15 +574,14 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                 onUpdateTask={handleUpdateTask}
                 task={task}
             />
-         <TagCombobox
-        open={openTagEdit}
-        onOpenChange={setOpenTagEdit}
-        selectedTags={task.rule?.tags ?? []}
-        allTags={allTags}
-        isPending={isUpdatingTags}
-        onCreateTag={(name) => createTag({ name })}
-        onConfirm={handleConfirmTags}
-    />
+            <TagCombobox
+                open={openTagEdit}
+                onOpenChange={setOpenTagEdit}
+                selectedTags={task.rule?.tags ?? []}
+                isPending={isUpdatingTags}
+                onCreateTag={(name) => createTag({ name })}
+                onConfirm={handleConfirmTags}
+            />
         </div>
     );
 };

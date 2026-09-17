@@ -22,8 +22,7 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
 
     for (const task of tasks) {
       const listId = task.list
-      const listName = listInfo[task.list]?.list.name ?? "..."
-
+      const listName = listInfo[task.list]?.name ?? "..."
       if (!groups.has(listId)) {
         groups.set(listId, { listId, listName, tasks: [] })
       }

@@ -6,3 +6,7 @@ export interface ISectionModel{
     tasks:ITaskModel[],
     order:number,
 }
+
+export interface ISectionModelState extends Omit<ISectionModel,"tasks">{
+    tasks:string[]
+}

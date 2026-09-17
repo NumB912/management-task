@@ -15,5 +15,5 @@ export interface ITaskModel {
 }
 
 export interface ICreateTaskModel extends Omit<ITaskModel,"rule"|"children"|"parent"|"id"|"status"|"order">{
-  rule:Omit<IRuleModel,"id"|"task"|"">
+  rule:Omit<IRuleModel,"id"|"task">
 } 

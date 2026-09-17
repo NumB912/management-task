@@ -21,9 +21,12 @@ import AddTask from "../components/task/addTask";
 import {
   useUpdateSection,
 } from "../feature/hook/useSectionMutation.hook";
+import { useWorkspace } from "../feature/hook/useWorkSpaceQuery.hook";
+import { useWorkspaceStore } from "../states/workspace.state";
+import { useShallow } from "zustand/react/shallow";
 
 interface SectionProp {
-  section: ISectionModel;
+  section: Omit<ISectionModel,"tasks">;
   listId: string;
   changePosition: (starts: string, change: string) => void;
   savePosition: (starts: string, change: string) => void;
@@ -55,6 +58,7 @@ const Section = ({
   const [sectionNameError, setSectionNameError] = useState<string>("");
   const wasDraggingRef = useRef(false);
   const { mutate: mutateUpdateSection, isSuccess } = useUpdateSection(listId);
+  const tasks = useWorkspaceStore(useShallow((state)=>Object.values(state.taskIndex).filter((task)=>task.section==section.id)))
   useEffect(() => {
     if (isFocusInput) {
       inputRef.current?.focus();
@@ -78,7 +82,7 @@ const Section = ({
   }, [isFocusInput, section.name]);
 
   useEffect(() => {
-    setTaskCount(section?.tasks?.length ?? 0);
+    setTaskCount(tasks.length?? 0);
   }, [section]);
 
   function eventKeydown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -225,7 +229,7 @@ const Section = ({
   if (!section) return null;
 
   return (
-    <div className={`${isOnDrag ? " max-w-[min(40vw,500px)] min-w-65 w-full bg-gray-100 rounded-md" : ""}`}>
+    <div className={`${isOnDrag ? " max-w-[min(40vw,500px)] min-w-65 bg-gray-100 rounded-md" : ""}`}>
       <Card
         ref={sectionRef}
         data-section={`${section.id}`}
@@ -347,7 +351,7 @@ const Section = ({
             sectionId={section.id}
             listId={listId}
           />
-          <TaskList tasks={section.tasks ?? []} />
+          <TaskList tasks={tasks ?? []} />
         </CardContent>
       </Card>
     </div>

@@ -11,3 +11,8 @@ export interface IListModel{
     user:string,
     members:string[]
 }
+
+
+export interface IListModelState extends Omit<IListModel,"sections">{
+    sections:string[]
+}

@@ -25,40 +25,9 @@ type DeleteListContext = {
 };
 
 export const useDeleteList = () => {
-  const queryClient = useQueryClient();
-
   return useMutation<void, AxiosError<ApiErrorResponse>, string, DeleteListContext>({
     mutationFn: async (id: string): Promise<void> => {
       await listApi.delete(id);
-    },
-
-    onMutate: async (id: string) => {
-      await queryClient.cancelQueries({ queryKey: workSpaceKeys.index() });
-
-      const previousWorkspace = queryClient.getQueryData<IWorkspaceGetDTO>(
-        workSpaceKeys.index()
-      );
-
-      queryClient.setQueryData<IWorkspaceGetDTO>(workSpaceKeys.index(), (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          lists: old.lists.filter((data) => data.list.id !== id),
-        };
-      });
-
-      return { previousWorkspace };
-    },
-
-    onError: (error, _id, context) => {
-      if (context?.previousWorkspace) {
-        queryClient.setQueryData(workSpaceKeys.index(), context.previousWorkspace);
-      }
-      console.error('Delete list failed:', error.response?.data?.message ?? error.message);
-    },
-
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: workSpaceKeys.index() });
     },
   });
 };
@@ -79,39 +48,6 @@ export const useUpdateList = () => {
   return useMutation<void, AxiosError<ApiErrorResponse>, UpdateListDTO, UpdateListContext>({
     mutationFn: async ({ id, name }: UpdateListDTO): Promise<void> => {
       await listApi.update(id, name);
-    },
-
-    onMutate: async ({ id, name }: UpdateListDTO) => {
-      await queryClient.cancelQueries({ queryKey: workSpaceKeys.index() });
-
-      const previousWorkspace = queryClient.getQueryData<IWorkspaceGetDTO>(
-        workSpaceKeys.index()
-      );
-
-      queryClient.setQueryData<IWorkspaceGetDTO>(workSpaceKeys.index(), (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          lists: old.lists.map((data) =>
-            data.list.id === id
-              ? { ...data, list: { ...data.list, name } }
-              : data
-          ),
-        };
-      });
-
-      return { previousWorkspace };
-    },
-
-    onError: (error, _variables, context) => {
-      if (context?.previousWorkspace) {
-        queryClient.setQueryData(workSpaceKeys.index(), context.previousWorkspace);
-      }
-      console.error('Update list failed:', error.response?.data?.message ?? error.message);
-    },
-
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: workSpaceKeys.index() });
     },
   });
 };

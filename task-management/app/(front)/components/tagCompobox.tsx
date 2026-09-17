@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, ReactNode } from "react";
+import { useEffect, useState, ReactNode, useMemo } from "react";
 import { Check, Tag, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { ITagModel } from "../model";
+import { useWorkspaceStore } from "../states/workspace.state";
+import { useShallow } from "zustand/react/shallow";
 
 export interface TagComboboxProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedTags: string[];
-  allTags: ITagModel[];
   onConfirm: (tags: string[]) => void;
   onCreateTag?: (name: string) => void;
   isPending?: boolean;
@@ -37,7 +38,6 @@ const TagCombobox = ({
   open,
   onOpenChange,
   selectedTags,
-  allTags,
   onConfirm,
   onCreateTag,
   isPending = false,
@@ -52,13 +52,19 @@ const TagCombobox = ({
 }: TagComboboxProps) => {
   const [search, setSearch] = useState("");
   const [pendingTags, setPendingTags] = useState<string[]>(selectedTags);
+  const getTagWithName = useWorkspaceStore(
+    useShallow((state) => state.getTagWithName)
+  );
 
+const allTags: ITagModel[] = useMemo(
+  () => getTagWithName(search),
+  [getTagWithName, search]
+);
   useEffect(() => {
     if (open) {
       setPendingTags(selectedTags);
       setSearch("");
     }
-
   }, [open]);
 
   const toggleTag = (tag: string) => {
@@ -85,6 +91,7 @@ const TagCombobox = ({
 
   const handleConfirm = () => {
     onConfirm(pendingTags);
+    onOpenChange(false)
   };
 
   const handleCancel = () => {

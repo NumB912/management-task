@@ -35,10 +35,6 @@ interface CalendarProp {
   ) => void;
 }
 
-const defaultRepeat: IRepeat = {
-  mode: "none",
-};
-
 const factoryCalendar = (repeat: IRepeat, startDate: Date, date: Date) => {
   switch (repeat.mode) {
     case "day": {
@@ -113,9 +109,9 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
     selectedDate: rule?.start_date
       ? new Date(rule.start_date)
       : normalizeDate(new Date()),
-    defaultRepeat: rule.repeat,
-    repeat: rule.repeat,
-    selectedEndDate: rule.end_date,
+    defaultRepeat: rule?.repeat,
+    repeat: rule?.repeat,
+    selectedEndDate: rule?.end_date??null,
   });
 
   useEffect(() => {
@@ -183,7 +179,7 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
       >
         {trigger}
       </DropdownMenuTrigger>
-      <DropdownMenuContent style={{ zIndex: 60 }} className="w-full">
+      <DropdownMenuContent style={{ zIndex: 60 }} className="w-full" align="start" side="left">
         <div className="p-2 text-sm">
           <div className="flex flex-col gap-1 py-3 border-gray-200">
             <div

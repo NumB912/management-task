@@ -204,14 +204,14 @@ const layout = ({
                       icon: <Edit size={16} />,
                       label: "Chỉnh sửa",
                       onSelect: () =>
-                        setEditingList({ id: listId, name: info.list.name }),
+                        setEditingList({ id: listId, name: info.name }),
                     },
                     {
                       icon: <Trash2 size={16} />,
                       label: "Xóa",
                       destructive: true,
                       onSelect: () =>
-                        setDeletingList({ id: listId, name: info.list.name }),
+                        setDeletingList({ id: listId, name: info.name }),
                     },
                     {
                       icon: <Share2 size={16} />,
@@ -221,7 +221,7 @@ const layout = ({
                       },
                     },
                   ];
-                  if (info.list.name.toLocaleLowerCase() == "inbox") {
+                  if (info.name.toLocaleLowerCase() == "inbox") {
                     return;
                   }
 
@@ -249,9 +249,9 @@ const layout = ({
                               />
                               <span className="flex items-center gap-1 text-sm min-w-0">
                                 <span className="truncate max-w-30">
-                                  {info.list.name}
+                                  {info.name}
                                 </span>
-                                {info.list.isShareList && (
+                                {info.isShareList && (
                                   <Users size={12} className="shrink-0" />
                                 )}
                               </span>
@@ -259,7 +259,7 @@ const layout = ({
 
                             <span className="flex items-center gap-2 relative">
                               <span className="group-hover/list-item:hidden flex-1 absolute right-1 text-sm text-neutral-600">
-                                {info.taskCount}
+                                {0}
                               </span>
                               <DropdownMenu>
                                 <DropdownMenuTrigger

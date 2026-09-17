@@ -18,7 +18,8 @@ import { Rubik_Doodle_Shadow } from "next/font/google";
 @injectable()
 export class ListRepository
   extends BaseRepository<IListDocument, IListWithId, string>
-  implements IListRepository {
+  implements IListRepository
+{
   protected toDomain(doc: IListDocument): IListWithId {
     return this.ListMapper.toDomain(doc);
   }
@@ -78,123 +79,100 @@ export class ListRepository
     const next7DaysEnd = new Date(todayStart);
     next7DaysEnd.setDate(next7DaysEnd.getDate() + 7);
     next7DaysEnd.setHours(23, 59, 59, 999);
-const lists = await this.db.List.aggregate([
-  { $match: { ...baseAccessMatch } },
-  {
-    $lookup: {
-      from: "tasks",
-      let: { sectionIds: "$sections" },
-      pipeline: [
-        {
-          $match: {
-            $expr: { $in: ["$section", "$$sectionIds"] },
-            status: { $in: ["pending"] },
-          },
-        },
-        { $count: "count" },
-      ],
-      as: "taskCount",
-    },
-  },
-  {
-    $lookup: {
-      from: "sections",
-      foreignField: "list",
-      localField: "_id",
-      as: "sections",
-      pipeline: [
-        {
-          $lookup: {
-            from: "tasks",
-            foreignField: "section",
-            localField: "_id",
-            as: "tasks",
-            pipeline: [
-              {
-                $lookup: {
-                  from: "rules",
-                  foreignField: "task",
-                  localField: "_id",
-                  as: "rules",
-                },
+    const lists = await this.db.List.aggregate([
+      { $match: { ...baseAccessMatch } },
+      { $addFields: { sectionIds: "$sections" } },
+      {
+        $lookup: {
+          from: "sections",
+          let: { ids: "$sectionIds" },
+          pipeline: [
+            { $match: { $expr: { $in: ["$_id", "$$ids"] } } },
+            {
+              $addFields: {
+                order: { $indexOfArray: ["$$ids", "$_id"] },
               },
-              {
-                $set: {
-                  rule: { $arrayElemAt: ["$rules", 0] },
-                },
-              },
-              { $unset: "rules" },
-            ],
-          },
-        },
-      ],
-    },
-  },
-  {
-    $addFields: {
-      taskCount: {
-        $ifNull: [{ $arrayElemAt: ["$taskCount.count", 0] }, 0],
-      },
-    },
-  },
-]).session(session ?? null);
-    const findListsByRuleDateRange = (start: Date, end: Date) =>
-      this.db.List.aggregate([
-        { $match: baseAccessMatch },
-        {
-          $lookup: {
-            from: "tasks",
-            foreignField: "list",
-            localField: "_id",
-            pipeline: [
-              {
-                $lookup: {
-                  from: "rules",
-                  foreignField: "_id",
-                  localField: "rule",
-                  as: "rulesData",
-                  pipeline: [
-                    { $match: { start_date: { $gte: start, $lte: end } } },
-                    { $project: { _id: 1 } },
-                  ],
-                },
-              },
-              {
-                $match: {
-                  "rulesData.0": { $exists: true },
-                  status: { $in: ["pending"] },
-                },
-              },
-              { $count: "count" },
-            ],
-            as: "taskCount",
-          },
-        },
-        {
-          $addFields: {
-            taskCount: {
-              $ifNull: [{ $arrayElemAt: ["$taskCount.count", 0] }, 0],
             },
-          },
+            { $sort: { order: 1 } },
+            {
+              $lookup: {
+                from: "tasks",
+                foreignField: "section",
+                localField: "_id",
+                as: "tasks",
+                pipeline: [
+                  {
+                    $lookup: {
+                      from: "rules",
+                      foreignField: "task",
+                      localField: "_id",
+                      as: "rules",
+                    },
+                  },
+                  {
+                    $set: {
+                      rule: { $arrayElemAt: ["$rules", 0] },
+                    },
+                  },
+                  { $unset: "rules" },
+                ],
+              },
+            },
+          ],
+          as: "sections",
         },
-        { $group: { _id: null, total: { $sum: "$taskCount" } } },
-      ]).session(session ?? null);
-    const [today, next7Days] = await Promise.all([
-      findListsByRuleDateRange(todayStart, todayEnd),
-      findListsByRuleDateRange(next7DaysStart, next7DaysEnd),
-    ]);
+      },
+      { $unset: "sectionIds" },
+    ]).session(session ?? null);
+    // const findListsByRuleDateRange = (start: Date, end: Date) =>
+    //   this.db.List.aggregate([
+    //     { $match: baseAccessMatch },
+    //     {
+    //       $lookup: {
+    //         from: "tasks",
+    //         foreignField: "list",
+    //         localField: "_id",
+    //         pipeline: [
+    //           {
+    //             $lookup: {
+    //               from: "rules",
+    //               foreignField: "_id",
+    //               localField: "rule",
+    //               as: "rulesData",
+    //               pipeline: [
+    //                 { $match: { start_date: { $gte: start, $lte: end } } },
+    //                 { $project: { _id: 1 } },
+    //               ],
+    //             },
+    //           },
+    //           {
+    //             $match: {
+    //               "rulesData.0": { $exists: true },
+    //               status: { $in: ["pending"] },
+    //             },
+    //           },
+    //           { $count: "count" },
+    //         ],
+    //         as: "taskCount",
+    //       },
+    //     },
+    //     {
+    //       $addFields: {
+    //         taskCount: {
+    //           $ifNull: [{ $arrayElemAt: ["$taskCount.count", 0] }, 0],
+    //         },
+    //       },
+    //     },
+    //     { $group: { _id: null, total: { $sum: "$taskCount" } } },
+    //   ]).session(session ?? null);
+    // const [today, next7Days] = await Promise.all([
+    //   findListsByRuleDateRange(todayStart, todayEnd),
+    //   findListsByRuleDateRange(next7DaysStart, next7DaysEnd),
+    // ]);
     return {
-      lists: lists.map((doc) => ({
-        list: this.ListMapper.toDomainPopulate(doc),
-        taskCount: doc.taskCount ?? 0,
-      })),
-      inbox: null,
-      today: today.map((doc) => ({
-        taskCount: doc.total ?? 0,
-      })),
-      next7Days: next7Days.map((doc) => ({
-        taskCount: doc.total ?? 0,
-      })),
+      lists: lists.map((doc) => (
+        this.ListMapper.toDomainPopulate(doc)
+      ))
     };
   }
 
@@ -420,12 +398,12 @@ const lists = await this.db.List.aggregate([
           },
         },
       ])) as unknown as {
+      _id: Types.ObjectId;
+      members: {
         _id: Types.ObjectId;
-        members: {
-          _id: Types.ObjectId;
-          user: Types.ObjectId;
-        }[];
-      };
+        user: Types.ObjectId;
+      }[];
+    };
 
     if (!doc) {
       return null;

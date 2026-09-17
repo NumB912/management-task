@@ -13,7 +13,7 @@ import { IUnitWork } from "@/app/core/domain/entities/unitwork.entities";
 export class UpdateStatusUsecase implements IUsecase<Omit<
   ITaskWithId,
   "id"
-> | null> {
+> |ITask| null> {
   constructor(
     private readonly taskRepository: ITaskRepository,
     private readonly calcService: ICaculateDeadLine,
@@ -28,7 +28,7 @@ export class UpdateStatusUsecase implements IUsecase<Omit<
       data: Pick<ITask, "status">,
       userId: string
     }
-  ): Promise<Omit<ITaskWithId, "id"> | null> {
+  ): Promise<Omit<ITaskWithId, "id">|ITask | null> {
 
     const { data, taskId} = DTO
     if (!taskId || !data)
@@ -37,14 +37,6 @@ export class UpdateStatusUsecase implements IUsecase<Omit<
     const taskCur = await this.taskRepository.findByIdPopulate(taskId);
     if (!taskCur)
       throw new AppError("NOT_FOUND", "Không tìm thấy task để cập nhật", 404);
-
-    if (!data) {
-      throw new AppError(
-        "NOT_FOUND",
-        "Không tìm thấy dữ liệu để cập nhật",
-        404,
-      );
-    }
     try {
       await this.unitWork.startTransaction();
       const session = await this.unitWork.getSession();
@@ -54,8 +46,8 @@ export class UpdateStatusUsecase implements IUsecase<Omit<
           taskCur.rule!
         );
 
-        if(nextDay && taskCur.rule?.end_date && nextDay.getTime() > taskCur.rule?.end_date?.getTime()!){
-                  const updateTask =  await this.taskRepository.update(
+    if(nextDay && taskCur.rule?.end_date && nextDay.getTime() > taskCur.rule?.end_date?.getTime()!){
+       const updateTask =  await this.taskRepository.update(
           taskId,
           {
             status: data.status,
@@ -78,11 +70,11 @@ export class UpdateStatusUsecase implements IUsecase<Omit<
           path:rule?.path,  
           list: taskCur.list,
           task:null,  
+          color:taskCur.rule?.color,
           start_date: nextDay
         }, session)
 
-        
-        const updateTask =  await this.taskRepository.update(
+        await this.taskRepository.update(
           taskId,
           {
             status: data.status,
@@ -98,7 +90,7 @@ export class UpdateStatusUsecase implements IUsecase<Omit<
             every:undefined,
             specificDays:[]
           }
-        })
+        },session)
 
         const taskCreated =  await this.taskRepository.create(
           {
@@ -112,10 +104,9 @@ export class UpdateStatusUsecase implements IUsecase<Omit<
           },
           session,
         );
-
-        await this.ruleRepository.update(ruleCreate.id,{
+         await this.ruleRepository.update(ruleCreate.id,{
           task:taskCreated.id
-        })
+        },session)
 
         await this.sectionRepository.pushTaskIntoSection(
           {
@@ -126,7 +117,10 @@ export class UpdateStatusUsecase implements IUsecase<Omit<
       );
 
         await this.unitWork.commitTransaction()
-        return updateTask as Omit<ITaskWithId, "id">;
+        return {
+          ...taskCreated,
+          rule: ruleCreate
+        } as ITask ;
       }
 
       const update = await this.taskRepository.update(

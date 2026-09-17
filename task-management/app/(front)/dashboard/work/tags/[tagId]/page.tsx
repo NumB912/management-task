@@ -19,26 +19,20 @@ const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
   const { data } = useTag(tagId);
   const [isAddTask, setIsAddTask] = useState<Record<string, boolean>>({});
   const [isAddTaskEmpty, setIsAddTaskEmpty] = useState(false);
-
-  // Select riêng từng field/hàm, tránh subscribe cả store
-  // (Select each field/function individually, avoid subscribing to the whole store)
   const getTaskTag = useWorkspaceStore((s) => s.getTaskTag);
   const inbox = useWorkspaceStore((s) => s.inbox);
   const listInfo = useWorkspaceStore((s) => s.listInfo);
-
   const tasks = useMemo(
     () => getTaskTag(data?.tag.name ? [data.tag.name] : []),
     [getTaskTag, data?.tag.name],
   );
 
-  // Khôi phục logic group theo list — đã có sẵn, chỉ bị comment
-  // (Restored the group-by-list logic — it already existed, just commented out)
   const groups = useMemo<IListTaskGroup[]>(() => {
     const map: Record<string, IListTaskGroup> = {};
 
     for (const task of tasks) {
       const listId = task.list;
-      const listMeta = listInfo[listId]?.list;
+      const listMeta = listInfo[listId];
       if (!listMeta) continue;
 
       if (!map[listId]) {
@@ -62,7 +56,7 @@ const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
     return null;
   }
 
-  const inboxSectionId = inbox ? listInfo[inbox]?.list?.sections?.[0]?.id : undefined;
+  const inboxSectionId = inbox ? listInfo[inbox]?.sections?.[0]?.id : undefined;
 
   if (tasks.length === 0) {
     return (
@@ -70,7 +64,7 @@ const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
         <SectionCard
           count={0}
           onPlusClick={() => setIsAddTaskEmpty((prev) => !prev)}
-          title={inbox ? listInfo[inbox]?.list?.name ?? "Inbox" : "Inbox"}
+          title={inbox ? listInfo[inbox]?.name ?? "Inbox" : "Inbox"}
         >
           {inboxSectionId && isAddTaskEmpty && (
             <AddTask

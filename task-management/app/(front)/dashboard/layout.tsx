@@ -22,8 +22,8 @@ const layout = ({
         filters: data.filters ?? [],
         inbox:
           data.lists.find(
-            (list) => list.list.name.toLocaleLowerCase() === "inbox",
-          )?.list.id ?? null,
+            (list) => list.name.toLocaleLowerCase() == "inbox",
+          )?.id ?? null,
         tags: data.tags ?? [],
       });
     }

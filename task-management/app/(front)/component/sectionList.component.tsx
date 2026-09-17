@@ -18,7 +18,6 @@ const SectionList = (DTO: { sections: ISectionModel[]; listId: string }) => {
   useEffect(() => {
     setSections(DTO.sections);
   }, [DTO.sections]);
-
   const reorderSnapshotRef = useRef<ISectionModel[] | null>(null);
   const removeSnapshotRef = useRef<ISectionModel[] | null>(null);
 

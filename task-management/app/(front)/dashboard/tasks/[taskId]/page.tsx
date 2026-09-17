@@ -1,180 +1,517 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Card, CardContent } from "@/app/(front)/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { CalendarIcon, X } from "lucide-react";
-import { format } from "date-fns";
-import { Calendar } from "@/app/(front)/components/ui/calendar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/(front)/components/ui/select";
+
+import { Calendar1, CalendarArrowUp, Plus, Repeat } from "lucide-react";
+
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+
+import TagCombobox from "@/app/(front)/components/tagCompobox";
+import PriorityDropdown from "@/app/(front)/components/piorityCombobox";
+import CalendarComponent from "@/app/(front)/components/calendar/calendar.component";
+import ListPicker from "@/app/(front)/components/listCombobox";
+
+import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+
+import {
+  IListModel,
+  IListModelState,
+  IRuleModel,
+  ISectionModel,
+} from "@/app/(front)/model";
+
+import { IStatus } from "@/app/(front)/model/type/type";
+
+import { formatDate } from "@/app/(front)/utils/getDayOfMonth.utils";
+import { formatTimer } from "@/app/(front)/utils/formatTimer";
+
+import {
+  useUpdateTask,
+  useUpdateTaskStatus,
+} from "@/app/(front)/feature/hook/useTaskMutation.hook";
+
+import { cn } from "@/lib/utils";
+import { DialogDescription } from "@/app/(front)/components/ui/dialog";
 
 interface PageProps {
-  params: Promise<{ taskId: string }>;
+  params: Promise<{
+    taskId: string;
+  }>;
 }
-
-
-const mockTask = {
-  title: "Thiết kế giao diện trang chủ",
-  startDate: new Date(),
-  deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // +5 ngày
-  priority: "medium",
-  tags: ["frontend", "urgent"],
-};
-
-const priorityColor: Record<string, string> = {
-  low: "bg-green-100 text-green-700",
-  medium: "bg-yellow-100 text-yellow-700",
-  high: "bg-red-100 text-red-700",
-};
 
 export default function TaskPage({ params }: Readonly<PageProps>) {
   const { taskId } = use(params);
   const router = useRouter();
+  const task = useWorkspaceStore((state) => state.taskIndex[taskId]);
+  const updateTask = useWorkspaceStore((state) => state.updateTask);
+  const listInfo = useWorkspaceStore((state) => state.listInfo);
+  const sectionIndex = useWorkspaceStore((state) => state.sectionIndex);
+  const list = useMemo(() => {
+    if (!task) return undefined;
+    return listInfo[task.list];
+  }, [listInfo, task]);
+  const section = useMemo(() => {
+    if (!task || !list) return undefined;
+    return sectionIndex[task.section];
+  }, [task]);
+  const listOptions = useMemo(() => {
+    return Object.values(listInfo);
+  }, [listInfo]);
+  const [name, setName] = useState("");
+  const [priority, setPriority] = useState<number>(4);
+  const [tags, setTags] = useState<string[]>([]);
+  const [status, setStatus] = useState<IStatus>("pending");
+  const [openTags, setOpenTags] = useState(false);
+  const [openPriority, setOpenPriority] = useState(false);
+  const [confirmList, setConfirmList] = useState<
+    Pick<IListModel, "id" | "name"> | undefined
+  >();
 
-  const [startDate, setStartDate] = useState<Date | undefined>(mockTask.startDate);
-  const [deadline, setDeadline] = useState<Date | undefined>(mockTask.deadline);
-  const [priority, setPriority] = useState<string>(mockTask.priority);
-  const [tags, setTags] = useState<string[]>(mockTask.tags);
-  const [tagInput, setTagInput] = useState("");
+  const [confirmSection, setConfirmSection] = useState<
+    ISectionModel | undefined
+  >();
+  const { mutate: updateTaskAPI } = useUpdateTask(task?.list ?? "");
 
+  const { mutate: updateStatusAPI } = useUpdateTaskStatus(task?.list ?? "");
+  useEffect(() => {
+    if (!task) return;
+
+    setName(task.name ?? "");
+
+    setPriority(task.rule?.priority ?? 4);
+
+    setTags(task.rule?.tags ?? []);
+
+    setStatus(task.status);
+
+    setConfirmList(list);
+
+    setConfirmSection(section);
+  }, [
+    taskId,
+    task?.name,
+    task?.status,
+    task?.rule?.priority,
+    task?.rule?.tags,
+    list,
+    section,
+  ]);
   const handleOpenChange = (open: boolean) => {
-    if (!open) router.back();
+    if (!open) {
+      router.back();
+    }
+  };
+  const handleToggleComplete = () => {
+    if (!task) return;
+    const nextStatus: IStatus = status === "done" ? "pending" : "done";
+    setStatus(nextStatus);
+    //   {
+    //     taskId,
+    //     data: {
+    //       status: nextStatus,
+    //     },
+    //   },
+    //   {
+    //     onError() {
+    //       setStatus(previousStatus);
+    //       updateTask(taskId, {
+    //         status: previousStatus,
+    //       });
+    //     },
+    //   }
+    // );
   };
 
-  const addTag = () => {
-    const t = tagInput.trim();
-    if (t && !tags.includes(t)) setTags([...tags, t]);
-    setTagInput("");
+  const handleNameBlur = () => {
+    if (!task) return;
+
+    const newName = name.trim();
+
+    if (!newName) {
+      setName(task.name ?? "");
+      return;
+    }
+
+    if (newName === task.name) {
+      return;
+    }
+
+    const previousName = task.name;
+
+    // Optimistic Zustand
+    updateTask(taskId, {
+      name: newName,
+    });
+
+    updateTaskAPI(
+      {
+        taskId,
+        data: {
+          name: newName,
+        },
+      },
+      {
+        onError() {
+          updateTask(taskId, {
+            name: previousName,
+          });
+
+          setName(previousName ?? "");
+        },
+      },
+    );
   };
 
-  const removeTag = (t: string) => setTags(tags.filter((x) => x !== t));
+  useEffect(() => {
 
-  const handleSave = () => {
-    // Chưa có API — tạm log ra console
-    console.log("Save task", taskId, { startDate, deadline, priority, tags });
-    router.back();
+    if(!status) return
+    if(status==task.status) return
+
+    const timeOut = setTimeout(()=>{
+      updateTask(taskId,{
+        status:status
+      })
+    },1000)
+
+
+    return ()=>{
+      clearTimeout(timeOut)
+    }
+  }, [status,task]);
+
+  useEffect(() => {
+    if (!task) return;
+
+    const currentName = name.trim();
+
+    if (!currentName) return;
+
+    if (currentName === task.name) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      handleNameBlur();
+    }, 1000);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [name, task?.name]);
+  const onConfirmTags = (newTags: string[]) => {
+    if (!task) return;
+    setOpenTags(false);
+    setTags(newTags);
+    updateTask(taskId, {
+      rule: {
+        ...task.rule,
+        tags: newTags,
+      },
+    });
   };
+  const onSelectPriority = (newPriority: number) => {
+    if (!task) return;
+    setPriority(newPriority);
+    updateTask(taskId, {
+      rule: {
+        ...task.rule,
+        priority: newPriority as 1 | 2 | 3 | 4,
+      },
+    });
+  };
+  const handleCalendarChange = (
+    rule: Pick<IRuleModel, "end_date" | "repeat" | "start_date" | "timer">,
+  ) => {
+    if (!task) return;
+
+    updateTask(taskId, {
+      rule: {
+        ...task.rule,
+        ...rule,
+      },
+    });
+  };
+
+  if (!task) {
+    return null;
+  }
 
   return (
     <Dialog open={true} onOpenChange={handleOpenChange}>
-      <DialogContent className="blur-none sm:max-w-md rounded-sm max-w-lvh">
-        <DialogHeader>
-          <DialogTitle>{mockTask.title}</DialogTitle>
+      <DialogContent
+        className="
+          blur-none
+          gap-0
+          sm:max-w-4xl
+          sm:max-h-4xl
+          p-0
+          m-0
+          rounded-sm
+          max-w-lvh
+        "
+      >
+        <DialogHeader className="p-3 border-b">
+          <DialogTitle>{name}</DialogTitle>
+          <DialogDescription></DialogDescription>
         </DialogHeader>
 
-        <Card>
-          <CardContent className="space-y-4 pt-4">
-            {/* Start date */}
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-muted-foreground">Ngày bắt đầu</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="justify-start font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "dd/MM/yyyy") : "Chọn ngày"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                  />
-                </PopoverContent>
-              </Popover>
+        <div className="flex h-full min-h-140">
+          <div
+            className="
+              flex-1
+              flex
+              flex-col
+              h-full
+              max-h-140
+              overflow-y-auto
+              gap-4
+              p-5
+            "
+          >
+            <div className="flex items-center justify-start gap-3">
+              <Checkbox
+                checked={status === "done"}
+                onCheckedChange={handleToggleComplete}
+                className={cn(
+                  "size-7 shrink-0 rounded-full border cursor-pointer",
+                  "border-neutral-300",
+                  "data-[state=checked]:bg-primary",
+                  "data-[state=checked]:border-primary",
+                  "data-[state=checked]:text-white",
+                )}
+              />
+
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                className="
+                  flex-1
+                  text-2xl!
+                  font-medium
+                  outline-none!
+                  border-0
+                  bg-transparent!
+                  focus:outline-0!
+                  placeholder:text-neutral-300
+                "
+                placeholder="Tên công việc"
+              />
+            </div>
+            <div className="w-full">
+              <Textarea
+                placeholder="Nhập chi tiết"
+                rows={4}
+                className="
+                  pl-10
+                  w-full
+                  min-h-0
+                  border-0
+                  bg-transparent!
+                  text-md
+                  resize-none
+                  focus-visible:ring-0
+                  focus-visible:ring-offset-0
+                "
+              />
+            </div>
+          </div>
+          <div
+            className="
+              max-w-70
+              w-full
+              flex
+              flex-col
+              gap-3
+              p-5
+              bg-primary/5
+            "
+          >
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium">Danh sách</span>
+
+              <ListPicker
+                lists={
+                  listOptions as unknown as Pick<
+                    IListModelState,
+                    "id" | "name" | "sections"
+                  >[]
+                }
+                selectedList={confirmList}
+                selectedSection={confirmSection}
+                onSelect={({ list, section }) => {
+                  setConfirmList(list);
+                  setConfirmSection(section);
+                }}
+              />
             </div>
 
-            {/* Deadline */}
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-muted-foreground">Deadline</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="justify-start font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {deadline ? format(deadline, "dd/MM/yyyy") : "Chọn ngày"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={deadline}
-                    onSelect={setDeadline}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            <div className="grid gap-1.5">
+              <CalendarComponent
+                rule={task.rule}
+                onChangeSubmit={handleCalendarChange}
+                trigger={
+                  <div className="w-full flex flex-col gap-2">
+                    <span className="text-sm font-medium">Ngày</span>
 
-            {/* Priority */}
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-muted-foreground">Độ ưu tiên</span>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
-              <Badge className={priorityColor[priority] ?? ""} variant="secondary">
-                {priority}
-              </Badge>
-            </div>
+                    <Button
+                      variant="outline"
+                      className="
+                        flex
+                        w-full
+                        p-1.5!
+                        cursor-pointer
+                        justify-start
+                        text-sm
+                        rounded-sm
+                        bg-transparent!
+                        hover:bg-transparent!
+                      "
+                    >
+                      {task.rule.start_date ? (
+                        <div className="flex gap-1.5 items-center">
+                          <Calendar1 />
 
-            {/* Tags */}
-            <div className="flex flex-col gap-1">
-              <span className="text-sm text-muted-foreground">Tags</span>
-              <div className="flex gap-2">
-                <Input
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addTag();
-                    }
-                  }}
-                  placeholder="Thêm tag rồi Enter"
-                />
-                <Button type="button" variant="secondary" onClick={addTag}>
-                  Thêm
+                          <p>{formatDate(task.rule.start_date)}</p>
+
+                          {task.rule.repeat?.mode !== "none" && <Repeat />}
+
+                          {task.rule.timer && (
+                            <span>{formatTimer(task.rule.timer)}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex gap-2 items-center">
+                          <Plus className="w-2 h-2" />
+
+                          <span className="text-sm">Thêm ngày</span>
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+                }
+              />
+            </div>
+            {task.rule.end_date && (
+              <div className="w-full flex flex-col gap-1.5">
+                <span className="text-sm font-medium">Hạn chót</span>
+
+                <Button
+                  variant="outline"
+                  className="
+                    flex
+                    p-1.5!
+                    w-full
+                    cursor-pointer
+                    justify-start
+                    text-sm
+                    rounded-sm
+                    bg-transparent!
+                    hover:bg-transparent!
+                  "
+                >
+                  <div className="flex gap-2 items-center">
+                    <CalendarArrowUp />
+
+                    <p>{formatDate(task.rule.end_date)}</p>
+                  </div>
                 </Button>
               </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="gap-1">
-                      {tag}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => removeTag(tag)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            )}
+            <div className="min-w-35">
+              <div className="grid gap-1.5">
+                <span className="text-sm font-medium">Độ ưu tiên</span>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => router.back()}>
-            Hủy
-          </Button>
-          <Button onClick={handleSave}>Lưu</Button>
-        </DialogFooter>
+                <PriorityDropdown
+                  onSelectPriority={onSelectPriority}
+                  priority={priority}
+                  align="center"
+                  open={openPriority}
+                  onOpenChange={setOpenPriority}
+                />
+              </div>
+            </div>
+
+            {/* ============================================= */}
+            {/* TAGS */}
+            {/* ============================================= */}
+
+            <div className="grid gap-1.5 min-h-15">
+              <div className="flex w-full justify-between items-center">
+                <span className="text-sm font-medium">Thẻ</span>
+
+                <Button
+                  variant="ghost"
+                  className="w-fit h-fit"
+                  onClick={() => setOpenTags(true)}
+                >
+                  <Plus className="w-4! h-4!" />
+                </Button>
+              </div>
+
+              <TagCombobox
+                selectedTags={tags}
+                onConfirm={onConfirmTags}
+                trigger={
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.length === 0 ? (
+                      <div
+                        className="
+                          flex
+                          items-center
+                          justify-center
+                          w-full
+                          p-1
+                          rounded
+                          text-neutral-500
+                        "
+                      >
+                        Không có thẻ được thêm vào
+                      </div>
+                    ) : (
+                      <>
+                        {tags.slice(0, 4).map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="ghost"
+                            className="
+                                text-xs
+                                outline-1
+                                outline-neutral-300
+                                text-black
+                              "
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+
+                        {tags.length > 4 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{tags.length - 4}
+                          </Badge>
+                        )}
+                      </>
+                    )}
+                  </div>
+                }
+                onCreateTag={() => {}}
+                onOpenChange={setOpenTags}
+                open={openTags}
+              />
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

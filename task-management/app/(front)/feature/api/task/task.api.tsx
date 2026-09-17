@@ -41,8 +41,8 @@ export const taskApi = {
     await axiosInstance.delete(`/tasks/${id}`);
   },
 
-  updateStatus:async (id:string,status:Pick<ITaskModel,"status">):Promise<void>=>{
-    const res =await axiosInstance.patch(`/tasks/${id}/status`,status)
-    return res.data
-  }
+updateStatus: async (id: string, status: Pick<ITaskModel, "status">): Promise<ITaskModel> => {
+  const res = await axiosInstance.patch(`/tasks/${id}/status`, status)
+  return res.data.data
+}
 };

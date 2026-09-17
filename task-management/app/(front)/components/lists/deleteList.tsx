@@ -25,6 +25,7 @@ export function DeleteListDialog({ list, onClose }: Readonly<DeleteListDialogPro
     return
   }
 const handleDelete = () => {
+  console.log(list.id)
   mutate(list.id, {
     onSuccess: () => {
       toast.info("Xóa thành công");

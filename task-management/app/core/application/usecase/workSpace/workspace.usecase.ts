@@ -13,20 +13,10 @@ interface WorkSpaceDTO {
     userId: string;
 }
 
-interface ListWithTaskCount {
-    list: IList;
-    taskCount: number;
-}
-
-interface OnlyCount extends Omit<ListWithTaskCount,"list">{}
-
 interface WorkSpaceResult {
     tags: Partial<ITagWithId>[];
-    lists: ListWithTaskCount[];
+    lists: IList[];
     filters: Partial<IFilter>[];
-    inbox: OnlyCount | null;
-    today: OnlyCount[];
-    next7Days: OnlyCount[];
 }
 
 export class WorkSpaceUsecase implements IUsecase<WorkSpaceResult> {
@@ -45,10 +35,7 @@ export class WorkSpaceUsecase implements IUsecase<WorkSpaceResult> {
                 this.FilterRepositoy.findMany({ filter: { user: userId } }),
             ]);
             return {
-                lists: listData?.lists ?? [],
-                inbox: listData?.inbox ?? null,
-                today: listData?.today ?? [],
-                next7Days: listData?.next7Days ?? [],
+                lists: listData.lists ?? [],
                 tags: tags ?? [],
                 filters: filters ?? [],
             };

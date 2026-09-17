@@ -4,19 +4,21 @@ import { useList } from "@/app/(front)/feature/hook/useListQuery.hook";
 import { useHeader } from "@/app/(front)/providers/header.provider";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
 import { useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 
 const page = () => {
   const {setTitle} = useHeader();
-  const {inbox,listInfo} = useWorkspaceStore()
-  const {data} = useList(inbox??"")
+  const {inbox} = useWorkspaceStore()
+  const sections = useWorkspaceStore(useShallow((state)=>Object.values(state.sectionIndex).filter((section)=>section.list==inbox)))??[]
+  console.log(useWorkspaceStore(useShallow(state=>Object.values(state.sectionIndex))))
   useEffect(() => {
     setTitle("Hộp thư");
-  }, []);
-  if(!data){
+  }, [inbox]);
+  if(!inbox){
     return
   }
-  return <SectionList listId={data?.id} sections={listInfo[inbox!].list.sections??[]} />;
+  return <SectionList listId={inbox} sections={sections??[]} />;
 };
 
 export default page;
