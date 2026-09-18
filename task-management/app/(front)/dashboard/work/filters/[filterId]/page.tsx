@@ -9,7 +9,7 @@ import { FilterX } from 'lucide-react'
 const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> }) => {
   const { filterId } = use(params)
   const { setTitle } = useHeader()
-  const { listInfo,getTaskFilter,filterInfo } = useWorkspaceStore()
+  const { listIndex,getTaskFilter,filterInfo } = useWorkspaceStore()
   useEffect(() => {
     if (filterInfo[filterId]) {
       setTitle(filterInfo[filterId].name)
@@ -22,7 +22,7 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
 
     for (const task of tasks) {
       const listId = task.list
-      const listName = listInfo[task.list]?.name ?? "..."
+      const listName = listIndex[task.list]?.name ?? "..."
       if (!groups.has(listId)) {
         groups.set(listId, { listId, listName, tasks: [] })
       }
@@ -30,7 +30,7 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
     }
 
     return Array.from(groups.values())
-  }, [listInfo])
+  }, [listIndex])
 
   if (tasksByList.length === 0) {
     return (

@@ -30,6 +30,7 @@ import {
   IListModelState,
   IRuleModel,
   ISectionModel,
+  ISectionModelState,
 } from "@/app/(front)/model";
 
 import { IStatus } from "@/app/(front)/model/type/type";
@@ -56,19 +57,21 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
   const router = useRouter();
   const task = useWorkspaceStore((state) => state.taskIndex[taskId]);
   const updateTask = useWorkspaceStore((state) => state.updateTask);
-  const listInfo = useWorkspaceStore((state) => state.listInfo);
+  const listIndex = useWorkspaceStore((state) => state.listIndex);
   const sectionIndex = useWorkspaceStore((state) => state.sectionIndex);
   const list = useMemo(() => {
     if (!task) return undefined;
-    return listInfo[task.list];
-  }, [listInfo, task]);
+    return listIndex[task.list];
+  }, [listIndex, task]);
   const section = useMemo(() => {
     if (!task || !list) return undefined;
     return sectionIndex[task.section];
   }, [task]);
   const listOptions = useMemo(() => {
-    return Object.values(listInfo);
-  }, [listInfo]);
+    return Object.values(listIndex);
+  }, [listIndex]);
+  const getTasksSection=useWorkspaceStore((state)=>state.getTaskWithSection)
+  const tasks = useMemo(()=>getTasksSection(task.section),[task,task.section])
   const [name, setName] = useState("");
   const [priority, setPriority] = useState<number>(4);
   const [tags, setTags] = useState<string[]>([]);
@@ -80,24 +83,17 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
   >();
 
   const [confirmSection, setConfirmSection] = useState<
-    ISectionModel | undefined
+    ISectionModelState | undefined
   >();
   const { mutate: updateTaskAPI } = useUpdateTask(task?.list ?? "");
-
-  const { mutate: updateStatusAPI } = useUpdateTaskStatus(task?.list ?? "");
+  const { mutate: updateStatusAPI } = useUpdateTaskStatus();
   useEffect(() => {
     if (!task) return;
-
     setName(task.name ?? "");
-
     setPriority(task.rule?.priority ?? 4);
-
     setTags(task.rule?.tags ?? []);
-
     setStatus(task.status);
-
     setConfirmList(list);
-
     setConfirmSection(section);
   }, [
     taskId,
@@ -352,7 +348,18 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                 selectedSection={confirmSection}
                 onSelect={({ list, section }) => {
                   setConfirmList(list);
-                  setConfirmSection(section);
+                  if (!section) {
+                    setConfirmSection(undefined);
+                    return;
+                  }
+
+                  setConfirmSection({
+                    id: section.id ?? "",
+                    name: section.name ?? "",
+                    list: section.list ?? "",
+                    order: section.order ?? 0,
+                    tasks: section.tasks?.map((task) => task.id) ?? [],
+                  });
                 }}
               />
             </div>

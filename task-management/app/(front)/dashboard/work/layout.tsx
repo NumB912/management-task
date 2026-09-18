@@ -74,7 +74,7 @@ const layout = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const listInfo = useWorkspaceStore(useShallow((s) => s.listInfo));
+  const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
   const {getTodayTaskCount,getNextDayCount,getInboxCount,filterInfo,tagInfo} = useWorkspaceStore()
   const pathName = usePathname();
   const [openList, setOpenList] = useState<boolean>(true);
@@ -118,7 +118,7 @@ const layout = ({
     },
   ];
 
-  const listEntries = Object.entries(listInfo);
+  const listEntries = Object.entries(listIndex);
   return (
     <div className="flex h-screen relative overflow-hidden overflow-y-scroll">
       <Sidebar className={cn("absolute left-0")}>

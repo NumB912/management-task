@@ -1,19 +1,20 @@
 import { cn } from "@/lib/utils";
 import { File, Flag, Folder, InboxIcon, Repeat, Tag, Target, Timer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { IListModel, ISectionModel } from "../../model";
+import { IListModel, IListModelState, ISectionModel, ISectionModelState } from "../../model";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import CalendarComponent from "../calendar/calendar.component";
 import { formatDate } from "../../utils/getDayOfMonth.utils";
 import { IRuleModel } from "../../model/rule/rule.model";
 import { formatTimer } from "../../utils/formatTimer";
 import { PRIORITY_CONFIG } from "../../model/mod/priorityConfig";
+import { useWorkspaceStore } from "../../states/workspace.state";
 
 interface TaskAttributesBarProps {
-  lists: Pick<IListModel,"id"|"isShareList"|"sections"|"name"|"user">[];
+  lists: Pick<IListModelState,"id"|"isShareList"|"sections"|"name"|"user">[];
   confirmListName: string;
   confirmSectionName:string;
-  onSelectList: ({list,section}:{list: Pick<IListModel,"id"|"isShareList"|"sections"|"name"|"user">,section?:ISectionModel}) => void;
+  onSelectList: ({list,section}:{list:string,section?:string}) => void;
   confirmedRule: Pick<IRuleModel, "end_date" | "start_date" | "repeat" | "timer"|"priority"|"tags">;
   onChangeRule: (rule: TaskAttributesBarProps["confirmedRule"]) => void;
   onSelectPriority: (digit: string) => void;
@@ -29,6 +30,8 @@ const TaskAttributesBar = ({
   onSelectPriority,
 
 }: TaskAttributesBarProps) => {
+  const sectionIndex = useWorkspaceStore((state)=>state.sectionIndex)
+
   return (
     <div className="flex flex-wrap items-center gap-1 mt-2 w-full">
       <DropdownMenu>
@@ -43,7 +46,7 @@ const TaskAttributesBar = ({
               <DropdownMenuItem
               key={p.id}
               className="flex gap-3 items-center cursor-pointer border-b p-2 rounded-none"
-              onSelect={() => onSelectList({list:p})}
+              onSelect={() => onSelectList({list:p.id})}
             >
               <Folder className={cn("size-3")} />
               {p.name}
@@ -54,12 +57,12 @@ const TaskAttributesBar = ({
               key={p.id}
               className="flex gap-3 items-center cursor-pointer rounded-none p-2 border-b"
               onSelect={() => onSelectList({
-                list:p,
+                list:p.id,
                 section:section
               })}
             >
               <File className={cn("size-3 ml-3")} />
-              {section.name}
+              {sectionIndex[section]?.name}
             </DropdownMenuItem>
               })
             }</>

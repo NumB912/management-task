@@ -6,6 +6,8 @@ import TaskAttributesBar from "./TaskAttributesBar";
 import TaskActions from "./taskAction";
 import { useEffect } from "react";
 import { IRuleModel } from "../../model";
+import { useWorkspaceStore } from "../../states/workspace.state";
+import { useShallow } from "zustand/react/shallow";
 
 interface AddTaskProp {
   isCreate: boolean;
@@ -17,6 +19,7 @@ interface AddTaskProp {
 
 const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule }: AddTaskProp) => {
   const editor = useTaskInputEditor({ listId, defaultConfirmRule });
+  const sectionIndex = useWorkspaceStore(useShallow((state)=>state.sectionIndex))
   const { handleDone, isSubmitting } = useCreateTaskSubmit({
     listId: listId,
     sectionId: editor.confirmSection ?? sectionId,  
@@ -30,7 +33,6 @@ const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule 
     },
   });
 
-  
   useEffect(() => {
     const el = editor.refDivInput.current;
     if (!el) return;
@@ -83,7 +85,7 @@ const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule 
       handleClose();
     }
   };
-
+console.log(editor.confirmSection)
   if (!isCreate) return null;
   return (
     <div className="w-full h-fit relative max-w-70 p-3 flex-col flex-gap-2 border border-gray-200 rounded-md">
@@ -105,7 +107,7 @@ const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule 
 
       <TaskAttributesBar
         lists={editor.lists}
-        confirmListName={editor.listInfo[editor.confirmList]?.list?.name}
+        confirmListName={editor.listIndex[editor.confirmList]?.name}
         onSelectList={editor.handleAddListBehind}
         confirmedRule={editor.confirmRule as Pick<IRuleModel,"end_date"|"priority"|"repeat"|"start_date"|"tags"|"task"|"timer">}
         onChangeRule={(partial) =>
@@ -113,9 +115,7 @@ const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule 
         }
         onSelectPriority={editor.handleAddpriorityBehind}
         confirmSectionName={
-          editor.listInfo[editor.confirmList]?.list?.sections?.find(
-            (section) => section.id == editor.confirmSection
-          )?.name ?? ""
+          editor.confirmSection??""
         }
       />
 

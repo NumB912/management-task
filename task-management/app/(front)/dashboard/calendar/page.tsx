@@ -29,7 +29,7 @@ import { useWorkspaceStore } from "../../states/workspace.state";
 
 const Page = () => {
   const [view, setView] = useState<ViewMode>("month");
-  const {listInfo} = useWorkspaceStore()
+  const {listIndex} = useWorkspaceStore()
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const goToday = () => setCurrentDate(new Date());
   const goPrev = () => {

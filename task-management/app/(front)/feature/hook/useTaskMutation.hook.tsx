@@ -46,15 +46,9 @@ export const useRemoveTask = (listId?: string) => {
 };
 
 
-export const useUpdateTaskStatus = (listId:string) => {
-  const addTask = useWorkspaceStore(useShallow((state)=>state.addTask))
+export const useUpdateTaskStatus = () => {
   return useMutation({
     mutationFn: ({ data, taskId }: { taskId: string; data:Pick<ITaskModel,"status"> }) =>
       taskApi.updateStatus(taskId, data),
-    onSuccess:(data)=>{
-        if (data.rule?.repeat?.mode !== "none") {
-        addTask(data, data.list, data.section)
-      }
-    }
  });
 };

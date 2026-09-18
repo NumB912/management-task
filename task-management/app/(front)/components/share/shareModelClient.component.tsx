@@ -8,9 +8,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 
 export function ShareModalClient() {
   const {close,isOpen,open:openState,listId}  =useShareModalStore()
-  const {listInfo}=useWorkspaceStore()
+  const {listIndex}=useWorkspaceStore()
   if(!listId) return 
-  const {list} = listInfo[listId]
+  const {list} = listIndex[listId]
   if(!list){
     return
   }

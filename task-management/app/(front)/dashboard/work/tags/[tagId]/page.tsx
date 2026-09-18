@@ -21,7 +21,7 @@ const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
   const [isAddTaskEmpty, setIsAddTaskEmpty] = useState(false);
   const getTaskTag = useWorkspaceStore((s) => s.getTaskTag);
   const inbox = useWorkspaceStore((s) => s.inbox);
-  const listInfo = useWorkspaceStore((s) => s.listInfo);
+  const listIndex = useWorkspaceStore((s) => s.listIndex);
   const tasks = useMemo(
     () => getTaskTag(data?.tag.name ? [data.tag.name] : []),
     [getTaskTag, data?.tag.name],
@@ -32,7 +32,7 @@ const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
 
     for (const task of tasks) {
       const listId = task.list;
-      const listMeta = listInfo[listId];
+      const listMeta = listIndex[listId];
       if (!listMeta) continue;
 
       if (!map[listId]) {
@@ -42,7 +42,7 @@ const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
     }
 
     return Object.values(map);
-  }, [tasks, listInfo]);
+  }, [tasks, listIndex]);
 
   const handleIsAddTask = (id: string) => {
     setIsAddTask((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -56,7 +56,7 @@ const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
     return null;
   }
 
-  const inboxSectionId = inbox ? listInfo[inbox]?.sections?.[0]?.id : undefined;
+  const inboxSectionId = inbox ? listIndex[inbox]?.sections?.[0]?.id : undefined;
 
   if (tasks.length === 0) {
     return (
@@ -64,7 +64,7 @@ const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
         <SectionCard
           count={0}
           onPlusClick={() => setIsAddTaskEmpty((prev) => !prev)}
-          title={inbox ? listInfo[inbox]?.name ?? "Inbox" : "Inbox"}
+          title={inbox ? listIndex[inbox]?.name ?? "Inbox" : "Inbox"}
         >
           {inboxSectionId && isAddTaskEmpty && (
             <AddTask
@@ -84,7 +84,7 @@ const Page = ({ params }: { params: Promise<{ tagId: string }> }) => {
   return (
     <div className="flex gap-3 h-full select-none">
       {groups.map((group) => {
-        const firstSectionId = listInfo[group.list.id]?.list?.sections?.[0]?.id;
+        const firstSectionId = listIndex[group.list.id]?.list?.sections?.[0]?.id;
 
         return (
           <SectionCard

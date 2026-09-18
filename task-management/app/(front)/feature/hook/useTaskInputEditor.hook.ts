@@ -28,7 +28,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
   const refDivInput = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState<boolean>(true);
-  const { getTagWithName, listInfo, getListWithName } = useWorkspaceStore();
+  const { getTagWithName, listIndex, getListWithName } = useWorkspaceStore();
   const [isOpenAddTag, setIsOpenAddTag] = useState<boolean>(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tag, setTag] = useState<string>("");
@@ -361,8 +361,8 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     list,
     section,
   }: {
-    list: Pick<IListModel, "id" | "isShareList" | "sections" | "name" | "user">;
-    section?: ISectionModel;
+    list: string;
+    section?: string;
   }) => {
     const el = refDivInput.current;
     if (!el || !list) return;
@@ -385,8 +385,8 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     const chip = buildListChipElement(list, section);
     el.append(chip);
     el.append(document.createTextNode("\u00A0"));
-    setConfirmList(list.id);
-    setConfirmSection(section?.id);
+    setConfirmList(list);
+    setConfirmSection(section);
     setValue(el.innerText);
   };
 
@@ -452,7 +452,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     setConfirmRule,
     isOpenList,
     setIsOpenList,
-    listInfo,
+    listIndex,
     handleInput,
     handleAddTag,
     handleAddList,

@@ -8,10 +8,11 @@ import React, { useEffect, useState } from "react";
 
 const Page = () => {
   const { setTitle } = useHeader();
-  const [isCreateTask, setIsCreateTask] = useState(false);
+  const [isCreateTask, setIsCreateTask] = useState<boolean>(false);
   const [isCreateTaskOverDue, setIsCreateTaskOverDue] = useState(false);
-  const { inbox, listInfo, getOverdueTasks, getTodayInfo } =
+  const { inbox, listIndex, getOverdueTasks, getTodayInfo } =
     useWorkspaceStore();
+    console.log("hello")
   const [section, setSection] = useState<{ id: string }>();
   useEffect(() => {
     setTitle("Hôm nay");
@@ -19,12 +20,12 @@ const Page = () => {
 
   useEffect(() => {
     const firstSection = inbox
-      ? listInfo[inbox]?.list?.sections?.[0]
+      ? listIndex[inbox]?.sections?.[0]
       : undefined;
     if (firstSection) {
-      setSection({ id: firstSection.id });
+      setSection({ id: firstSection });
     }
-  }, [inbox, listInfo]);
+  }, [inbox, listIndex]);
 
   return (
     <div className="flex gap-3 py-3 ">
@@ -61,7 +62,7 @@ const Page = () => {
         count={getTodayInfo()?.length ?? 0}
         onPlusClick={() => setIsCreateTask(!isCreateTask)}
       >
-        {section && inbox && (
+        {section && inbox && isCreateTask (
           <AddTask
             isCreate={isCreateTask}
             setIsCreate={() => setIsCreateTask(!isCreateTask)}

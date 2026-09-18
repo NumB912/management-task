@@ -51,14 +51,13 @@ import { useShallow } from "zustand/react/shallow";
 import { Ipriority, IStatus } from "../../model/type/type";
 import { useCreateTag } from "../../feature/hook/useTagMutation.hook";
 import { formatTimer } from "../../utils/formatTimer";
+import { calculateNextDate } from "../../utils/caculateNextDay";
 
 
 export interface TaskProp {
-    task: ITaskModel;
+    taskId: string;
     depth: number;
-    onDelete: (id: string) => void
-    onUpdateStatus?: (id: string, status: IStatus) => void
-    onUpdateTask?: (id: string, task: Partial<ITaskModel>) => void
+
 }
 
 const PRIORITY_COLORS: Record<number, string> = {
@@ -103,9 +102,8 @@ export function TaskCheckbox({
     );
 }
 
-export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: TaskProp) => {
+export const Task = React.memo(({ taskId, depth }: TaskProp) => {
     const [isShowChildren, setIsShowChildren] = useState(false);
-    const [status, setStatus] = useState<IStatus>(task.status);
     const [isOpenTaskEdit, setisOpenTaskEdit] = useState<boolean>(false);
     const [openTagEdit, setOpenTagEdit] = useState<boolean>(false);
     const [openContextMenu, setOpenContextMenu] = useState<boolean>(false);
@@ -113,16 +111,17 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
         (state) => state.getListWithName
     );
     const addTask = useWorkspaceStore((state) => state.addTask)
+    const updateStatus = useWorkspaceStore((state)=>state.updateTask)
     const lists = useMemo(() => {
         return listGet("")
     }, [])
-
+    const task = useWorkspaceStore(useShallow((state)=>state.taskIndex[taskId]))
     const [isUpdatingTags, setIsUpdatingTags] = useState<boolean>(false)
     const taskRef = useRef<HTMLDivElement>(null);
     const { mutate: updateRule } = useUpdateRule(task.list)
     const { mutate: updateTask } = useUpdateTask(task.list)
     const { mutate: deleteTask } = useRemoveTask(task.list)
-    const { mutate: updateStatusTask } = useUpdateTaskStatus(task.list)
+    const { mutate: updateStatusApi } = useUpdateTaskStatus()
     const { mutate: createTag } = useCreateTag()
     const updateTaskStore = useWorkspaceStore((state) => state.updateTask)
     const handleConfirmTags = (tags: string[]) => {
@@ -138,7 +137,6 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
 
 
     const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
-        onUpdateTask?.(id, data)
         updateTask({
             taskId: id,
             data: data
@@ -149,29 +147,45 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
         })
     }
 
-   const handleUpdateStatusTask = (taskId: string, status: IStatus) => {
-    setStatus(status)
-    updateStatusTask({
-        taskId: taskId,
-        data: { status: status }
-    }, {
-        onError: (error) => {
-            console.log("2. onError chạy", error) 
-            setStatus(task.status)
-        },
-        onSuccess(data) {
-
+const handleUpdateStatusTask = (taskId: string, status: IStatus) => {
+    if (task.rule?.start_date && task.rule.repeat.mode !== "none") {
+        const nextDate = calculateNextDate(task.rule.repeat, task.rule.start_date);
+        const shouldStopRepeating = task.rule.end_date && nextDate && new Date(nextDate) < new Date(task.rule.end_date);
+        if (nextDate && !shouldStopRepeating) {
+            addTask({
+                ...task,
+                id: `temp-${Date.now()}`,
+                status: "pending",
+                rule: { ...task.rule, start_date: nextDate },
+            }, task.list, task.section)
+        }
+    }
+    const snapShot = task
+    updateStatus(taskId, {
+        status: status,
+        rule: {
+            ...task.rule,
+            repeat: { ...task.rule.repeat, mode: "none" },
         },
     })
+
+    updateStatusApi({
+        taskId:taskId,
+        data:{
+            status:status
+        }
+    },{
+        
+    })
+
+    
 }
     const handleDeleteTask = (taskId: string) => {
-        onDelete(taskId)
         deleteTask(taskId, {
             onError: () => {
 
             }
         })
-
     }
 
     return (
@@ -204,7 +218,7 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                                             </Button>
                                         )}
                                         <TaskCheckbox
-                                            status={status}
+                                            status={task.status}
                                             priority={task?.rule?.priority ?? 4}
                                             onHandle={() => {
                                                 task.status !== "pending" ? handleUpdateStatusTask(task.id, "pending") : handleUpdateStatusTask(task.id, "done")
@@ -558,13 +572,13 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
                         </ContextMenuContent>
                     </ContextMenu>
 
-                    <ListDropDown isOpen={isShowChildren}>
+                    {/* <ListDropDown isOpen={isShowChildren}>
                         <div className="min-h-0 overflow-y-scroll">
                             {task.children?.map((value: ITaskModel) => (
                                 <Task key={value.id} task={value} depth={depth + 1} onDelete={handleDeleteTask} />
                             ))}
                         </div>
-                    </ListDropDown>
+                    </ListDropDown> */}
                 </div>
             )}
             <EditTask
@@ -584,4 +598,4 @@ export const Task = ({ task, depth, onDelete, onUpdateStatus, onUpdateTask }: Ta
             />
         </div>
     );
-};
+});

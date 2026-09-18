@@ -14,6 +14,7 @@ import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 const getGroupDateLabel = (tasks: ITaskModel[]): string => {
   const dateValue = tasks[0]?.rule?.start_date;
@@ -59,15 +60,17 @@ const Page = () => {
   const [isAddPreviousTask, setAddPreviousTask] = useState<boolean>(false);
   const [section, setSection] = useState<{ id: string }>();
   const inbox = useWorkspaceStore((s) => s.inbox);
-  const listInfo = useWorkspaceStore((s) => s.listInfo);
+  const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
   const getNextInfo = useWorkspaceStore((s) => s.getNextInfo);
   const getOverdueTasks = useWorkspaceStore((s) => s.getOverdueTasks);
   useEffect(() => {
-    const firstSection = inbox ? listInfo[inbox]?.list?.sections?.[0] : undefined;
+    if(!inbox) return
+
+    const firstSection = listIndex[inbox].sections[0]
     if (firstSection) {
-      setSection({ id: firstSection.id });
+      setSection({ id: firstSection });
     }
-  }, [inbox, listInfo]);
+  }, [inbox, listIndex]);
   useEffect(() => {
     setTitle("Sắp tới");
   }, []);

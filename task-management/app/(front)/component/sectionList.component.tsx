@@ -2,31 +2,30 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import AddSection from "./addSection.component";
 import Section from "./section.component";
-import { ISectionModel } from "../model";
 import { useChangePosition } from "../feature/hook/useListMutation.hook";
 import { toast } from "sonner";
 import { CheckCircle } from "lucide-react";
 import { useCreateSection, useRemoveSection } from "../feature/hook/useSectionMutation.hook";
+import { ISectionModelState } from "../model";
+import { useWorkspaceStore } from "../states/workspace.state";
 
-const SectionList = (DTO: { sections: ISectionModel[]; listId: string }) => {
-  const { listId } = DTO;
-  const [sections, setSections] = useState<ISectionModel[]>(DTO.sections ?? []);
+const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string[]; listId: string }) => {
+  const [sections, setSections] = useState<string[]>(sectionsData ?? []);
   const { mutate } = useChangePosition(listId);
   const { mutate: mutateRemoveSection } = useRemoveSection(listId);
   const { mutate: mutateAddSection } = useCreateSection(listId)
-  const [isDrop, setIsDrop] = useState<boolean>(false);
+  const moveSection = useWorkspaceStore((state) => state.moveSection)
   useEffect(() => {
-    setSections(DTO.sections);
-  }, [DTO.sections]);
-  const reorderSnapshotRef = useRef<ISectionModel[] | null>(null);
-  const removeSnapshotRef = useRef<ISectionModel[] | null>(null);
-
+    setSections(sectionsData);
+  }, [sectionsData]);
+  const reorderSnapshotRef = useRef<string[] | null>(null);
+  const removeSnapshotRef = useRef<string[] | null>(null);
   const changePosition = useCallback((startId: string, changeId: string) => {
     setSections((prev) => {
       const findStartIndex = prev.findIndex(
-        (section) => startId === section.id,
+        (section) => startId === section,
       );
-      const findEndIndex = prev.findIndex((section) => changeId === section.id);
+      const findEndIndex = prev.findIndex((section) => changeId === section);
       if (
         findStartIndex === -1 ||
         findEndIndex === -1 ||
@@ -57,6 +56,7 @@ const SectionList = (DTO: { sections: ISectionModel[]; listId: string }) => {
           },
           onSuccess: () => {
             toast.success("Đổi vị trí thành công");
+            moveSection(startId, changeId)
           },
           onSettled: () => {
             reorderSnapshotRef.current = null;
@@ -84,7 +84,7 @@ const SectionList = (DTO: { sections: ISectionModel[]; listId: string }) => {
         });
       }, 3000);
 
-      setSections((prev) => prev.filter((section) => section.id !== sectionId));
+      setSections((prev) => prev.filter((section) => section !== sectionId));
       toast.success("Xóa thành công", {
         description: (
           <div>
@@ -111,10 +111,10 @@ const SectionList = (DTO: { sections: ISectionModel[]; listId: string }) => {
         },
       });
     },
-    [sections, mutateRemoveSection],
+    [mutateRemoveSection],
   );
 
-  function addSection(section: Pick<ISectionModel, "name">) {
+  const addSection =useCallback((section: Pick<ISectionModelState, "name">)=> {
     mutateAddSection(section, {
       onError: () => {
         toast.error("Thêm thành phần thất bại, vui lòng thử lại")
@@ -123,17 +123,16 @@ const SectionList = (DTO: { sections: ISectionModel[]; listId: string }) => {
         toast.success("Thêm thành phần thành công")
       }
     })
-  }
+  },[mutateAddSection])
 
   return (
     <div className="flex gap-3 py-3">
       {sections?.map((section) => (
         <Section
-          key={section.id}
+          key={section}
           removeSection={removeSection}
-          setIsDrop={setIsDrop}
           listId={listId}
-          section={section}
+          sectionId={section}
           savePosition={saveOrderPosition}
           changePosition={changePosition}
         />
@@ -145,6 +144,6 @@ const SectionList = (DTO: { sections: ISectionModel[]; listId: string }) => {
       />
     </div>
   );
-};
+});
 
 export default SectionList;

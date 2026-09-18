@@ -56,19 +56,19 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
   const router = useRouter();
   const task = useWorkspaceStore((state) => state.taskIndex[taskId]);
   const updateTask = useWorkspaceStore((state) => state.updateTask);
-  const listInfo = useWorkspaceStore((state) => state.listInfo);
+  const listIndex = useWorkspaceStore((state) => state.listIndex);
   const sectionIndex = useWorkspaceStore((state) => state.sectionIndex);
   const list = useMemo(() => {
     if (!task) return undefined;
-    return listInfo[task.list];
-  }, [listInfo, task]);
+    return listIndex[task.list];
+  }, [listIndex, task]);
   const section = useMemo(() => {
     if (!task || !list) return undefined;
     return sectionIndex[task.section];
   }, [task]);
   const listOptions = useMemo(() => {
-    return Object.values(listInfo);
-  }, [listInfo]);
+    return Object.values(listIndex);
+  }, [listIndex]);
   const [name, setName] = useState("");
   const [priority, setPriority] = useState<number>(4);
 

@@ -33,13 +33,13 @@ export function ListCombobox({ disabled, value, onSelect }: Readonly<TaskCombobo
   const [open, setOpen] = useState(false);
   const [listPickerOpen, setListPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const { inbox, listInfo } = useWorkspaceStore();
+  const { inbox, listIndex } = useWorkspaceStore();
   const [activeListId, setActiveListId] = useState<string | null>(inbox);
   const lists: ListItem[] = useMemo(
-    () => Object.values(listInfo ?? {}).map((entry: any) => entry.list) as ListItem[],
-    [listInfo]
+    () => Object.values(listIndex ?? {}).map((entry: any) => entry.list) as ListItem[],
+    [listIndex]
   );
-  const activeEntry = activeListId ? (listInfo as any)?.[activeListId] : null;
+  const activeEntry = activeListId ? (listIndex as any)?.[activeListId] : null;
   const activeList: ListItem | null = activeEntry?.list ?? null;
 
   // Nhóm task theo từng section, KHÔNG làm phẳng mất thông tin section

@@ -11,7 +11,6 @@ const page = () => {
   const {setTitle} = useHeader();
   const {inbox} = useWorkspaceStore()
   const sections = useWorkspaceStore(useShallow((state)=>Object.values(state.sectionIndex).filter((section)=>section.list==inbox)))??[]
-  console.log(useWorkspaceStore(useShallow(state=>Object.values(state.sectionIndex))))
   useEffect(() => {
     setTitle("Hộp thư");
   }, [inbox]);

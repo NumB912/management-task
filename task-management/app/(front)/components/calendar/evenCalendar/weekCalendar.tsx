@@ -9,8 +9,8 @@ function WeekView({ currentDate }: Readonly<{ currentDate: Date }>) {
     const end = endOfWeek(currentDate);
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
-const {listInfo} = useWorkspaceStore()
-  const task = Object.values(listInfo).flatMap(
+const {listIndex} = useWorkspaceStore()
+  const task = Object.values(listIndex).flatMap(
     (list) => list.list.sections?.flatMap((section) => section.tasks) ?? []
   )
   return (

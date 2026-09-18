@@ -146,7 +146,7 @@ useEffect(()=>{
 
       <TaskAttributesBar
         lists={editor.lists}
-        confirmListName={editor.listInfo[editor.confirmList]?.list?.name ?? "Hộp thư"}
+        confirmListName={editor.listIndex[editor.confirmList]?.list?.name ?? "Hộp thư"}
         onSelectList={editor.handleAddListBehind}
         confirmedRule={editor.confirmRule as Pick<IRuleModel,"end_date"|"priority"|"repeat"|"start_date"|"tags"|"task"|"timer">}
         onChangeRule={(partial) =>
@@ -154,7 +154,7 @@ useEffect(()=>{
         }
         onSelectPriority={editor.handleAddpriorityBehind}
         confirmSectionName={
-          editor.listInfo[editor.confirmList]?.list?.sections?.find(
+          editor.listIndex[editor.confirmList]?.list?.sections?.find(
             (section) => section.id == editor.confirmSection
           )?.name ?? ""
         }

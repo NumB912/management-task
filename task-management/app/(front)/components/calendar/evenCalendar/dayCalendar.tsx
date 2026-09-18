@@ -5,8 +5,8 @@ import HourGrid from "./hour/hourGrid";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
 
 function DayView({ currentDate }: Readonly<{ currentDate: Date }>) {
-const {listInfo} = useWorkspaceStore()
-  const task = Object.values(listInfo).flatMap(
+const {listIndex} = useWorkspaceStore()
+  const task = Object.values(listIndex).flatMap(
     (list) => list.list.sections?.flatMap((section) => section.tasks) ?? []
   )
   return (

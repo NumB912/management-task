@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { IListModel, IListModelState, ISectionModel, ISectionModelState, ITagModel, ITaskModel } from "../model";
 import { IFilterModel } from "../model/filter.model";
+import { IStatus } from "../model/type/type";
 
 export interface ITaskLocation {
   listId: string;
@@ -19,9 +20,9 @@ interface IWorkspaceState {
   todayCount: number;
   inbox: string | null;
   nextDayCount: number;
-  listInfo: Record<
+  listIndex: Record<
     string,
-    Pick<IListModelState, "isShareList" | "name" | "user" | "id">
+    Pick<IListModelState, "isShareList" | "name" | "user" | "id"|"sections">
   >;
   sectionIndex: Record<string, ISectionModelState>;
   tagInfo: Record<string, ITagModel>;
@@ -31,12 +32,14 @@ interface IWorkspaceState {
   setInboxCount: (inboxCount: number) => void;
   setTodayCount: (todayCount: number) => void;
   setNextDayCount: (nextDayCount: number) => void;
-  setListInfo: (
+  setlistIndex: (
     listId: string,
-    info: Partial<Pick<IListModel, "isShareList" | "name" | "user" | "id">>,
+    info: Partial<Pick<IListModel, "isShareList" | "name" | "user" | "id"|"sections">>,
   ) => void;
-  removeListInfo: (listId: string) => void;
+  completeTaskAndCreateNext: (taskId: string, status: IStatus, nextTask?: ITaskModel, listId?: string, sectionId?: string) => void
+  removelistIndex: (listId: string) => void;
   setTagInfo: (tagId: string, info: Partial<ITagModel>) => void;
+  setSectionIndex:(sectionId:string,section:Partial<ISectionModelState>)=>void;
   removeTagInfo: (tagId: string) => void;
   setFilterInfo: (filterId: string, info: Partial<IFilterModel>) => void;
   removeFilterInfo: (filterId: string) => void;
@@ -58,6 +61,9 @@ interface IWorkspaceState {
   getTaskFilter: (filter: IFilterModel) => ITaskModel[];
   getTaskById: (taskId: string) => ITaskModel | undefined;
   updateTask: (taskId: string, patch: Partial<ITaskModel>) => void;
+  updateTaskStatus: (taskId: string, status:IStatus) => void;
+  getTaskWithSection:(sectionId:string)=>void
+  moveSection: (startId:string, changeId:string) => void
   addTask: (task: ITaskModel, listId: string, sectionId: string) => void;
   // removeTask: (taskId: string) => void;
   reset: () => void;
@@ -68,7 +74,7 @@ const initialState = {
   todayCount: 0,
   inbox: null,
   nextDayCount: 0,
-  listInfo: {},
+  listIndex: {},
   tagInfo: {},
   filterInfo: {},
   taskIndex: {},
@@ -98,13 +104,7 @@ const isBeforeToday = (date: Date, today: Date) => {
     today.getDate(),
   );
   return dateStart < todayStart;
-};
-const flattenSections = (
-  listInfo: Record<
-    string,
-    Pick<IListModel, "isShareList" | "name" | "user" | "id">
-  >,
-) => Object.values(listInfo).flatMap((info: any) => info.list.sections ?? []);
+}
 
 export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
   ...initialState,
@@ -112,17 +112,18 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
   setNextDayCount: (nextDayCount) =>
     set(() => ({ nextDayCount: nextDayCount ?? 0 })),
   setTodayCount: (todayCount) => set(() => ({ todayCount: todayCount ?? 0 })),
-  setListInfo: (listId, info) =>
+  setlistIndex: (listId, info) =>
     set((state) => {
-      const current = state.listInfo[listId];
+      const current = state.listIndex[listId];
       return {
-        listInfo: {
-          ...state.listInfo,
+        listIndex: {
+          ...state.listIndex,
           [listId]: {
             id: info?.id ?? current?.id ?? "",
             name: info?.name ?? current?.name ?? "",
             isShareList: info?.isShareList ?? current?.isShareList ?? false,
             user: info?.user ?? current?.user ?? "",
+            sections:info.sections?.map((section)=>section.id)??[]
           },
         },
       };
@@ -164,11 +165,63 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
       return true;
     });
   },
-  removeListInfo: (listId) =>
+  removelistIndex: (listId) =>
     set((state) => {
-      const { [listId]: _, ...rest } = state.listInfo;
-      return { listInfo: rest };
+      const { [listId]: _, ...rest } = state.listIndex;
+      return { listIndex: rest };
     }),
+    moveSection: (startId, changeId) => {
+  set((state) => {
+    const list = state.listIndex[state.sectionIndex[startId].list];
+
+    if (!list) return state;
+
+    const sections = list.sections;
+
+    const startIndex = sections.indexOf(startId);
+    const endIndex = sections.indexOf(changeId);
+
+    if (
+      startIndex === -1 ||
+      endIndex === -1 ||
+      startIndex === endIndex
+    ) {
+      return state;
+    }
+
+    const newSections = [...sections];
+
+    const [removed] = newSections.splice(startIndex, 1);
+
+    newSections.splice(endIndex, 0, removed);
+
+    return {
+      listIndex: {
+        ...state.listIndex,
+        [list.id]: {
+          ...list,
+          sections: newSections,
+        },
+      },
+    };
+  });
+},
+  setSectionIndex:(sectionId,info)=>{
+    const {sectionIndex} = get()
+    set(()=>{
+
+      return (
+      {
+          sectionIndex:{
+        ...sectionIndex,
+        [sectionId]:{
+          ...sectionIndex[sectionId],
+          ...info,
+        }
+      }
+      })
+    })
+  },
   getOverdueTasks(): ITaskModel[] {
     const today = new Date();
      const {taskIndex} = get()
@@ -230,15 +283,13 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
         return isGLTTomorrow(new Date(task.rule.start_date), today);
       }).length;
   },
-  getInboxCount() {
+getInboxCount() {
     const { inbox, taskIndex } = get();
     if (!inbox) return 0;
-
-    const taskArr = Object.values(taskIndex);
-
-    return taskArr.filter((task: ITaskModel) => task.status === "pending")
-      .length;
-  },
+    return Object.values(taskIndex).filter(
+      (task) => task.status === "pending" && task.list === inbox
+    ).length;
+},
   removeFilterInfo: (filterId) =>
     set((state) => {
       const { [filterId]: _, ...rest } = state.filterInfo;
@@ -246,7 +297,7 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
     }),
 
 hydrate: (data) => {
-  const listInfo: Record<
+  const listIndex: Record<
     string,
     Pick<IListModelState, "isShareList" | "name" | "user" | "id"|"sections">
   > = {};
@@ -256,7 +307,7 @@ hydrate: (data) => {
   const taskLocation: Record<string, ITaskLocation> = {};
 
   for (const list of data.lists ?? []) {
-    listInfo[list.id] = {
+    listIndex[list.id] = {
       id: list.id,
       name: list.name,
       user: list.user,
@@ -282,7 +333,7 @@ hydrate: (data) => {
 
   set({
     inbox: data.inbox ?? null,
-    listInfo,
+    listIndex,
     sectionIndex,
     taskIndex,
     taskLocation,
@@ -302,15 +353,23 @@ hydrate: (data) => {
         name == "",
     );
   },
+  getTaskWithSection(sectionId:string){
+    const {sectionIndex,taskIndex} = get()
+    return sectionIndex[sectionId].tasks.map((task:string)=>taskIndex[task])
+  },
   getListWithName(
     name: string,
   ):
     | Pick<IListModel, "isShareList" | "name" | "user" | "id">[]
     | undefined {
-    return Object.values(get().listInfo)
+    return Object.values(get().listIndex)
       .filter((list) =>
         list.name.toLocaleLowerCase().includes(name?.toLocaleLowerCase()),
       );
+  },
+  getSectionWithList(listId:string){
+    const {listIndex,sectionIndex} = get()
+    return listIndex[listId].sections.map((section:string)=>sectionIndex[section])
   },
   getTodayTaskCount() {
     const {taskIndex} = get()
@@ -321,32 +380,20 @@ hydrate: (data) => {
         return isSameDay(new Date(task.rule.start_date), today);
       }).length;
   },
-  getTaskTag(tags: string[]): ITaskModel[] {
+getTaskTag(tags: string[]): ITaskModel[] {
     if (!tags || tags.length === 0) return [];
-
     const lowerTags = new Set(tags.map((t) => t.toLocaleLowerCase()));
-
-    return flattenSections(get().listInfo)
-      .flatMap((section: any) => section.tasks ?? [])
-      .filter((task: any) => {
-        if (!task.rule?.tags?.length) return false;
-        return task.rule.tags.some((taskTag: string) =>
-          lowerTags.has(taskTag.toLocaleLowerCase()),
-        );
-      });
-  },
-  getTodayInfo(): ITaskModel[] {
+    return Object.values(get().taskIndex).filter((task) => {
+      if (!task.rule?.tags?.length) return false;
+      return task.rule.tags.some((t) => lowerTags.has(t.toLocaleLowerCase()));
+    });
+},
+getTodayInfo(): ITaskModel[] {
     const today = new Date();
-
-    return flattenSections(get().listInfo)
-      .flatMap((section: any) => section.tasks ?? [])
-      .filter(
-        (task: any) =>
-          task.status === "pending" &&
-          task.rule?.start_date &&
-          isSameDay(new Date(task.rule.start_date), today),
-      );
-  },
+    return Object.values(get().taskIndex).filter(
+        (task) => task.status === "pending" && task.rule?.start_date && isSameDay(new Date(task.rule.start_date), today)
+    );
+},
   getNextInfo(): ITaskModel[] {
     const {taskIndex} = get()
     const today = new Date();
@@ -357,14 +404,41 @@ hydrate: (data) => {
           isGLTTomorrow(new Date(task.rule.start_date), today),
       );
   },
+completeTaskAndCreateNext: (taskId: string, status: IStatus, nextTask?: ITaskModel, listId?: string, sectionId?: string)=>{
+    set((state) => {
+    const current = state.taskIndex[taskId];
+    if (!current) return state;
 
+    const newTaskIndex = {
+      ...state.taskIndex,
+      [taskId]: {
+        ...current,
+        status,
+        rule: { ...current.rule, repeat: { ...current.rule.repeat, mode: "none" } },
+      },
+    };
+
+    let newSectionIndex = state.sectionIndex;
+    if (nextTask && sectionId) {
+      newTaskIndex[nextTask.id] = nextTask;
+      const section = state.sectionIndex[sectionId];
+      if (section) {
+        newSectionIndex = {
+          ...state.sectionIndex,
+          [sectionId]: { ...section, tasks: [...section.tasks, nextTask.id] },
+        };
+      }
+    }
+
+    return { taskIndex: newTaskIndex, sectionIndex: newSectionIndex };
+  })
+},
   getTaskById(taskId: string): ITaskModel | undefined {
     return get().taskIndex[taskId];
   },
-updateTask: (taskId, patch) =>
+  updateTask: (taskId, patch) =>
   set((state) => {
     const currentTask = state.taskIndex[taskId];
-
     if (!currentTask) {
       if (process.env.NODE_ENV === "development") {
         console.warn(
@@ -403,43 +477,65 @@ updateTask: (taskId, patch) =>
       },
     };
   }),
-  addTask: (task, listId, sectionId) =>
-    set((state) => {
-      const listItem = state.listInfo[listId];
-      const section = state.sectionIndex[sectionId];
-      if (!listItem) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            `[workspace-store] addTask: listId "${listId}" chưa tồn tại`,
-          );
-        }
-        return state;
-      }
+  setTask: (taskId: string, task: ITaskModel) =>
+  set((state) => ({
+    taskIndex: {
+      ...state.taskIndex,
+      [taskId]: task,
+    },
+  })),
+updateTaskStatus: (taskId, status) =>
+  set((state) => {
+    const currentTask = state.taskIndex[taskId];
 
-      if (!section) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            `[workspace-store] addTask: sectionId "${sectionId}" chưa tồn tại`,
-          );
-        }
-        return state;
+    if (!currentTask) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          `[workspace-store] updateTaskStatus: taskId "${taskId}" chưa tồn tại`,
+        );
       }
+      return state;
+    }
 
-      return {
-        taskIndex: { ...state.taskIndex, [task.id]: task },
-        taskLocation: {
-          ...state.taskLocation,
-          [task.id]: { listId, sectionId },
+    return {
+      taskIndex: {
+        ...state.taskIndex,
+        [taskId]: {
+          ...currentTask,
+          status,
         },
-        sectionIndex: {
-          ...state.sectionIndex,
-          [sectionId]: {
-            ...section,
-            tasks: [...section.tasks, task.id],
-          },
+      },
+    };
+  }),
+addTask: (task, listId, sectionId) =>
+  set((state) => {
+    const listItem = state.listIndex[listId];
+    const section = state.sectionIndex[sectionId];
+    if (!listItem) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`[workspace-store] addTask: listId "${listId}" chưa tồn tại`);
+      }
+      return state;
+    }
+    if (!section) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`[workspace-store] addTask: sectionId "${sectionId}" chưa tồn tại`);
+      }
+      return state;
+    }
+
+    return {
+      taskIndex: { ...state.taskIndex, [task.id]: task },
+      taskLocation: { ...state.taskLocation, [task.id]: { listId, sectionId } },
+      sectionIndex: {
+        ...state.sectionIndex,
+        [sectionId]: {
+          ...section,
+          tasks: [...section.tasks, task.id], // tạo mảng mới thay vì push trực tiếp
         },
-      };
-    }),
+      },
+    };
+  }),
 
   // removeTask: (taskId) =>
   //   set((state) => {
@@ -447,7 +543,7 @@ updateTask: (taskId, patch) =>
   //     if (!location) return state;
 
   //     const { listId, sectionId } = location;
-  //     const listItem = state.listInfo[listId];
+  //     const listItem = state.listIndex[listId];
   //     if (!listItem) return state;
 
   //     const updatedSections = (listItem.list.sections as any[]).map(
@@ -469,8 +565,8 @@ updateTask: (taskId, patch) =>
   //     return {
   //       taskIndex: restIndex,
   //       taskLocation: restLocation,
-  //       listInfo: {
-  //         ...state.listInfo,
+  //       listIndex: {
+  //         ...state.listIndex,
   //         [listId]: {
   //           ...listItem,
   //           list: { ...listItem.list, sections: updatedSections },
