@@ -115,11 +115,11 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
 
   const queryClient = useQueryClient();
-  const {tagInfo} = useWorkspaceStore();
+  const {tagIndex} = useWorkspaceStore();
 
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
-      Object.values(s.filterInfo).map((item) =>
+      Object.values(s.filterIndex).map((item) =>
         item.name.trim().toLowerCase()
       )
     )
@@ -309,7 +309,7 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
                       "Chọn thẻ"
                     ) : (
                       selectedTags.map((name) => {
-                        const tag = Object.values(tagInfo).find((t) => t.name === name);
+                        const tag = Object.values(tagIndex).find((t) => t.name === name);
                         if (!tag) return null;
                         return (
                           <Badge
@@ -338,7 +338,7 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
                     <CommandList>
                       <CommandEmpty>Không tìm thấy thẻ nào.</CommandEmpty>
                       <CommandGroup>
-                        {Object.values(tagInfo).map((tag) => {
+                        {Object.values(tagIndex).map((tag) => {
                           const isSelected = selectedTags.includes(tag.name);
                           return (
                             <CommandItem

@@ -141,10 +141,10 @@ export function EditFilterDialog({
   const [selectedTags, setSelectedTags] = useState<string[]>(filter?.tags ?? []);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const queryClient = useQueryClient();
-  const tagInfo = useWorkspaceStore(useShallow((s) => s.tagInfo));
+  const tagIndex = useWorkspaceStore(useShallow((s) => s.tagIndex));
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
-      Object.values(s.filterInfo)
+      Object.values(s.filterIndex)
         .filter((item) => item.id !== filter?.id)
         .map((item) => item.name.trim().toLowerCase())
     )
@@ -375,7 +375,7 @@ export function EditFilterDialog({
                         "Chọn thẻ"
                       ) : (
                         selectedTags.map((tagName) => {
-                          const tag = Object.values(tagInfo).find(
+                          const tag = Object.values(tagIndex).find(
                             (t) => t.name === tagName
                           );
                           if (!tag) return null;
@@ -406,7 +406,7 @@ export function EditFilterDialog({
                       <CommandList>
                         <CommandEmpty>Không tìm thấy thẻ nào.</CommandEmpty>
                         <CommandGroup>
-                          {Object.values(tagInfo).map((tag) => {
+                          {Object.values(tagIndex).map((tag) => {
                             const isSelected = selectedTags.includes(tag.name);
                             return (
                               <CommandItem

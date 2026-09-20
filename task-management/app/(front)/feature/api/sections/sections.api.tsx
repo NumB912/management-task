@@ -17,6 +17,7 @@ export const sectionApi = {
 
   create: async (data: Pick<ISectionModel,"name">,listId:string): Promise<ISectionModel> => {
     const res = await axiosInstance.post<{section:ISectionModel}>(`/lists/${listId}/sections`, data);
+    console.log(res.data.section)
     return res.data.section;
   },
 

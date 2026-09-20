@@ -3,12 +3,10 @@ import InputText from "./input.component";
 import { Button } from "@/components/ui/button";
 import { ISectionModel } from "../model";
 import { Plus } from "lucide-react";
-import { useCreateSection } from "../feature/hook/useSectionMutation.hook";
 interface AddSectionProp {
   listId:string,
   handleAddSection:(section:Pick<ISectionModel, 'name'>)=>void
 }
-
 const AddSection = ({handleAddSection }: AddSectionProp) => {
   const [isCreate, setIsCreate] = useState<boolean>(false);
   const [newSectionName, setNewSectionName] = useState<string>("");
@@ -27,7 +25,7 @@ const AddSection = ({handleAddSection }: AddSectionProp) => {
   }
 
   return (
-    <div className="min-w-80 my-5">
+    <div className="min-w-80 p-2">
       {isCreate ? (
         <InputText
           doneHandle={handleCreateSection}

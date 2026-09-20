@@ -4,7 +4,6 @@ export interface ISectionModel{
     name:string,
     list:string
     tasks:ITaskModel[],
-    order:number,
 }
 
 export interface ISectionModelState extends Omit<ISectionModel,"tasks">{

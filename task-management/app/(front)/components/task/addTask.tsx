@@ -5,31 +5,29 @@ import TaskInputEditor from "./TaskInputEditor";
 import TaskAttributesBar from "./TaskAttributesBar";
 import TaskActions from "./taskAction";
 import { useEffect } from "react";
-import { IRuleModel } from "../../model";
-import { useWorkspaceStore } from "../../states/workspace.state";
-import { useShallow } from "zustand/react/shallow";
-
+import { IRuleModel, ITaskModel } from "../../model";
 interface AddTaskProp {
   isCreate: boolean;
   setIsCreate: (isCreate: boolean) => void;
   sectionId: string;
   listId: string;
   defaultConfirmRule?: Partial<ICreateRuleDTO>;
+  onHandle:(task:ITaskModel)=>void
 }
 
-const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule }: AddTaskProp) => {
+const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule,onHandle }: AddTaskProp) => {
   const editor = useTaskInputEditor({ listId, defaultConfirmRule });
-  const sectionIndex = useWorkspaceStore(useShallow((state)=>state.sectionIndex))
-  const { handleDone, isSubmitting } = useCreateTaskSubmit({
+  const { handleDone } = useCreateTaskSubmit({
     listId: listId,
     sectionId: editor.confirmSection ?? sectionId,  
     confirmList: editor.confirmList,
     value: editor.value,
     confirmedRule: editor.confirmRule as Pick<IRuleModel,"end_date"|"priority"|"repeat"|"start_date"|"tags"|"task"|"timer">,
     inputRef: editor.refDivInput as React.RefObject<HTMLDivElement>,
-    onSubmitSuccess: () => {
-      editor.resetEditor();
-      setIsCreate(false);
+    onHandleSubmit:(task:ITaskModel)=>{
+      editor.resetEditor()
+      setIsCreate(false)
+      onHandle(task)
     },
   });
 
@@ -85,7 +83,6 @@ const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule 
       handleClose();
     }
   };
-console.log(editor.confirmSection)
   if (!isCreate) return null;
   return (
     <div className="w-full h-fit relative max-w-70 p-3 flex-col flex-gap-2 border border-gray-200 rounded-md">
@@ -119,7 +116,7 @@ console.log(editor.confirmSection)
         }
       />
 
-      <TaskActions onCancel={handleClose} onSubmit={handleDone} isSubmitting={isSubmitting} />
+      <TaskActions onCancel={handleClose} onSubmit={handleDone} />
     </div>
   );
 };

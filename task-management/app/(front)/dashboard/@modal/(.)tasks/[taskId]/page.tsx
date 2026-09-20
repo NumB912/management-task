@@ -87,8 +87,6 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
     ISectionModel | undefined
   >();
   const { mutate: updateTaskAPI } = useUpdateTask(task?.list ?? "");
-
-  const { mutate: updateStatusAPI } = useUpdateTaskStatus(task?.list ?? "");
   useEffect(() => {
     if (!task) return;
 
@@ -362,7 +360,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
             </div>
 
             <div className="grid gap-1.5">
-              <CalendarComponent
+                {task.rule&&    <CalendarComponent
                 rule={task.rule}
                 onChangeSubmit={handleCalendarChange}
                 trigger={
@@ -405,7 +403,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                     </Button>
                   </div>
                 }
-              />
+              />}
             </div>
             {task.rule.end_date && (
               <div className="w-full flex flex-col gap-1.5">

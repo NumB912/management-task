@@ -10,10 +10,15 @@ export const taskApi = {
     }>(`/tasks/${id}`);
     return res.data.task;
   },
-  create: async (data: ICreateTaskDTO,listId:string): Promise<ITaskModel> => {
+  create: async (data: ICreateTaskDTO,listId:string): Promise<{
+    id:String
+  }> => {
     const res = await axiosInstance.post<{
-      task:ITaskModel
+      task:{
+        id:string
+      }
     }>(`/lists/${listId}/tasks`, data);
+
     return res.data.task;
   },
 

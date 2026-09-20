@@ -16,7 +16,7 @@ interface UseCreateTaskSubmitProps {
   inputRef: React.RefObject<HTMLDivElement>;   
   value: string | null;
   confirmedRule: Pick<ITaskModel["rule"], "end_date" | "start_date" | "repeat" | "timer"|"priority"|"tags">;
-  onSubmitSuccess: () => void; 
+  onHandleSubmit:(task:ITaskModel)=>void;
 }
 
 export const useCreateTaskSubmit = ({
@@ -26,20 +26,15 @@ export const useCreateTaskSubmit = ({
   value,
   confirmedRule,
   inputRef,
-  onSubmitSuccess,
+  onHandleSubmit
 }: UseCreateTaskSubmitProps) => {
-  const { mutate, isPending } = useCreateTask(confirmList);
-  const { mutate: mutateWithSection, isPending: isPendingWithSection } =
-    useCreateTaskWithSection(confirmList, sectionId);
-
-
 const getCleanTaskName = (root: HTMLElement): string => {
   const clone = root.cloneNode(true) as HTMLElement;
   clone.querySelectorAll(".tag-chip, .priority-chip, .list-chip").forEach((chip) => chip.remove());
   return (clone.innerText ?? "").trim();
 };
 
-const buildTask = (): ICreateTaskDTO | null => {
+const buildTask = (): ITaskModel | null => {
   if (!value) return null;
   const el = inputRef.current;
   if (!el) return null;
@@ -49,8 +44,10 @@ const buildTask = (): ICreateTaskDTO | null => {
 
   const cleanName = getCleanTaskName(el);
   if (cleanName.length === 0) return null;
-
+  const TempIdTask = `temp-task-${Date.now()}`
+ const TempIdRule = `temp-rule-${Date.now()}`
   return {
+    id:TempIdTask,
     name: cleanName,
     rule: {
       tags: allTags,
@@ -59,8 +56,14 @@ const buildTask = (): ICreateTaskDTO | null => {
       end_date: confirmedRule.end_date,
       start_date: confirmedRule.start_date,
       timer: confirmedRule.timer,
+      id:TempIdRule,
+      task:TempIdTask,
+      list:confirmList,
     },
     list: confirmList,
+    children:[],
+    section:sectionId,
+    status:"pending",
   };
 };
 
@@ -72,26 +75,8 @@ const buildTask = (): ICreateTaskDTO | null => {
       toast.error("Tên task không hợp lệ.");
       return;
     }
-    const onError = (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    };
-
-    if (confirmList!=listId) {
-      mutate(task, {onSuccess:onSubmitSuccess, onError });
-    } 
-    else {
-      mutateWithSection({ ...task, section: sectionId }, { onSuccess:onSubmitSuccess, onError });
-    }
+   onHandleSubmit(task)
   };
 
-  return { handleDone, isSubmitting: isPending || isPendingWithSection };
-};
-
-const getErrorMessage = (error: unknown): string => {
-  if (error && typeof error === "object" && "response" in error) {
-    const axiosErr = error as { response?: { data?: { message?: string } } };
-    return axiosErr.response?.data?.message ?? "Đã có lỗi xảy ra, vui lòng thử lại.";
-  }
-  if (error instanceof Error) return error.message;
-  return "Đã có lỗi xảy ra, vui lòng thử lại.";
+  return { handleDone};
 };

@@ -1,7 +1,7 @@
 // components/list/edit-list-dialog.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { listApi } from "../../feature/api/list/list.api";
 import { useUpdateList } from "../../feature/hook/useListMutation.hook";
+import { useWorkspaceStore } from "../../states/workspace.state";
 
 interface EditListDialogProps {
   list: { id: string; name: string } | null;
@@ -26,22 +27,28 @@ interface EditListDialogProps {
 export function EditListDialog({ list, onClose }: Readonly<EditListDialogProps>) {
   const [name, setName] = useState(list?.name??"");
   const {mutate,isPending} = useUpdateList()
-    if(!list){
-    return
-  }
+  const editList = useWorkspaceStore((s) => s.editList);
+    useEffect(()=>{
+    setName(list?.name??"")
+  },[list])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if(!list) return
     const trimmed = name.trim();
     if (!trimmed || trimmed === list?.name) return;
+    editList(list.id,name)
     mutate({
       name:trimmed,
       id:list?.id,
     },{
       onSuccess:()=>{
-        onClose()
-      }
+        
+      },
     });
+    onClose()
   };
+
 
   return (
     <Dialog open={!!list} onOpenChange={(v) => !v && onClose()}>

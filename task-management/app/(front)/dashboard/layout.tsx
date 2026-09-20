@@ -15,7 +15,6 @@ const layout = ({
 }) => {
   const hydrate = useWorkspaceStore((s) => s.hydrate);
   const { data, isSuccess } = useWorkspace();
-  console.log(data)
   useEffect(() => {
     if (isSuccess && data) {
       hydrate({

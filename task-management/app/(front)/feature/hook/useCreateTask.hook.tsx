@@ -5,7 +5,6 @@ import { useCreateTask, useCreateTaskWithSection } from './useTaskMutation.hook'
 export const useCreateTaskFactory = (listId: string, sectionId?: string) => {
   const createTask = useCreateTask(listId);
   const createTaskWithSection = useCreateTaskWithSection(listId, sectionId ?? '');
-
   const mutate = (data: ICreateTaskWithSectionDTO) => {
     if (sectionId) {
       createTaskWithSection.mutate(data);

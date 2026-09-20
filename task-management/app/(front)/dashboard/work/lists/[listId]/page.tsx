@@ -13,6 +13,7 @@ const Page = React.memo(({ params }: { params: Promise<{ listId: string }> }) =>
   useEffect(() => {
     if (list) setTitle(list.name); 
   }, [list]);
+  
   return <SectionList listId={listId} sections={sectionIds?? []} />;
 });
 

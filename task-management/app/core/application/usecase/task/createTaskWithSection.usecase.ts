@@ -5,6 +5,7 @@ import {
   ISectionRepository,
   ITagRepository,
   IListRepository,
+  ITaskWithId,
 } from "@/app/core/domain";
 import { IUnitWork } from "@/app/core/domain/entities/unitwork.entities";
 import { CreateRuleUsecase } from "../rule";
@@ -19,7 +20,7 @@ interface CreateTaskDTO {
   data: ICreateTaskDTO;
 }
 
-export class CreateTaskWithSection implements IUsecase<void> {
+export class CreateTaskWithSection implements IUsecase<string> {
   constructor(
     private readonly TaskRepository: ITaskRepository,
     private readonly SectionRepository: ISectionRepository,
@@ -30,7 +31,7 @@ export class CreateTaskWithSection implements IUsecase<void> {
     private readonly unitWork: IUnitWork,
   ) { }
 
-  async execute(createTaskDTO: CreateTaskDTO): Promise<void> {
+  async execute(createTaskDTO: CreateTaskDTO): Promise<string> {
     const { data, listId, userId, sectionId } = createTaskDTO
     const rule = data.rule
     const [list, section] = await Promise.all([this.getListOrThrow(listId), this.getSectionOrThrow(sectionId)])
@@ -117,6 +118,7 @@ export class CreateTaskWithSection implements IUsecase<void> {
       );
 
       await this.unitWork.commitTransaction();
+      return task.id
     } catch (error: any) {
       console.error(error);
       await this.unitWork.rollBackTransaction();

@@ -10,14 +10,15 @@ import { useShallow } from "zustand/react/shallow";
 const page = () => {
   const {setTitle} = useHeader();
   const {inbox} = useWorkspaceStore()
-  const sections = useWorkspaceStore(useShallow((state)=>Object.values(state.sectionIndex).filter((section)=>section.list==inbox)))??[]
+  const list = useWorkspaceStore(useShallow((state) => state.listIndex[inbox!]))??{list:{}}; 
+   const sectionIds =list.sections
   useEffect(() => {
-    setTitle("Hộp thư");
+  setTitle("Hộp thư");
   }, [inbox]);
-  if(!inbox){
+  if(!inbox || !list){
     return
   }
-  return <SectionList listId={inbox} sections={sections??[]} />;
+  return <SectionList listId={inbox} sections={sectionIds??[]} />;
 };
 
 export default page;

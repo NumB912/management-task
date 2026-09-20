@@ -10,11 +10,10 @@ export function ShareModalClient() {
   const {close,isOpen,open:openState,listId}  =useShareModalStore()
   const {listIndex}=useWorkspaceStore()
   if(!listId) return 
-  const {list} = listIndex[listId]
+  const list = listIndex[listId]
   if(!list){
     return
   }
-  
   
   return (
     <Sheet open={isOpen} onOpenChange={(open)=>{

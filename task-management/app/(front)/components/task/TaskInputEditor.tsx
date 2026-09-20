@@ -9,10 +9,11 @@ import {
 } from "@/components/ui/combobox";
 import { Box, File, Folder, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { IListModel, ISectionModel } from "../../model";
-import React, { useEffect, useLayoutEffect } from "react";
+import { IListModel, IListModelState, ISectionModel, ISectionModelState } from "../../model";
+import React from "react";
 import { useCreateTag } from "../../feature/hook/useTagMutation.hook";
 import { toast } from "sonner";
+import { useWorkspaceStore } from "../../states/workspace.state";
 
 interface TaskInputEditorProps {
   refDivInput: React.RefObject<HTMLDivElement>;
@@ -27,12 +28,12 @@ interface TaskInputEditorProps {
   isOpenList: boolean;
   setIsOpenList: (v: boolean) => void;
   lists: Pick<
-    IListModel,
-    "id" | "isShareList" | "sections" | "name" | "user"
+    IListModelState,
+    "id" | "sections" | "name"
   >[];
   onAddList: (v: {
-    list: Pick<IListModel, "id" | "isShareList" | "sections" | "name" | "user">;
-    section?: ISectionModel;
+    list: Pick<IListModelState, "id" |"sections" | "name">;
+    section?: ISectionModelState;
   }) => void;
 }
 
@@ -51,8 +52,8 @@ const TaskInputEditor = ({
   lists,
   onAddList,
 }: TaskInputEditorProps) => {
-const { mutate: createTag, isPending } = useCreateTag();
-
+const { mutate: createTag } = useCreateTag();
+const sections = useWorkspaceStore((state)=>state.sectionIndex)
 const handleAddTag = (v: string | null) => {
   const name = v?.trim() ?? "";
   if (!name) return; 
@@ -131,8 +132,8 @@ const handleAddTag = (v: string | null) => {
           onOpenChange={setIsOpenList}
           onValueChange={(
             v: {
-              list: Pick<IListModel,"id" | "isShareList" | "sections" | "name" | "user">,
-              section?: ISectionModel;
+              list: Pick<IListModelState,"id"| "sections" | "name">,
+              section?: ISectionModelState;
             } | null,
           ) => {
             if (v?.list && v.section){
@@ -173,13 +174,13 @@ const handleAddTag = (v: string | null) => {
                       className={cn("flex gap-2 w-full p-2 rounded-none")}
                       value={{
                         list: list,
-                        section: section,
+                        section: sections[section],
                       }}
-                      key={section.id}
+                      key={section}
                     >
                       <File className="h-4 w-4 ml-5" />
                       <span className="text-ellipsis! max-w-60 overflow-hidden">
-                        {section.name}
+                        {sections[section].name}
                       </span>
                     </ComboboxItem>
                   ))}

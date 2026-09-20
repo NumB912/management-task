@@ -70,8 +70,6 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
   const listOptions = useMemo(() => {
     return Object.values(listIndex);
   }, [listIndex]);
-  const getTasksSection=useWorkspaceStore((state)=>state.getTaskWithSection)
-  const tasks = useMemo(()=>getTasksSection(task.section),[task,task.section])
   const [name, setName] = useState("");
   const [priority, setPriority] = useState<number>(4);
   const [tags, setTags] = useState<string[]>([]);

@@ -11,7 +11,6 @@ export interface ITaskModel {
   done_at?:Date
   status:"done"|"won't do"|"pending"
   parent?:ITaskModel
-  order:number
 }
 
 export interface ICreateTaskModel extends Omit<ITaskModel,"rule"|"children"|"parent"|"id"|"status"|"order">{

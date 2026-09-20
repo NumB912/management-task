@@ -8,15 +8,8 @@ import { sectionApi } from '../api/sections/sections.api';
 import { workSpaceKeys } from './useWorkSpaceQuery.hook';
 
 export const useCreateSection = (listId: string) => {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: ICreateSectionDTO) => sectionApi.create(data, listId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: listKeys.detail(listId) });
-    },
-    onError: (error: AxiosError<ApiErrorResponse>) => {
-      console.error('Create task failed:', error.response?.data?.message ?? error.message);
-    },
   });
 };
 

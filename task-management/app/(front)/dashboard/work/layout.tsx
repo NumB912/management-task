@@ -62,7 +62,6 @@ import EntityRow from "../../components/entity-row/entityRow";
 import { AddTagDialog } from "../../components/tags/addTags";
 import { EditTagDialog } from "../../components/tags/editTags";
 import { DeleteTagDialog } from "../../components/tags/deleteTags";
-import { useWorkspace } from "../../feature/hook/useWorkSpaceQuery.hook";
 import { ITagModel } from "../../model";
 import { AddFilterDialog } from "../../components/filters/addFilter.filters";
 import { EditFilterDialog } from "../../components/filters/editFilter.filters";
@@ -75,7 +74,8 @@ const layout = ({
   children: React.ReactNode;
 }) => {
   const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
-  const {getTodayTaskCount,getNextDayCount,getInboxCount,filterInfo,tagInfo} = useWorkspaceStore()
+  const {getTodayTaskCount,getNextDayCount,getInboxCount,filterIndex,tagIndex} = useWorkspaceStore()
+
   const pathName = usePathname();
   const [openList, setOpenList] = useState<boolean>(true);
   const [openFilter, setOpenFilter] = useState<boolean>(true);
@@ -97,6 +97,8 @@ const layout = ({
   const [openAddFilter, setOpenAddFilter] = useState<boolean>(false);
   const [openAddTag, setOpenAddTag] = useState<boolean>(false);
   const [openAddList, setOpenAddList] = useState<boolean>(false);
+  const getTaskWithFilter = useWorkspaceStore((state)=>state.getTaskFilter)
+  const getTaskQuantityWithList = useWorkspaceStore((state)=>state.getTaskQuantityWithList)
   const tabs = [
     {
       title: "Hôm nay",
@@ -117,8 +119,8 @@ const layout = ({
       count: getNextDayCount(),
     },
   ];
-
   const listEntries = Object.entries(listIndex);
+  console.log(listEntries)
   return (
     <div className="flex h-screen relative overflow-hidden overflow-y-scroll">
       <Sidebar className={cn("absolute left-0")}>
@@ -224,7 +226,6 @@ const layout = ({
                   if (info.name.toLocaleLowerCase() == "inbox") {
                     return;
                   }
-
                   return (
                     <ContextMenu key={listId}>
                       <ContextMenuTrigger asChild>
@@ -259,7 +260,7 @@ const layout = ({
 
                             <span className="flex items-center gap-2 relative">
                               <span className="group-hover/list-item:hidden flex-1 absolute right-1 text-sm text-neutral-600">
-                                {0}
+                                {getTaskQuantityWithList(listId)??0}
                               </span>
                               <DropdownMenu>
                                 <DropdownMenuTrigger
@@ -330,7 +331,7 @@ const layout = ({
                 </SidebarGroupLabel>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {(Object.values(filterInfo) ?? []).length === 0 && (
+                {(Object.values(filterIndex) ?? []).length === 0 && (
                   <div className="bg-muted/10 my-2 mx-3 rounded-md text-neutral-500">
                     <p className="text-sm px-3 py-2 leading-6">
                       Chưa có bộ lọc nào, bạn hãy thêm bộ lọc để tìm kiểm thêm
@@ -338,12 +339,13 @@ const layout = ({
                     </p>
                   </div>
                 )}
-                {(Object.values(filterInfo) ?? [])?.map((filter: any) => (
+                {(Object.values(filterIndex) ?? [])?.map((filter:IFilterModel) => (
                   <EntityRow
                     key={filter.id}
                     link={`/dashboard/work/filters/${filter.id}`}
                     icon={<Filter data-icon="inline-start" size={16} />}
                     name={filter.name}
+                    count={getTaskWithFilter(filter.id).length}
                     actionGroups={[
                       [
                         {
@@ -402,7 +404,7 @@ const layout = ({
                 </SidebarGroupLabel>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {(Object.values(tagInfo) ?? []).length === 0 && (
+                {(Object.values(tagIndex) ?? []).length === 0 && (
                   <div className="bg-muted/10 my-2 mx-3 rounded-md text-neutral-500">
                     <p className="text-sm px-3 py-2 leading-6">
                       Chưa có thẻ nào, bạn hãy thêm thẻ để tìm kiểm thêm dễ dàng
@@ -410,12 +412,12 @@ const layout = ({
                     </p>
                   </div>
                 )}
-                {(Object.values(tagInfo) ?? [])
+                {(Object.values(tagIndex) ?? [])
                   .filter((tag: ITagModel) => !tag.isShareTag)
                   .map((tag: ITagModel) => (
                     <EntityRow
                       key={tag.id}
-                      link={`/dashboard/work/tags/${tag.id}`}
+                      link={`/dashboard/work/tags/${tag.name}`}
                       icon={
                         <Tag
                           data-icon="inline-start"
@@ -444,7 +446,7 @@ const layout = ({
                     />
                   ))}
 
-                {(Object.values(tagInfo).filter((tag: ITagModel) => tag.isShareTag) ?? [])
+                {(Object.values(tagIndex).filter((tag: ITagModel) => tag.isShareTag) ?? [])
                   .length !== 0 && (
                   <Collapsible
                     open={openShareTag}
@@ -470,7 +472,7 @@ const layout = ({
                       </SidebarGroupLabel>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      {(Object.values(tagInfo)?? [])
+                      {(Object.values(tagIndex)?? [])
                         .filter((tag: ITagModel) => tag.isShareTag)
                         .map((tag: ITagModel) => (
                           <EntityRow

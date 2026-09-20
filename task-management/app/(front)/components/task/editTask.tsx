@@ -6,6 +6,7 @@ import { ICreateRuleDTO, IUpdateRuleDTO } from "../../model/DTO/rule.DTO";
 import TaskInputEditor from "./TaskInputEditor";
 import TaskAttributesBar from "./TaskAttributesBar";
 import TaskActions from "./taskAction";
+import { useWorkspaceStore } from "../../states/workspace.state";
 
 interface EditTaskProp {
   isEditing: boolean;
@@ -34,7 +35,6 @@ const EditTask = ({
 }: EditTaskProp) => {
   const [hydrated, setHydrated] = useState(false);
   const editor = useTaskInputEditor({ listId });
-
   useEffect(() => {
     if (!isEditing || hydrated || editor.lists.length === 0) return;
     editor.hydrateFromTask(task);
@@ -47,7 +47,7 @@ const EditTask = ({
     editor.setIsEmpty(false)
   }, []);
 
-  const { handleDone, isSubmitting } = useUpdateTaskSubmit({
+  const { handleDone } = useUpdateTaskSubmit({
     taskId: task.id,
     listId:listId,
     confirmedSection: editor.confirmSection,
@@ -146,21 +146,19 @@ useEffect(()=>{
 
       <TaskAttributesBar
         lists={editor.lists}
-        confirmListName={editor.listIndex[editor.confirmList]?.list?.name ?? "Hộp thư"}
+        confirmListName={editor.listIndex[editor.confirmList]?.name ?? "Hộp thư"}
         onSelectList={editor.handleAddListBehind}
         confirmedRule={editor.confirmRule as Pick<IRuleModel,"end_date"|"priority"|"repeat"|"start_date"|"tags"|"task"|"timer">}
         onChangeRule={(partial) =>
           editor.setConfirmRule((prev) => ({ ...prev, ...partial }))
         }
         onSelectPriority={editor.handleAddpriorityBehind}
-        confirmSectionName={
-          editor.listIndex[editor.confirmList]?.list?.sections?.find(
-            (section) => section.id == editor.confirmSection
-          )?.name ?? ""
+         confirmSectionName={
+          editor.confirmSection??""
         }
       />
 
-      <TaskActions onCancel={handleClose} onSubmit={handleDone} isSubmitting={isSubmitting} buttonContent="Chỉnh sửa"/>
+      <TaskActions onCancel={handleClose} onSubmit={handleDone} buttonContent="Chỉnh sửa"/>
     </div>
   );
 };

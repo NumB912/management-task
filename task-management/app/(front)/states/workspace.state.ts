@@ -1,5 +1,11 @@
 import { create } from "zustand";
-import { IListModel, IListModelState, ISectionModel, ISectionModelState, ITagModel, ITaskModel } from "../model";
+import {
+  IListModel,
+  IListModelState,
+  ISectionModelState,
+  ITagModel,
+  ITaskModel,
+} from "../model";
 import { IFilterModel } from "../model/filter.model";
 import { IStatus } from "../model/type/type";
 
@@ -22,11 +28,11 @@ interface IWorkspaceState {
   nextDayCount: number;
   listIndex: Record<
     string,
-    Pick<IListModelState, "isShareList" | "name" | "user" | "id"|"sections">
+    Pick<IListModelState, "isShareList" | "name" | "user" | "id" | "sections">
   >;
   sectionIndex: Record<string, ISectionModelState>;
-  tagInfo: Record<string, ITagModel>;
-  filterInfo: Record<string, IFilterModel>;
+  tagIndex: Record<string, ITagModel>;
+  filterIndex: Record<string, IFilterModel>;
   taskIndex: Record<string, ITaskModel>;
   taskLocation: Record<string, ITaskLocation>;
   setInboxCount: (inboxCount: number) => void;
@@ -34,40 +40,81 @@ interface IWorkspaceState {
   setNextDayCount: (nextDayCount: number) => void;
   setlistIndex: (
     listId: string,
-    info: Partial<Pick<IListModel, "isShareList" | "name" | "user" | "id"|"sections">>,
+    info: Partial<
+      Pick<IListModel, "isShareList" | "name" | "user" | "id" | "sections">
+    >,
   ) => void;
-  completeTaskAndCreateNext: (taskId: string, status: IStatus, nextTask?: ITaskModel, listId?: string, sectionId?: string) => void
   removelistIndex: (listId: string) => void;
-  setTagInfo: (tagId: string, info: Partial<ITagModel>) => void;
-  setSectionIndex:(sectionId:string,section:Partial<ISectionModelState>)=>void;
-  removeTagInfo: (tagId: string) => void;
-  setFilterInfo: (filterId: string, info: Partial<IFilterModel>) => void;
-  removeFilterInfo: (filterId: string) => void;
+  settagIndex: (tagId: string, info: Partial<ITagModel>) => void;
+  setSectionIndex: (
+    sectionId: string,
+    section: Partial<ISectionModelState>,
+  ) => void;
+  removetagIndex: (nameTag: string) => void;
+  setfilterIndex: (filterId: string, info: Partial<IFilterModel>) => void;
+  removefilterIndex: (filterId: string) => void;
   hasTag: (name: string | null) => boolean;
   hydrate: (data: HydrateData) => void;
-  getTagWithName: (name: string) => ITagModel[];
+  getTag: (name: string) => ITagModel | null;
+  getTagsWithName: (name: string) => ITagModel[];
   getListWithName: (
     name: string,
   ) =>
-    | Pick<IListModel, "isShareList" | "name" | "user" | "id" | "sections">[]
+    | Pick<
+        IListModelState,
+        "isShareList" | "name" | "user" | "id" | "sections"
+      >[]
     | undefined;
-  getOverdueTasks: () => ITaskModel[];
+  getOverdueTasks: () => string[];
   getTodayTaskCount: () => number;
   getNextDayCount: () => number;
   getInboxCount: () => number;
-  getTodayInfo: () => ITaskModel[] | null;
+  getFilterCount: (filterId: string) => number;
+  getTagCount: (tagName: string) => number;
+  getTodayInfo: () => string[] | null;
   getNextInfo: () => ITaskModel[];
   getTaskTag: (tags: string[]) => ITaskModel[];
-  getTaskFilter: (filter: IFilterModel) => ITaskModel[];
+  getTaskFilter: (filterId: string) => ITaskModel[];
   getTaskById: (taskId: string) => ITaskModel | undefined;
   updateTask: (taskId: string, patch: Partial<ITaskModel>) => void;
-  updateTaskStatus: (taskId: string, status:IStatus) => void;
-  getTaskWithSection:(sectionId:string)=>void
-  moveSection: (startId:string, changeId:string) => void
-  addTask: (task: ITaskModel, listId: string, sectionId: string) => void;
-  // removeTask: (taskId: string) => void;
+  updateTaskStatus: (taskId: string, status: IStatus) => void;
+  getTaskWithSection: (sectionId: string) => ITaskModel[];
+  getTaskQuantityWithList: (listId: string) => number;
+  moveSection: (startId: string, changeId: string) => void;
+  moveTaskIntoSection: (taskId: string, newSectionId: string) => void;
+  addSection: (listId: string, newSection: ISectionModelState) => void;
+  editList:(listId:string,newName:string)=>void;
+  removeSection: (sectionId: string) => void;
+  addTask: (task: ITaskModel) => void;
+  changeIdSection: (tempId: string, id: string) => void;
+  changeIdTask: (tempId: string, id: string) => void;
+  removeTask: (taskId: string) => void;
   reset: () => void;
 }
+
+import { endOfDay, isToday, startOfDay } from "date-fns";
+
+const toArray = <T>(v: T | T[] | null | undefined): T[] =>
+  v == null ? [] : Array.isArray(v) ? v : [v];
+
+const toDate = (v: unknown): Date | null => {
+  if (v == null || v === "") return null;
+  const d = new Date(v as string | number | Date);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const SPECIALS: Record<string, (task: ITaskModel, now: Date) => boolean> = {
+  no_date: (t) => !t.rule?.start_date,
+  today: (t) => {
+    const d = toDate(t.rule?.start_date);
+    return !!d && isToday(d);
+  },
+  overdue: (t, now) => {
+    const d = toDate(t.rule?.start_date);
+    return !!d && d < startOfDay(now) && t.status === "pending";
+  },
+  repeat: (t) => !!t.rule?.repeat && t.rule.repeat.mode !== "none",
+};
 
 const initialState = {
   inboxCount: 0,
@@ -75,8 +122,8 @@ const initialState = {
   inbox: null,
   nextDayCount: 0,
   listIndex: {},
-  tagInfo: {},
-  filterInfo: {},
+  tagIndex: {},
+  filterIndex: {},
   taskIndex: {},
   taskLocation: {},
   sectionIndex: {},
@@ -86,12 +133,6 @@ const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
-
-const isGLTTomorrow = (date: Date, today: Date) => {
-  const tomorrow = new Date(today);
-  tomorrow.setDate(today.getDate() + 1);
-  return tomorrow <= date;
-};
 const isBeforeToday = (date: Date, today: Date) => {
   const dateStart = new Date(
     date.getFullYear(),
@@ -104,7 +145,7 @@ const isBeforeToday = (date: Date, today: Date) => {
     today.getDate(),
   );
   return dateStart < todayStart;
-}
+};
 
 export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
   ...initialState,
@@ -123,43 +164,75 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
             name: info?.name ?? current?.name ?? "",
             isShareList: info?.isShareList ?? current?.isShareList ?? false,
             user: info?.user ?? current?.user ?? "",
-            sections:info.sections?.map((section)=>section.id)??[]
+            sections: info.sections?.map((section) => section.id) ?? [],
           },
         },
       };
     }),
   hasTag(tag) {
-    return Object.entries(get().tagInfo).some(
+    return Object.entries(get().tagIndex).some(
       ([, data]) => data.name.toLocaleLowerCase() === tag?.toLocaleLowerCase(),
     );
   },
+editList(listId, newName) {
+  set((state)=>{
+    const listItem = state.listIndex[listId]
 
-  getTaskFilter(filter: IFilterModel): ITaskModel[] {
-    const {taskIndex} = get()
-    const allTasks = Object.values(taskIndex)
-    return allTasks.filter((task: any) => {
-      if (task.status !== filter?.status) return false;
-      if (filter.priority && task.rule?.priority !== filter.priority)
+    if(!listItem) return state
+    return {
+      listIndex:{
+        ...state.listIndex,
+        [listId]:{
+          ...listItem,
+          name:newName
+        }
+      }
+    }
+  })
+},
+  getTaskFilter(filterId: string): ITaskModel[] {
+    const { taskIndex, filterIndex } = get();
+    const filter = filterIndex[filterId];
+    if (!filter) return [];
+
+    const statuses = toArray(filter.status);
+    const priorities = toArray(filter.priority);
+    const tags = toArray<string>(filter.tags);
+    const specials = toArray<string>(filter.specials);
+
+    const from = toDate(filter.start_date);
+    const to = toDate(filter.end_date);
+    const rangeStart = from ? startOfDay(from).getTime() : null;
+    const rangeEnd = to ? endOfDay(to).getTime() : null;
+
+    const now = new Date();
+
+    return Object.values(taskIndex).filter((task: ITaskModel) => {
+      if (statuses.length && !statuses.includes(task.status)) return false;
+
+      if (
+        priorities.length &&
+        !priorities.includes(task.rule?.priority as never)
+      ) {
         return false;
-      if (filter.tags && filter.tags.length > 0) {
-        const taskTags: string[] = task.rule?.tags ?? [];
-        const hasMatch = filter.tags.some((tag) =>
-          taskTags.some(
-            (t) => t.toLocaleLowerCase() === tag.toLocaleLowerCase(),
-          ),
-        );
-        if (!hasMatch) return false;
       }
 
-      const taskDate = task.rule?.start_date
-        ? new Date(task.rule.start_date)
-        : null;
-
-      if (filter.start_date) {
-        if (!taskDate || taskDate < new Date(filter.start_date)) return false;
+      if (tags.length) {
+        const taskTagSet = new Set(task.rule?.tags ?? []);
+        if (!tags.every((t) => taskTagSet.has(t))) return false;
       }
-      if (filter.end_date) {
-        if (!taskDate || taskDate > new Date(filter.end_date)) return false;
+
+      if (rangeStart !== null || rangeEnd !== null) {
+        const d = toDate(task.rule?.start_date);
+        if (!d) return false;
+        const time = d.getTime();
+        if (rangeStart !== null && time < rangeStart) return false;
+        if (rangeEnd !== null && time > rangeEnd) return false;
+      }
+
+      if (specials.length) {
+        const ok = specials.every((key) => SPECIALS[key]?.(task, now) ?? true);
+        if (!ok) return false;
       }
 
       return true;
@@ -167,77 +240,132 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
   },
   removelistIndex: (listId) =>
     set((state) => {
+      const listItem = state.listIndex[listId]
+      if(!listItem) return state
       const { [listId]: _, ...rest } = state.listIndex;
       return { listIndex: rest };
     }),
-    moveSection: (startId, changeId) => {
-  set((state) => {
-    const list = state.listIndex[state.sectionIndex[startId].list];
+  moveSection: (startId, changeId) => {
+    set((state) => {
+      const list = state.listIndex[state.sectionIndex[startId].list];
 
-    if (!list) return state;
+      if (!list) return state;
 
-    const sections = list.sections;
+      const sections = list.sections;
 
-    const startIndex = sections.indexOf(startId);
-    const endIndex = sections.indexOf(changeId);
+      const startIndex = sections.indexOf(startId);
+      const endIndex = sections.indexOf(changeId);
 
-    if (
-      startIndex === -1 ||
-      endIndex === -1 ||
-      startIndex === endIndex
-    ) {
-      return state;
-    }
-
-    const newSections = [...sections];
-
-    const [removed] = newSections.splice(startIndex, 1);
-
-    newSections.splice(endIndex, 0, removed);
-
-    return {
-      listIndex: {
-        ...state.listIndex,
-        [list.id]: {
-          ...list,
-          sections: newSections,
-        },
-      },
-    };
-  });
-},
-  setSectionIndex:(sectionId,info)=>{
-    const {sectionIndex} = get()
-    set(()=>{
-
-      return (
-      {
-          sectionIndex:{
-        ...sectionIndex,
-        [sectionId]:{
-          ...sectionIndex[sectionId],
-          ...info,
-        }
+      if (startIndex === -1 || endIndex === -1 || startIndex === endIndex) {
+        return state;
       }
-      })
-    })
+
+      const newSections = [...sections];
+
+      const [removed] = newSections.splice(startIndex, 1);
+
+      newSections.splice(endIndex, 0, removed);
+
+      return {
+        listIndex: {
+          ...state.listIndex,
+          [list.id]: {
+            ...list,
+            sections: newSections,
+          },
+        },
+      };
+    });
   },
-  getOverdueTasks(): ITaskModel[] {
+  getTaskQuantityWithList: (listId, onlyPending = true) => {
+    const { listIndex, sectionIndex, taskIndex } = get();
+    const list = listIndex[listId];
+    if (!list) return 0;
+
+    let count = 0;
+    for (const sectionId of list.sections) {
+      for (const taskId of sectionIndex[sectionId]?.tasks ?? []) {
+        const task = taskIndex[taskId];
+        if (!task) continue;
+        if (onlyPending && task.status !== "pending") continue;
+        count++;
+      }
+    }
+    return count;
+  },
+  moveTaskIntoSection: (taskId, newSectionId) =>
+    set((state) => {
+      const task = state.taskIndex[taskId];
+      if (!task) return state;
+      if (task.section === newSectionId) return state;
+      const from = state.sectionIndex[task.section];
+      const to = state.sectionIndex[newSectionId];
+      if (!from || !to) return state;
+      const taskIndex = { ...state.taskIndex };
+
+      return {
+        taskIndex:{
+          ...state.taskIndex,
+          [taskId]:{
+            ...task,
+            section:to.id,
+            list:to.list,
+          }
+        },
+        sectionIndex: {
+          ...state.sectionIndex,
+          [task.section]: {
+            ...from,
+            tasks: from.tasks.filter((id) => id !== taskId),
+          },
+          [newSectionId]: {
+            ...to,
+            tasks: [...to.tasks.filter((id) => id !== taskId), taskId],
+          },
+        },
+      };
+    }),
+  removeSection: (sectionId) => {
+    set((state) => {
+      const { [sectionId]: _, ...rest } = state.sectionIndex;
+      return {
+        sectionIndex: {
+          ...rest,
+        },
+      };
+    });
+  },
+  setSectionIndex: (sectionId, info) => {
+    const { sectionIndex } = get();
+    set(() => {
+      return {
+        sectionIndex: {
+          ...sectionIndex,
+          [sectionId]: {
+            ...sectionIndex[sectionId],
+            ...info,
+          },
+        },
+      };
+    });
+  },
+  getOverdueTasks(): string[] {
     const today = new Date();
-     const {taskIndex} = get()
+    const { taskIndex } = get();
     return Object.values(taskIndex)
       .filter((task: ITaskModel) => {
         if (task.status !== "pending") return false;
         if (!task.rule?.start_date) return false;
         return isBeforeToday(new Date(task.rule.start_date), today);
-      });
+      })
+      .map((task: ITaskModel) => task.id);
   },
-  setTagInfo: (tagId, info) =>
+  settagIndex: (tagId, info) =>
     set((state) => {
-      const current = state.tagInfo[tagId];
+      const current = state.tagIndex[tagId];
       return {
-        tagInfo: {
-          ...state.tagInfo,
+        tagIndex: {
+          ...state.tagIndex,
           [tagId]: {
             id: info?.id ?? current?.id ?? "",
             name: info?.name ?? current?.name ?? "",
@@ -246,27 +374,61 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
         },
       };
     }),
-
-  removeTagInfo: (tagId) =>
+  removetagIndex: (nameTag: string) =>
     set((state) => {
-      const { [tagId]: _, ...rest } = state.tagInfo;
-      return { tagInfo: rest };
+      if (!(nameTag in state.tagIndex)) return state;
+      const { [nameTag]: _removed, ...restTags } = state.tagIndex;
+      let taskChanged = false;
+      const taskIndex = { ...state.taskIndex };
+      for (const [id, task] of Object.entries(state.taskIndex)) {
+        const tags = task.rule?.tags;
+        if (!tags?.includes(nameTag)) continue;
+
+        taskChanged = true;
+        taskIndex[id] = {
+          ...task,
+          rule: { ...task.rule, tags: tags.filter((tag) => tag !== nameTag) },
+        };
+      }
+
+      let filterChanged = false;
+      const filterIndex = { ...state.filterIndex };
+      for (const [id, filter] of Object.entries(state.filterIndex)) {
+        const tags = filter.tags;
+        const has = Array.isArray(tags)
+          ? tags.includes(nameTag)
+          : tags === nameTag;
+        if (!has) continue;
+
+        filterChanged = true;
+        filterIndex[id] = {
+          ...filter,
+          tags: Array.isArray(tags)
+            ? tags.filter((tag) => tag !== nameTag)
+            : [],
+        };
+      }
+
+      return {
+        tagIndex: restTags,
+        taskIndex: taskChanged ? taskIndex : state.taskIndex,
+        filterIndex: filterChanged ? filterIndex : state.filterIndex,
+      };
     }),
-
-  setFilterInfo: (filterId, info) =>
+  setfilterIndex: (filterId, info) =>
     set((state) => {
-      const current = state.filterInfo[filterId];
+      const current = state.filterIndex[filterId];
       if (!info && !current) {
         if (process.env.NODE_ENV === "development") {
           console.warn(
-            `[workspace-store] setFilterInfo: thiếu dữ liệu filter cho "${filterId}"`,
+            `[workspace-store] setfilterIndex: thiếu dữ liệu filter cho "${filterId}"`,
           );
         }
         return state;
       }
       return {
-        filterInfo: {
-          ...state.filterInfo,
+        filterIndex: {
+          ...state.filterIndex,
           [filterId]: {
             ...current,
             ...info,
@@ -275,306 +437,395 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
       };
     }),
   getNextDayCount() {
-    const {taskIndex} = get()
+    const { taskIndex } = get();
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const next7Days = new Date();
+    next7Days.setDate(next7Days.getDate() + 7);
+    next7Days.setHours(0, 0, 0, 0);
     return Object.values(taskIndex).filter((task: ITaskModel) => {
-        if (task.status !== "pending") return false;
-        if (!task.rule?.start_date) return false;
-        return isGLTTomorrow(new Date(task.rule.start_date), today);
-      }).length;
+      if (task.status !== "pending") return false;
+      if (!task.rule?.start_date) return false;
+      return (
+        new Date(task.rule.start_date) >= today &&
+        new Date(task.rule.start_date) <= next7Days
+      );
+    }).length;
   },
-getInboxCount() {
+  getInboxCount() {
     const { inbox, taskIndex } = get();
     if (!inbox) return 0;
     return Object.values(taskIndex).filter(
-      (task) => task.status === "pending" && task.list === inbox
+      (task) => task.status === "pending" && task.list === inbox,
     ).length;
-},
-  removeFilterInfo: (filterId) =>
+  },
+  removefilterIndex: (filterId) =>
     set((state) => {
-      const { [filterId]: _, ...rest } = state.filterInfo;
-      return { filterInfo: rest };
+      const { [filterId]: _, ...rest } = state.filterIndex;
+      return { filterIndex: rest };
     }),
+  getTagCount(tagName) {
+    const { taskIndex } = get();
+    const tasks = Object.values(taskIndex).filter((task) =>
+      task.rule.tags.includes(tagName),
+    );
+    return tasks.length ?? 0;
+  },
+  getFilterCount(filterId) {
+    const { filterIndex } = get();
+    const filter = filterIndex[filterId];
+    if (!filter) {
+      return 0;
+    }
 
-hydrate: (data) => {
-  const listIndex: Record<
-    string,
-    Pick<IListModelState, "isShareList" | "name" | "user" | "id"|"sections">
-  > = {};
+    return 0;
+  },
+  hydrate: (data) => {
+    const listIndex: Record<
+      string,
+      Pick<IListModelState, "isShareList" | "name" | "user" | "id" | "sections">
+    > = {};
 
-  const sectionIndex: Record<string, ISectionModelState> = {};
-  const taskIndex: Record<string, ITaskModel> = {};
-  const taskLocation: Record<string, ITaskLocation> = {};
-
-  for (const list of data.lists ?? []) {
-    listIndex[list.id] = {
-      id: list.id,
-      name: list.name,
-      user: list.user,
-      isShareList: list.isShareList,
-      sections: list.sections?.map(section=>section.id) ?? []
-    };
-
-    for (const section of list.sections ?? []) {
-     sectionIndex[section.id] = {
-        ...section,
-        tasks: (section.tasks ?? []).map((t: ITaskModel) => t.id), 
+    const sectionIndex: Record<string, ISectionModelState> = {};
+    const taskIndex: Record<string, ITaskModel> = {};
+    const taskLocation: Record<string, ITaskLocation> = {};
+    for (const list of data.lists ?? []) {
+      listIndex[list.id] = {
+        id: list.id,
+        name: list.name,
+        user: list.user,
+        isShareList: list.isShareList,
+        sections: list.sections?.map((section) => section.id) ?? [],
       };
 
-      for (const task of section.tasks ?? []) {
-        taskIndex[task.id] = task;
-        taskLocation[task.id] = {
-          listId: list.id,
-          sectionId: section.id,
+      for (const section of list.sections ?? []) {
+        sectionIndex[section.id] = {
+          ...section,
+          tasks: (section.tasks ?? []).map((t: ITaskModel) => t.id),
         };
+
+        for (const task of section.tasks ?? []) {
+          taskIndex[task.id] = task;
+          taskLocation[task.id] = {
+            listId: list.id,
+            sectionId: section.id,
+          };
+        }
       }
     }
-  }
 
-  set({
-    inbox: data.inbox ?? null,
-    listIndex,
-    sectionIndex,
-    taskIndex,
-    taskLocation,
-    tagInfo: Object.fromEntries(
-      (data.tags ?? []).map((tag) => [tag.id, tag]),
-    ),
+    set({
+      inbox: data.inbox ?? null,
+      listIndex,
+      sectionIndex,
+      taskIndex,
+      taskLocation,
+      tagIndex: Object.fromEntries(
+        (data.tags ?? []).map((tag) => [tag.name, tag]),
+      ),
 
-    filterInfo: Object.fromEntries(
-      (data.filters ?? []).map((filter) => [filter.id, filter]),
-    ),
-  });
-},
-  getTagWithName(name) {
-    return Object.values(get().tagInfo).filter(
+      filterIndex: Object.fromEntries(
+        (data.filters ?? []).map((filter) => [filter.id, filter]),
+      ),
+    });
+  },
+  getTag(name) {
+    const { tagIndex } = get();
+
+    const tagItem = tagIndex[name];
+
+    if (!tagItem) return null;
+
+    return tagItem;
+  },
+  getTagsWithName(name) {
+    return Object.values(get().tagIndex).filter(
       (tag) =>
         tag.name.toLocaleLowerCase().startsWith(name.toLocaleLowerCase()) ||
         name == "",
     );
   },
-  getTaskWithSection(sectionId:string){
-    const {sectionIndex,taskIndex} = get()
-    return sectionIndex[sectionId].tasks.map((task:string)=>taskIndex[task])
+  getTaskWithSection(sectionId: string) {
+    const { sectionIndex, taskIndex } = get();
+
+    if (!sectionIndex[sectionId]) {
+      return [];
+    }
+
+    return (
+      sectionIndex[sectionId]?.tasks?.map((task: string) => taskIndex[task]) ??
+      []
+    );
   },
   getListWithName(
     name: string,
   ):
-    | Pick<IListModel, "isShareList" | "name" | "user" | "id">[]
+    | Pick<
+        IListModelState,
+        "isShareList" | "name" | "user" | "id" | "sections"
+      >[]
     | undefined {
-    return Object.values(get().listIndex)
-      .filter((list) =>
-        list.name.toLocaleLowerCase().includes(name?.toLocaleLowerCase()),
-      );
+    return Object.values(get().listIndex).filter((list) =>
+      list.name.toLocaleLowerCase().includes(name?.toLocaleLowerCase()),
+    );
   },
-  getSectionWithList(listId:string){
-    const {listIndex,sectionIndex} = get()
-    return listIndex[listId].sections.map((section:string)=>sectionIndex[section])
+  getSectionWithList(listId: string) {
+    const { listIndex, sectionIndex } = get();
+    return listIndex[listId].sections.map(
+      (section: string) => sectionIndex[section],
+    );
   },
   getTodayTaskCount() {
-    const {taskIndex} = get()
+    const { taskIndex } = get();
     const today = new Date();
     return Object.values(taskIndex).filter((task: ITaskModel) => {
-        if (task.status !== "pending") return false;
-        if (!task.rule?.start_date) return false;
-        return isSameDay(new Date(task.rule.start_date), today);
-      }).length;
+      if (task.status !== "pending") return false;
+      if (!task.rule?.start_date) return false;
+      return isSameDay(new Date(task.rule.start_date), today);
+    }).length;
   },
-getTaskTag(tags: string[]): ITaskModel[] {
+  getTaskTag(tags: string[]): ITaskModel[] {
     if (!tags || tags.length === 0) return [];
     const lowerTags = new Set(tags.map((t) => t.toLocaleLowerCase()));
     return Object.values(get().taskIndex).filter((task) => {
       if (!task.rule?.tags?.length) return false;
       return task.rule.tags.some((t) => lowerTags.has(t.toLocaleLowerCase()));
     });
-},
-getTodayInfo(): ITaskModel[] {
+  },
+  getTodayInfo(): string[] {
     const today = new Date();
-    return Object.values(get().taskIndex).filter(
-        (task) => task.status === "pending" && task.rule?.start_date && isSameDay(new Date(task.rule.start_date), today)
-    );
-},
-  getNextInfo(): ITaskModel[] {
-    const {taskIndex} = get()
-    const today = new Date();
-    return Object.values(taskIndex).filter(
-        (task: ITaskModel) =>
+    return Object.values(get().taskIndex)
+      .filter(
+        (task) =>
           task.status === "pending" &&
           task.rule?.start_date &&
-          isGLTTomorrow(new Date(task.rule.start_date), today),
-      );
+          isSameDay(new Date(task.rule.start_date), today),
+      )
+      .map((task) => task.id);
   },
-completeTaskAndCreateNext: (taskId: string, status: IStatus, nextTask?: ITaskModel, listId?: string, sectionId?: string)=>{
-    set((state) => {
-    const current = state.taskIndex[taskId];
-    if (!current) return state;
-
-    const newTaskIndex = {
-      ...state.taskIndex,
-      [taskId]: {
-        ...current,
-        status,
-        rule: { ...current.rule, repeat: { ...current.rule.repeat, mode: "none" } },
-      },
-    };
-
-    let newSectionIndex = state.sectionIndex;
-    if (nextTask && sectionId) {
-      newTaskIndex[nextTask.id] = nextTask;
-      const section = state.sectionIndex[sectionId];
-      if (section) {
-        newSectionIndex = {
-          ...state.sectionIndex,
-          [sectionId]: { ...section, tasks: [...section.tasks, nextTask.id] },
-        };
-      }
-    }
-
-    return { taskIndex: newTaskIndex, sectionIndex: newSectionIndex };
-  })
-},
+  getNextInfo(): ITaskModel[] {
+    const { taskIndex } = get();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const next7Day = new Date();
+    next7Day.setDate(today.getDate() + 7);
+    next7Day.setHours(0, 0, 0, 0);
+    return Object.values(taskIndex).filter(
+      (task: ITaskModel) =>
+        task.rule?.start_date &&
+        new Date(task.rule.start_date) >= today &&
+        next7Day >= new Date(task.rule.start_date),
+    );
+  },
   getTaskById(taskId: string): ITaskModel | undefined {
     return get().taskIndex[taskId];
   },
   updateTask: (taskId, patch) =>
-  set((state) => {
-    const currentTask = state.taskIndex[taskId];
-    if (!currentTask) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(
-          `[workspace-store] updateTask: taskId "${taskId}" chưa tồn tại`,
-        );
+    set((state) => {
+      const currentTask = state.taskIndex[taskId];
+      if (!currentTask) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `[workspace-store] updateTask: taskId "${taskId}" chưa tồn tại`,
+          );
+        }
+
+        return state;
       }
 
-      return state;
-    }
+      const hasChange = Object.keys(patch).some((key) => {
+        const newVal = (patch as any)[key];
+        const oldVal = (currentTask as any)[key];
 
-    const hasChange = Object.keys(patch).some((key) => {
-      const newVal = (patch as any)[key];
-      const oldVal = (currentTask as any)[key];
+        if (typeof newVal === "object" && newVal !== null) {
+          return JSON.stringify(newVal) !== JSON.stringify(oldVal);
+        }
 
-      if (
-        typeof newVal === "object" &&
-        newVal !== null
-      ) {
-        return JSON.stringify(newVal) !== JSON.stringify(oldVal);
-      }
+        return newVal !== oldVal;
+      });
 
-      return newVal !== oldVal;
-    });
+      if (!hasChange) return state;
 
-    if (!hasChange) return state;
+      const updatedTask = {
+        ...currentTask,
+        ...patch,
+      };
 
-    const updatedTask = {
-      ...currentTask,
-      ...patch,
-    };
-
-    return {
-      taskIndex: {
-        ...state.taskIndex,
-        [taskId]: updatedTask,
-      },
-    };
-  }),
+      return {
+        taskIndex: {
+          ...state.taskIndex,
+          [taskId]: updatedTask,
+        },
+      };
+    }),
   setTask: (taskId: string, task: ITaskModel) =>
-  set((state) => ({
-    taskIndex: {
-      ...state.taskIndex,
-      [taskId]: task,
-    },
-  })),
-updateTaskStatus: (taskId, status) =>
-  set((state) => {
-    const currentTask = state.taskIndex[taskId];
-
-    if (!currentTask) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(
-          `[workspace-store] updateTaskStatus: taskId "${taskId}" chưa tồn tại`,
-        );
-      }
-      return state;
-    }
-
-    return {
+    set((state) => ({
       taskIndex: {
         ...state.taskIndex,
-        [taskId]: {
-          ...currentTask,
-          status,
-        },
+        [taskId]: task,
       },
-    };
-  }),
-addTask: (task, listId, sectionId) =>
-  set((state) => {
-    const listItem = state.listIndex[listId];
-    const section = state.sectionIndex[sectionId];
-    if (!listItem) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`[workspace-store] addTask: listId "${listId}" chưa tồn tại`);
-      }
-      return state;
-    }
-    if (!section) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`[workspace-store] addTask: sectionId "${sectionId}" chưa tồn tại`);
-      }
-      return state;
-    }
+    })),
+  updateTaskStatus: (taskId, status) =>
+    set((state) => {
+      const currentTask = state.taskIndex[taskId];
 
-    return {
-      taskIndex: { ...state.taskIndex, [task.id]: task },
-      taskLocation: { ...state.taskLocation, [task.id]: { listId, sectionId } },
-      sectionIndex: {
-        ...state.sectionIndex,
-        [sectionId]: {
-          ...section,
-          tasks: [...section.tasks, task.id], // tạo mảng mới thay vì push trực tiếp
+      if (!currentTask) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `[workspace-store] updateTaskStatus: taskId "${taskId}" chưa tồn tại`,
+          );
+        }
+        return state;
+      }
+
+      return {
+        taskIndex: {
+          ...state.taskIndex,
+          [taskId]: {
+            ...currentTask,
+            status,
+          },
         },
-      },
-    };
-  }),
+      };
+    }),
+  addSection(listId, newSection) {
+    set((state) => {
+      const listItem = state.listIndex[listId];
 
-  // removeTask: (taskId) =>
-  //   set((state) => {
-  //     const location = state.taskLocation[taskId];
-  //     if (!location) return state;
+      if (!listItem) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `[workspace-store] addTask: listId "${listId}" chưa tồn tại`,
+          );
+        }
+        return state;
+      }
 
-  //     const { listId, sectionId } = location;
-  //     const listItem = state.listIndex[listId];
-  //     if (!listItem) return state;
+      return {
+        listIndex: {
+          ...state.listIndex,
+          [listId]: {
+            ...listItem,
+            sections: [...listItem.sections, newSection.id],
+          },
+        },
+        sectionIndex: {
+          ...state.sectionIndex,
+          [newSection.id]: newSection,
+        },
+      };
+    });
+  },
+  changeIdSection: (tempId, id) => {
+    set((state) => {
+      const itemSection = state.sectionIndex[tempId];
+      if (!itemSection) return state;
 
-  //     const updatedSections = (listItem.list.sections as any[]).map(
-  //       (section: any) =>
-  //         section.id === sectionId
-  //           ? {
-  //               ...section,
-  //               tasks: (section.tasks ?? []).filter(
-  //                 (t: any) => t.id !== taskId,
-  //               ),
-  //             }
-  //           : section,
-  //     );
+      const list = state.listIndex[itemSection.list];
+      const { [tempId]: _removed, ...restSections } = state.sectionIndex;
 
-  //     const { [taskId]: _removedTask, ...restIndex } = state.taskIndex;
-  //     const { [taskId]: _removedLocation, ...restLocation } =
-  //       state.taskLocation;
+      return {
+        sectionIndex: {
+          ...restSections,
+          [id]: { ...itemSection, id },
+        },
+        listIndex: list
+          ? {
+              ...state.listIndex,
+              [itemSection.list]: {
+                ...list,
+                sections: list.sections.map((sid) =>
+                  sid === tempId ? id : sid,
+                ),
+              },
+            }
+          : state.listIndex,
+      };
+    });
+  },
+  changeIdTask: (tempId, id) =>
+    set((state) => {
+      const task = state.taskIndex[tempId];
+      if (!task) return state;
 
-  //     return {
-  //       taskIndex: restIndex,
-  //       taskLocation: restLocation,
-  //       listIndex: {
-  //         ...state.listIndex,
-  //         [listId]: {
-  //           ...listItem,
-  //           list: { ...listItem.list, sections: updatedSections },
-  //           taskCount: Math.max(0, listItem.taskCount - 1),
-  //         },
-  //       },
-  //     };
-  //   }),
+      const { [tempId]: _removed, ...restTasks } = state.taskIndex;
+      const section = state.sectionIndex[task.section];
+
+      return {
+        taskIndex: {
+          ...restTasks,
+          [id]: { ...task, id },
+        },
+        sectionIndex: section
+          ? {
+              ...state.sectionIndex,
+              [task.section]: {
+                ...section,
+                tasks: section.tasks.map((t) => (t === tempId ? id : t)),
+              },
+            }
+          : state.sectionIndex,
+      };
+    }),
+  addTask: (task) =>
+    set((state) => {
+      const listItem = state.listIndex[task.list];
+      const section = state.sectionIndex[task.section];
+      if (!listItem) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `[workspace-store] addTask: listId "${task.list}" chưa tồn tại`,
+          );
+        }
+        return state;
+      }
+      if (!section) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `[workspace-store] addTask: sectionId "${task.section}" chưa tồn tại`,
+          );
+        }
+        return state;
+      }
+
+      return {
+        taskIndex: { ...state.taskIndex, [task.id]: task },
+        taskLocation: {
+          ...state.taskLocation,
+          [task.id]: { listId: task.list, sectionId: task.section },
+        },
+        sectionIndex: {
+          ...state.sectionIndex,
+          [task.section]: {
+            ...section,
+            tasks: [...section.tasks, task.id],
+          },
+        },
+      };
+    }),
+
+  removeTask: (taskId) =>
+    set((state) => {
+      const task = state.taskIndex[taskId];
+      if (!task) return state;
+      const sectionItem = state.sectionIndex[task.section];
+      if (!sectionItem) return state;
+
+      const { [task.id]: _, ...taskIndex } = state.taskIndex;
+
+      return {
+        sectionIndex: {
+          ...state.sectionIndex,
+          [task.section]: {
+            ...sectionItem,
+            tasks: sectionItem.tasks.filter((task) => task !== taskId),
+          },
+        },
+        taskIndex: {
+          ...taskIndex,
+        },
+      };
+    }),
 
   reset: () => set(() => ({ ...initialState })),
 }));

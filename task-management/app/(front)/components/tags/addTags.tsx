@@ -29,7 +29,7 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
   const queryClient = useQueryClient();
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
-      Object.values(s.tagInfo).map((item) =>
+      Object.values(s.tagIndex).map((item) =>
         item.name.trim().toLowerCase()
       )
     )

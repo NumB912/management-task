@@ -52,13 +52,13 @@ const TagCombobox = ({
 }: TagComboboxProps) => {
   const [search, setSearch] = useState("");
   const [pendingTags, setPendingTags] = useState<string[]>(selectedTags);
-  const getTagWithName = useWorkspaceStore(
-    useShallow((state) => state.getTagWithName)
+  const getTagsWithName = useWorkspaceStore(
+    useShallow((state) => state.getTagsWithName)
   );
 
 const allTags: ITagModel[] = useMemo(
-  () => getTagWithName(search),
-  [getTagWithName, search]
+  () => getTagsWithName(search),
+  [getTagsWithName, search]
 );
   useEffect(() => {
     if (open) {

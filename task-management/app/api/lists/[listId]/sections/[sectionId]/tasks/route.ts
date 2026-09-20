@@ -15,7 +15,7 @@ export async function POST(
   }
   const { listId,sectionId } = await params;
   const task = await req.json();
-  const createList = await (await GetContainer())
+  const taskId = await (await GetContainer())
     .resolve<CreateTaskWithSection>(TYPES.CreateTaskWithSectionUsecase)
     .execute({
       data:task,
@@ -23,7 +23,7 @@ export async function POST(
       userId:user.id,
       sectionId:sectionId
     });
-  return NextResponse.json({ createList }, { status: 200 });
+  return NextResponse.json({ task:{id:taskId} }, { status: 200 });
 }
 
 export async function GET(

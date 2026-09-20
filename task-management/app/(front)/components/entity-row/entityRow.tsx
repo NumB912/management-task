@@ -20,6 +20,7 @@ interface EntityRowProps {
   name: string;
   actionGroups: MenuActionGroup[];
   link: string;
+  count?: number;
 }
 
 export default function EntityRow({
@@ -27,6 +28,7 @@ export default function EntityRow({
   name,
   actionGroups,
   link,
+  count = 0,
 }: Readonly<EntityRowProps>) {
   const pathName = usePathname();
   const isActive = pathName === link;
@@ -34,10 +36,10 @@ export default function EntityRow({
     <ContextMenu>
       <ContextMenuTrigger
         asChild
-        className={cn(
-          `h-fit`,
-        )}
-        onClick={(e)=>{e.stopPropagation()}}
+        className={cn(`h-fit`)}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
       >
         <Link href={link}>
           <div
@@ -49,8 +51,10 @@ export default function EntityRow({
               {icon}
               <span className="flex items-center gap-1 text-sm">{name}</span>
             </span>
-
             <span className="flex items-center gap-2 relative">
+                          <span className="group-hover/list-item:hidden flex-1 absolute right-1 text-sm text-neutral-600">
+              {count}
+            </span>
               <DropdownMenu>
                 <DropdownMenuTrigger
                   asChild

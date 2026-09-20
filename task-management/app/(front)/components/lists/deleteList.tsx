@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useDeleteList } from "../../feature/hook/useListMutation.hook";
+import { useWorkspaceStore } from "../../states/workspace.state";
 interface DeleteListDialogProps {
   list: { id: string; name: string } | null;
   onClose: () => void;
@@ -20,21 +21,21 @@ interface DeleteListDialogProps {
 
 export function DeleteListDialog({ list, onClose }: Readonly<DeleteListDialogProps>) {
   const {isPending,mutate} = useDeleteList()
+  const removeListIndex = useWorkspaceStore((state)=>state.removelistIndex)
 
-  if(!list){
-    return
-  }
 const handleDelete = () => {
-  console.log(list.id)
+
+  if(!list) return
+  removeListIndex(list.id)
   mutate(list.id, {
     onSuccess: () => {
       toast.info("Xóa thành công");
-      onClose();
     },
     onError: () => {
       toast.error("Xóa thất bại, thử lại sau");
     },
   });
+        onClose();
 };
 
   return (

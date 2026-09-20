@@ -1,8 +1,28 @@
 import { cn } from "@/lib/utils";
-import { File, Flag, Folder, InboxIcon, Repeat, Tag, Target, Timer, X } from "lucide-react";
+import {
+  File,
+  Flag,
+  Folder,
+  InboxIcon,
+  Repeat,
+  Tag,
+  Target,
+  Timer,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { IListModel, IListModelState, ISectionModel, ISectionModelState } from "../../model";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import {
+  IListModel,
+  IListModelState,
+  ISectionModel,
+  ISectionModelState,
+} from "../../model";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import CalendarComponent from "../calendar/calendar.component";
 import { formatDate } from "../../utils/getDayOfMonth.utils";
 import { IRuleModel } from "../../model/rule/rule.model";
@@ -11,11 +31,20 @@ import { PRIORITY_CONFIG } from "../../model/mod/priorityConfig";
 import { useWorkspaceStore } from "../../states/workspace.state";
 
 interface TaskAttributesBarProps {
-  lists: Pick<IListModelState,"id"|"isShareList"|"sections"|"name"|"user">[];
+  lists: Pick<IListModelState, "id" | "sections" | "name">[];
   confirmListName: string;
-  confirmSectionName:string;
-  onSelectList: ({list,section}:{list:string,section?:string}) => void;
-  confirmedRule: Pick<IRuleModel, "end_date" | "start_date" | "repeat" | "timer"|"priority"|"tags">;
+  confirmSectionName: string;
+  onSelectList: ({
+    list,
+    section,
+  }: {
+    list: Pick<IListModelState, "id" | "sections" | "name">;
+    section?: ISectionModelState;
+  }) => void;
+  confirmedRule: Pick<
+    IRuleModel,
+    "end_date" | "start_date" | "repeat" | "timer" | "priority" | "tags"
+  >;
   onChangeRule: (rule: TaskAttributesBarProps["confirmedRule"]) => void;
   onSelectPriority: (digit: string) => void;
 }
@@ -28,45 +57,54 @@ const TaskAttributesBar = ({
   confirmedRule,
   onChangeRule,
   onSelectPriority,
-
 }: TaskAttributesBarProps) => {
-  const sectionIndex = useWorkspaceStore((state)=>state.sectionIndex)
-
+  const sectionIndex = useWorkspaceStore((state) => state.sectionIndex);
+  console.log(confirmSectionName)
   return (
     <div className="flex flex-wrap items-center gap-1 mt-2 w-full">
       <DropdownMenu>
         <DropdownMenuTrigger>
           <span className="p-1.5 border rounded-sm text-sm flex items-center gap-2 text-neutral-700">
-            <InboxIcon className="size-3" /> <span className="text-sm">{confirmListName.toLocaleLowerCase()=="inbox"?"Hộp thư":confirmListName}{confirmSectionName&&"/"+confirmSectionName}</span>
+            <InboxIcon className="size-3" />{" "}
+            <span className="text-sm">
+              {confirmListName.toLocaleLowerCase() == "inbox"
+                ? "Hộp thư"
+                : confirmListName}
+              {confirmSectionName && "/" + sectionIndex[confirmSectionName].name}
+            </span>
           </span>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className={cn("max-h-50 min-w-50 p-0 rounded-none")}>
+        <DropdownMenuContent
+          className={cn("max-h-50 min-w-50 p-0 rounded-none")}
+        >
           {lists.map((p) => (
             <>
               <DropdownMenuItem
-              key={p.id}
-              className="flex gap-3 items-center cursor-pointer border-b p-2 rounded-none"
-              onSelect={() => onSelectList({list:p.id})}
-            >
-              <Folder className={cn("size-3")} />
-              {p.name}
-            </DropdownMenuItem>
-            {
-              p.sections?.map((section)=>{
-                return               <DropdownMenuItem
-              key={p.id}
-              className="flex gap-3 items-center cursor-pointer rounded-none p-2 border-b"
-              onSelect={() => onSelectList({
-                list:p.id,
-                section:section
+                key={p.id}
+                className="flex gap-3 items-center cursor-pointer border-b p-2 rounded-none"
+                onSelect={() => onSelectList({ list: p })}
+              >
+                <Folder className={cn("size-3")} />
+                {p.name}
+              </DropdownMenuItem>
+              {p.sections?.map((section) => {
+                return (
+                  <DropdownMenuItem
+                    key={p.id}
+                    className="flex gap-3 items-center cursor-pointer rounded-none p-2 border-b"
+                    onSelect={() =>
+                      onSelectList({
+                        list: p,
+                        section: sectionIndex[section],
+                      })
+                    }
+                  >
+                    <File className={cn("size-3 ml-3")} />
+                    {sectionIndex[section]?.name}
+                  </DropdownMenuItem>
+                );
               })}
-            >
-              <File className={cn("size-3 ml-3")} />
-              {sectionIndex[section]?.name}
-            </DropdownMenuItem>
-              })
-            }</>
-            
+            </>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -81,22 +119,28 @@ const TaskAttributesBar = ({
             >
               <span className={cn("flex text-sm gap-1 items-center")}>
                 <Timer className="w-4 h-4" />
-                {confirmedRule.start_date ? formatDate(confirmedRule.start_date) : "Thêm ngày"}
+                {confirmedRule.start_date
+                  ? formatDate(confirmedRule.start_date)
+                  : "Thêm ngày"}
               </span>
               {confirmedRule.timer && (
-                <span className="flex items-center gap-1 text-sm">{formatTimer(confirmedRule.timer)}</span>
+                <span className="flex items-center gap-1 text-sm">
+                  {formatTimer(confirmedRule.timer)}
+                </span>
               )}
-              {confirmedRule.repeat?.mode !== "none" && <Repeat className="w-4 h-4" />}
+              {confirmedRule.repeat?.mode !== "none" && (
+                <Repeat className="w-4 h-4" />
+              )}
             </Button>
           }
-          onChangeSubmit={(pick)=>{
-            onChangeRule(({
+          onChangeSubmit={(pick) => {
+            onChangeRule({
               ...confirmedRule,
-              end_date:pick.end_date,
-              repeat:pick.repeat,
-              start_date:pick.start_date,
-              timer:pick.timer
-            }))
+              end_date: pick.end_date,
+              repeat: pick.repeat,
+              start_date: pick.start_date,
+              timer: pick.timer,
+            });
           }}
         />
 

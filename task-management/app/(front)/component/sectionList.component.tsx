@@ -8,6 +8,7 @@ import { CheckCircle } from "lucide-react";
 import { useCreateSection, useRemoveSection } from "../feature/hook/useSectionMutation.hook";
 import { ISectionModelState } from "../model";
 import { useWorkspaceStore } from "../states/workspace.state";
+import { useAddTask } from "../feature/hook/task/addTask.hook";
 
 const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string[]; listId: string }) => {
   const [sections, setSections] = useState<string[]>(sectionsData ?? []);
@@ -15,6 +16,9 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
   const { mutate: mutateRemoveSection } = useRemoveSection(listId);
   const { mutate: mutateAddSection } = useCreateSection(listId)
   const moveSection = useWorkspaceStore((state) => state.moveSection)
+  const addSectionState = useWorkspaceStore((state)=>state.addSection)
+  const changeIdSection = useWorkspaceStore((state)=>state.changeIdSection)
+  const removeSectionStore = useWorkspaceStore((state)=>state.removeSection)
   useEffect(() => {
     setSections(sectionsData);
   }, [sectionsData]);
@@ -74,6 +78,7 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
         mutateRemoveSection(sectionId, {
           onSuccess: () => {
             toast.success("Xóa thành phần thành công");
+            removeSectionStore(sectionId)
           },
           onError: () => {
             if (removeSnapshotRef.current) {
@@ -82,7 +87,7 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
             toast.error("Không thể xóa thành phần này, vui lòng thử lại");
           },
         });
-      }, 3000);
+      }, 2000);
 
       setSections((prev) => prev.filter((section) => section !== sectionId));
       toast.success("Xóa thành công", {
@@ -92,12 +97,12 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
             <div
               className={`w-full fixed bottom-0 h-1 left-0 bg-primary animate-bar-processing`}
               style={{
-                animationDuration: `3000ms`,
+                animationDuration: `2000ms`,
               }}
             ></div>
           </div>
         ),
-        duration: 3000,
+        duration:2000,
         icon: <CheckCircle className="h-4 w-4" />,
         className: "my-custom-toast",
         action: {
@@ -115,14 +120,29 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
   );
 
   const addSection =useCallback((section: Pick<ISectionModelState, "name">)=> {
+    const sectionIdTemp = `temp-id-${new Date()}`
+    const sectionTemp:ISectionModelState = {
+      id:sectionIdTemp,
+      list:listId,
+      name:section.name,
+      tasks:[],
+    }
+    const snapShotSection = sections
+    setSections(prev=>[...prev,sectionTemp.id])
+    addSectionState(listId,sectionTemp)
     mutateAddSection(section, {
       onError: () => {
         toast.error("Thêm thành phần thất bại, vui lòng thử lại")
+        setSections(snapShotSection)
+        removeSectionStore(sectionIdTemp);
       },
-      onSuccess: () => {
+      onSuccess(data, variables, onMutateResult, context) {
+        changeIdSection(sectionIdTemp,data.id)
+        setSections((prev)=>[...prev.filter(sectionId=>sectionId!==sectionIdTemp),data.id])
         toast.success("Thêm thành phần thành công")
-      }
+      },
     })
+    
   },[mutateAddSection])
 
   return (

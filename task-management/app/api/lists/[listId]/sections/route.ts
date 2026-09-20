@@ -49,7 +49,7 @@ export async function POST(
     });
 
   return NextResponse.json(
-    { message: "Thành công", data: getByID },
+    { message: "Thành công", section: getByID },
     { status: 200 },
   );
 }

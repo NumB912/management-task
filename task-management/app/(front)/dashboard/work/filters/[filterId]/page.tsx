@@ -5,20 +5,21 @@ import { useHeader } from '@/app/(front)/providers/header.provider'
 import { useWorkspaceStore } from '@/app/(front)/states/workspace.state'
 import { use, useEffect, useMemo } from 'react'
 import { FilterX } from 'lucide-react'
+import { useShallow } from 'zustand/react/shallow'
 
 const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> }) => {
   const { filterId } = use(params)
   const { setTitle } = useHeader()
-  const { listIndex,getTaskFilter,filterInfo } = useWorkspaceStore()
+  const { listIndex,filterIndex } = useWorkspaceStore()
+  const tasks = useWorkspaceStore(useShallow((state)=>state.getTaskFilter(filterId))) 
   useEffect(() => {
-    if (filterInfo[filterId]) {
-      setTitle(filterInfo[filterId].name)
+    if (filterIndex[filterId]) {
+      setTitle(filterIndex[filterId].name)
     }
   }, [filterId, setTitle])
 
   const tasksByList = useMemo(() => {
-    const tasks = getTaskFilter(filterInfo[filterId]) ?? []
-    const groups = new Map<string, { listId: string; listName: string; tasks: typeof tasks }>()
+    const groups = new Map<string, { listId: string; listName: string; tasks: string[] }>()
 
     for (const task of tasks) {
       const listId = task.list
@@ -26,11 +27,11 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
       if (!groups.has(listId)) {
         groups.set(listId, { listId, listName, tasks: [] })
       }
-      groups.get(listId)!.tasks.push(task)
+      groups.get(listId)!.tasks.push(task.id)
     }
 
     return Array.from(groups.values())
-  }, [listIndex])
+  }, [listIndex,tasks])
 
   if (tasksByList.length === 0) {
     return (

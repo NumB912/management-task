@@ -8,6 +8,7 @@ import {
   CardContent,
   CardHeader,
 } from "@/app/(front)/components/ui/card";
+import { useCreateTask } from "@/app/(front)/feature/hook/useTaskMutation.hook";
 import { ITaskModel } from "@/app/(front)/model";
 import { useHeader } from "@/app/(front)/providers/header.provider";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
@@ -36,11 +37,19 @@ const getGroupDateLabel = (tasks: ITaskModel[]): string => {
   });
 };
 
-const getGroupUpComming = (tasks: ITaskModel[]): Record<string, ITaskModel[]> => {
+const getGroupUpComming = (
+  tasks: ITaskModel[],
+): Record<string, ITaskModel[]> => {
   const groups: Record<string, ITaskModel[]> = {};
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const next7Days = new Date();
+  next7Days.setDate(next7Days.getDate() + 7);
+  next7Days.setHours(0, 0, 0, 0);
   tasks.forEach((task) => {
     const rawDate = task.rule?.start_date;
     if (!rawDate) return;
+    if (rawDate > next7Days || rawDate < now) return;
     const key = new Date(rawDate).toDateString();
 
     if (groups[key]) {
@@ -61,12 +70,14 @@ const Page = () => {
   const [section, setSection] = useState<{ id: string }>();
   const inbox = useWorkspaceStore((s) => s.inbox);
   const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
-  const getNextInfo = useWorkspaceStore((s) => s.getNextInfo);
-  const getOverdueTasks = useWorkspaceStore((s) => s.getOverdueTasks);
+  const getNextInfo = useWorkspaceStore(useShallow((s) => s.getNextInfo()));
+  const getOverdueTasks = useWorkspaceStore(useShallow((s) => s.getOverdueTasks()));
+  const changeIdTaskState = useWorkspaceStore((state) => state.changeIdTask);
+  const addTaskState = useWorkspaceStore((state) => state.addTask);
+  const { mutate: addTaskMutate } = useCreateTask(inbox!);
   useEffect(() => {
-    if(!inbox) return
-
-    const firstSection = listIndex[inbox].sections[0]
+    if (!inbox) return;
+    const firstSection = listIndex[inbox].sections[0];
     if (firstSection) {
       setSection({ id: firstSection });
     }
@@ -81,8 +92,8 @@ const Page = () => {
       [id]: !prev[id],
     }));
   };
-  const overdueTasks = getNextInfo() ? getOverdueTasks() : [];
-  const nextTasks = getNextInfo();
+  const overdueTasks = getNextInfo ? getOverdueTasks : [];
+  const nextTasks = getNextInfo;
   const sortedGroups = useMemo(() => {
     const groups = getGroupUpComming(nextTasks);
     return Object.entries(groups).sort(
@@ -92,7 +103,36 @@ const Page = () => {
   }, [nextTasks]);
   const hasNothingToShow =
     sortedGroups.length === 0 && (!overdueTasks || overdueTasks.length === 0);
-
+  const handleAddTask = (task: ITaskModel) => {
+    const task_temp_id = `temp-task-id-${Date.now()}`;
+    addTaskState({
+      ...task,
+      id: task_temp_id,
+    });
+    addTaskMutate(
+      {
+        list: task.list,
+        name: task.name,
+        rule: {
+          repeat: task.rule.repeat,
+          tags: task.rule.tags,
+          end_date: task.rule.end_date,
+          priority: task.rule.priority,
+          start_date: task.rule.start_date,
+          timer: task.rule.timer,
+        },
+        description: task.description,
+      },
+      {
+        onError(error, variables, onMutateResult, context) {
+          
+        },
+        onSuccess(data, variables, onMutateResult, context) {
+          changeIdTaskState(task_temp_id, data.id.toString());
+        },
+      },
+    );
+  };
   return (
     <div className="flex gap-3 py-3">
       {hasNothingToShow ? (
@@ -131,6 +171,7 @@ const Page = () => {
                   defaultConfirmRule={{
                     start_date: new Date(),
                   }}
+                  onHandle={(task) => {}}
                 />
               )}
             </CardContent>
@@ -160,6 +201,7 @@ const Page = () => {
                       return previous;
                     })(),
                   }}
+                  onHandle={handleAddTask}
                 />
               )}
               <TaskList tasks={overdueTasks} />
@@ -180,9 +222,10 @@ const Page = () => {
                   sectionId={section.id}
                   listId={inbox}
                   defaultConfirmRule={{ start_date: new Date(dateKey) }}
+                  onHandle={handleAddTask}
                 />
               )}
-              <TaskList tasks={tasksInGroup} />
+              <TaskList tasks={tasksInGroup.map((task) => task.id)} />
             </SectionCard>
           ))}
         </>

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { IListModel, IRuleModel, ISectionModel } from "../../model";
+import { IListModelState, IRuleModel, ISectionModel, ISectionModelState } from "../../model";
 import { useWorkspaceStore } from "../../states/workspace.state";
-import { useLists } from "./useListQuery.hook";
 
 const ACTIVE_TAG_REGEX = /#([^\s]*)$/;
 const ACTIVE_priority = /(?:^|\s)P([1-4])\s$/;
@@ -28,7 +27,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
   const refDivInput = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState<boolean>(true);
-  const { getTagWithName, listIndex, getListWithName } = useWorkspaceStore();
+  const { getTagsWithName, listIndex, getListWithName } = useWorkspaceStore();
   const [isOpenAddTag, setIsOpenAddTag] = useState<boolean>(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tag, setTag] = useState<string>("");
@@ -41,10 +40,10 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
   );
   const [isOpenList, setIsOpenList] = useState<boolean>(false);
   const [allLists, setAllLists] = useState<
-    Pick<IListModel, "id" | "isShareList" | "sections" | "name" | "user">[]
+    Pick<IListModelState, "id" | "isShareList" | "sections" | "name" | "user">[]
   >([]);
   const [lists, setLists] = useState<
-    Pick<IListModel, "id" | "isShareList" | "sections" | "name" | "user">[]
+    Pick<IListModelState, "id" | "isShareList" | "sections" | "name" | "user">[]
   >([]);
   const filteredTags = tags.filter((t) => !confirmRule.tags!.includes(t));
   const resetEditor = () => {
@@ -128,7 +127,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     if (tagRegex) {
       const tagName = tagRegex[1];
       setTag(tagName);
-      setTags(() => getTagWithName(tagName ?? "").map((t) => t.name));
+      setTags(() => getTagsWithName(tagName ?? "").map((t) => t.name));
       setIsOpenAddTag(true);
       return;
     }
@@ -156,8 +155,8 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     section,
   }: {
     list: Pick<
-      IListModel,
-      "id" | "isShareList" | "sections" | "name" | "user"
+      IListModelState,
+      "id"| "sections" | "name"
     > | null;
     section?: { id: string; name: string };
   }) => {
@@ -187,7 +186,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     if (chipCurrent) {
       const freshChip = buildListChipElement(
         list,
-        section as ISectionModel | undefined,
+        section as ISectionModelState | undefined,
       );
       chipCurrent.replaceWith(freshChip);
       setValue(refInput.innerText);
@@ -202,7 +201,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     const range2 = sel2.getRangeAt(0);
     const chip = buildListChipElement(
       list,
-      section as ISectionModel | undefined,
+      section as ISectionModelState | undefined,
     );
     range2.insertNode(chip);
     const spaceNode = document.createTextNode("\u00A0");
@@ -361,8 +360,8 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     list,
     section,
   }: {
-    list: string;
-    section?: string;
+    list: Pick<IListModelState, "id" | "sections" | "name">;
+    section?: ISectionModelState;
   }) => {
     const el = refDivInput.current;
     if (!el || !list) return;
@@ -385,14 +384,14 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     const chip = buildListChipElement(list, section);
     el.append(chip);
     el.append(document.createTextNode("\u00A0"));
-    setConfirmList(list);
-    setConfirmSection(section);
+    setConfirmList(list.id);
+    setConfirmSection(section?.id);
     setValue(el.innerText);
   };
 
   const buildListChipElement = (
-    list: Pick<IListModel, "id" | "isShareList" | "sections" | "name" | "user">,
-    section?: ISectionModel,
+    list: Pick<IListModelState, "id"| "sections" | "name" >,
+    section?: ISectionModelState,
   ): HTMLSpanElement => {
     const chip = document.createElement("span");
     chip.className = "list-chip chip bg-primary-foreground text-primary!";

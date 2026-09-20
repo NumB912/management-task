@@ -30,7 +30,6 @@ export class RepeatBuilder {
     const days = repeat.days as number[];
     if (!days?.length)
       throw new AppError("NOT_FOUND", "Không tìm thấy days trong weekly", 404);
-
     return {
       mode: "week",
       every: repeat.every ?? 1,
