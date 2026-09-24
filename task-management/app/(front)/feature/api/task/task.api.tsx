@@ -1,6 +1,6 @@
 import { axiosInstance } from '@/app/(front)/lib/axios';
 import { ITaskModel } from '@/app/(front)/model';
-import { ICreateTaskDTO, IUpdateTaskDTO } from '@/app/(front)/model/DTO/task.DTO';
+import { ICreateTaskDTO, ICreateTaskWithSectionDTO, IUpdateTaskDTO } from '@/app/(front)/model/DTO/task.DTO';
 import { IRuleModel } from '@/app/(front)/model/rule/rule.model';
 
 export const taskApi = {
@@ -26,6 +26,12 @@ export const taskApi = {
     const res = await axiosInstance.post<{
       task:ITaskModel
     }>(`/lists/${listId}/sections/${sectionId}/tasks`, data);
+    return res.data.task;
+  },
+    createTaskWithSectionInObject:async (data:ICreateTaskWithSectionDTO):Promise<ITaskModel>=>{
+    const res = await axiosInstance.post<{
+      task:ITaskModel
+    }>(`/lists/${data.list}/sections/${data.section}/tasks`, data);
     return res.data.task;
   },
   update: async (id: string, data: Partial<IUpdateTaskDTO>): Promise<{task:ITaskModel}> => {

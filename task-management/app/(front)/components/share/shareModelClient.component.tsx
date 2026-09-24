@@ -4,16 +4,18 @@ import { useShareModalStore } from "../../states/share/share.state";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { ShareContent } from "./shareContent.component";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useState } from "react";
 
 
 export function ShareModalClient() {
-  const {close,isOpen,open:openState,listId}  =useShareModalStore()
+  const {close,isOpen,open:openState,listId} =useShareModalStore()
   const {listIndex}=useWorkspaceStore()
   if(!listId) return 
   const list = listIndex[listId]
   if(!list){
     return
   }
+
   
   return (
     <Sheet open={isOpen} onOpenChange={(open)=>{

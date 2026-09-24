@@ -17,7 +17,6 @@ import { tagApi } from "../../feature/api/tags/tag.api";
 import { ITagModel } from "../../model";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "../ui/label";
-import { toast } from "sonner";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { useUpdateTagOnlyMe, useUpdateTagWithShare } from "../../feature/hook/useTagMutation.hook";
 interface EditTagDialogProps {
@@ -40,25 +39,10 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
   const [error, setError] = useState<string>("");
   const { mutate: updateOnlyMe, isPending: isPendingOnlyMe } = useUpdateTagOnlyMe();
   const { mutate: updateWithShare, isPending: isPendingShare } = useUpdateTagWithShare();
+  const editTagWithShare = useWorkspaceStore((state)=>state.editTagWithShare)
+  const editTagOnlyMe = useWorkspaceStore((state)=>state.editTagWithOnly)
   const isPending = isPendingOnlyMe || isPendingShare;
-  const handleUpdateTag = () => {
-    if (!tag) return;
-    if (isEditShareTag) {
-      updateWithShare({
-        id: tag.id,
-        name: name
-      });
-    } else {
-      updateOnlyMe({
-        id: tag.id,
-        name: name
-      });
-    }
-
-    onClose()
-
-  };
-  const handleSubmit = (e: React.FormEvent) => {
+ const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!tag) return;
     const trimmed = name.trim();
@@ -73,6 +57,26 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
       return;
     }
 
+      if (!tag) return;
+    if (isEditShareTag) {
+      editTagWithShare(tag.name,{
+        name:trimmed
+      })
+      updateWithShare({
+        id: tag.id,
+        name: trimmed
+      });
+    } else {
+      editTagOnlyMe(tag.name,{
+        name:trimmed
+      })
+      updateOnlyMe({
+        id: tag.id,
+        name: trimmed
+      });
+    }
+
+    onClose()
     setOpenEdit(false);
     setConfirm(true);
   };
@@ -199,7 +203,6 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
             <Button
               type="submit"
               disabled={isPending}
-              onClick={handleUpdateTag}
               className="rounded-sm!"
             >
               {isPending ? "Đang cập nhật..." : "Xác nhận"}

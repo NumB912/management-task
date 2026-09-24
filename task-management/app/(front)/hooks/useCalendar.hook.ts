@@ -27,6 +27,7 @@ interface CalendarState {
   repeat: IRepeat;
   defaultRepeat:IRepeat;
   timer?:number|null
+  endTimer?:number|null
 }
 
 type CalendarAction =
@@ -45,6 +46,7 @@ type CalendarAction =
   | { type: "CHOOSE_TODAY" }
   | { type: "CHOOSE_NEXT_WEEK" }
   | { type: "SET_TIMER"; payload?: number }
+  | {type: "SET_ENDTIMER"; payload?: number}
   | {type:"CHOOSE_TOMORROW"};
 
 const initialState: CalendarState = {
@@ -54,6 +56,7 @@ const initialState: CalendarState = {
   year: new Date().getFullYear(),
   selectedDate: null,
   timer:undefined,
+  endTimer:undefined,
   days: getDayForRender(new Date().getFullYear(), new Date().getMonth() + 1),
   repeat: DEFAULT_REPEAT_CONFIG,
   defaultRepeat: DEFAULT_REPEAT_CONFIG,
@@ -102,7 +105,8 @@ const calendarReducer = (
 
     case "SET_TIMER":
       return { ...state, timer: action.payload };
-
+    case "SET_ENDTIMER":
+      return { ...state, endTimer: action.payload };
     case "NEXT_MONTH": {
       const nextM = (state.month + 1) % 12;
       const nextY = nextM === 0 ? state.year + 1 : state.year;
@@ -130,7 +134,6 @@ const calendarReducer = (
         selectedDate: d,
       };
     }
-
     case "CHOOSE_TOMORROW":
         { const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -168,6 +171,7 @@ export const useCalendar = (init:Partial<CalendarState>) => {
     setDays: (d: Days) => dispatch({ type: "SET_DAYS", payload: d }),
     setRepeat: (r: IRepeat) => dispatch({ type: "SET_REPEAT", payload: r }),
     setTimer:(r?:number)=>dispatch({type:"SET_TIMER",payload:r}),
+    setEndTimer:(r?:number)=>dispatch({type:"SET_ENDTIMER",payload:r}),
     setDefaultRepeat: (r: IRepeat) => dispatch({ type: "SET_DEFAULT_REPEAT", payload: r }),
     nextMonth: () => dispatch({ type: "NEXT_MONTH" }),
     prevMonth: () => dispatch({ type: "PREV_MONTH" }),

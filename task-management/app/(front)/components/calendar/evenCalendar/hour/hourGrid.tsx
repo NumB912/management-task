@@ -1,109 +1,112 @@
 import { ITaskModel } from "@/app/(front)/model";
 import { HOURS } from "@/app/(front)/model/mod/mod";
+import { formatTimer } from "@/app/(front)/utils/formatTimer";
+import { HdIcon, Icon } from "lucide-react";
+import Link from "next/link";
 import React, { useMemo } from "react";
 
 interface HourGridProp {
   tasks: ITaskModel[];
   type: "Day" | "Week";
   days?: Date[];
+  onHandle: (day: Date, timer?: number) => void;
 }
 
 const HOUR_HEIGHT = 56;
+const MIN_TASK_HEIGHT = 40;
+const LINK = "/dashboard/tasks";
 
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
 
-const isContain = (task: ITaskModel, taskOther: ITaskModel) => {
-  const tasksStart = task.rule?.timer ?? 0;
-  const tasksEnd = task.rule?.endTimer ?? 0;
-  const otherStart = taskOther.rule?.timer ?? 0;
-  const otherEnd = taskOther.rule?.endTimer ?? 0;
-  return tasksStart <= otherEnd && tasksEnd > otherStart;
-};
-
-const getPositions = (dayTasks: ITaskModel[]) => {
-  const result: { index: number; task: ITaskModel }[] = [];
-  const taskTemp = dayTasks.map((task) => ({ task }));
-  taskTemp.sort(
-    (a, b) => (a.task.rule?.timer ?? 0) - (b.task.rule?.timer ?? 0),
-  );
-
-  const length = taskTemp.length;
-  for (let i = 0; i < length; i++) {
-    if (i === 0) {
-      result.push({ index: 0, task: taskTemp[i].task });
-      continue;
-    }
-    const prev = result[result.length - 1];
-    if (isContain(taskTemp[i - 1].task, taskTemp[i].task)) {
-      result.push({ index: prev.index + 1, task: taskTemp[i].task });
-    } else {
-      result.push({ index: 0, task: taskTemp[i].task });
-    }
-  }
-  return result;
-};
+type Positioned = { task: ITaskModel; top: number; height: number };
+type Laid = Positioned & { lane: number; lanes: number };
 
 const getTaskStyle = (task: ITaskModel, firstHour: number) => {
   const rule = (task as any).rule;
-  if (rule?.timer == null || rule.endTimer == null) return null;
-
-  const startSec = rule.timer;
-  const endSec = rule.endTimer;
-
+  if (rule?.timer == null) return null;
+  const startSec: number = rule.timer;
+  const endSec: number = rule.endTimer ?? startSec;
   const top = (startSec / 3600 - firstHour) * HOUR_HEIGHT;
-  const height = Math.max(((endSec - startSec) / 3600) * HOUR_HEIGHT, 18);
-
+  const height = Math.max(
+    ((endSec - startSec) / 3600) * HOUR_HEIGHT,
+    MIN_TASK_HEIGHT,
+  );
   return { top, height };
 };
 
-const addTaskDay = (day:Date,hour:number)=>{
-  console.log(day,hour)
+const layoutOverlaps = (items: Positioned[]): Laid[] => {
+  const sorted = [...items].sort(
+    (a, b) =>
+      a.top - b.top ||
+      b.height - a.height ||
+      String(a.task.id).localeCompare(String(b.task.id)),
+  );
 
-}
+  const result: Laid[] = [];
+  let cluster: Laid[] = [];
+  let clusterEnd = -Infinity;
+  let laneEnds: number[] = [];
 
+  const flush = () => {
+    const lanes = Math.max(laneEnds.length, 1);
+    cluster.forEach((c) => (c.lanes = lanes));
+    result.push(...cluster);
+    cluster = [];
+    laneEnds = [];
+  };
 
-const addTaskWeek = (day:Date,hour:number)=>{
-  console.log(day,hour)
-}
+  for (const it of sorted) {
+    if (it.top >= clusterEnd) flush();
 
-const buildAddTask = (type: HourGridProp["type"], day?: Date, hour?: number) => {
-  if (!day || hour == null) return;
+    let lane = laneEnds.findIndex((end) => end <= it.top);
+    if (lane === -1) lane = laneEnds.length;
+    laneEnds[lane] = it.top + it.height;
 
-  if (type === "Day") {
-    return addTaskDay(day, hour);
+    cluster.push({ ...it, lane, lanes: 1 });
+    clusterEnd = Math.max(clusterEnd, it.top + it.height);
   }
+  flush();
 
-  if (type === "Week") {
-    return addTaskWeek(day, hour);
-  }
+  return result;
 };
 
-const HourGrid = ({ tasks, type = "Day", days }: HourGridProp) => {
+const HourGrid = ({ tasks, type = "Day", days, onHandle }: HourGridProp) => {
   const firstHour = HOURS[0];
   const totalHeight = HOURS.length * HOUR_HEIGHT;
-  const safeDays = days ?? [];
+
   const columns: { date?: Date; tasks: ITaskModel[] }[] = useMemo(() => {
+    const safeDays = days ?? [];
     if (type === "Day") {
       return [{ date: safeDays[0], tasks }];
     }
     return safeDays.map((date) => ({
       date,
       tasks: tasks.filter(
-        (t) => (t as any).date && isSameDay(new Date((t as any).date), date),
+        (t) =>
+          t.rule?.start_date && isSameDay(new Date(t.rule.start_date), date),
       ),
     }));
-  }, [tasks, type, safeDays]);
+  }, [tasks, type, days]);
 
-  const columnPositions = useMemo(
-    () => columns.map((col) => getPositions(col.tasks)),
-    [columns],
+  const columnLayouts = useMemo(
+    () =>
+      columns.map((col) =>
+        layoutOverlaps(
+          col.tasks.flatMap((task) => {
+            const style = getTaskStyle(task, firstHour);
+            return style ? [{ task, ...style }] : [];
+          }),
+        ),
+      ),
+    [columns, firstHour],
   );
 
   const gridColsClass =
     type === "Week" ? "grid-cols-[56px_repeat(7,1fr)]" : "grid-cols-[56px_1fr]";
+
   return (
     <div className="flex-1 overflow-y-auto min-h-0 h-full">
       <div className={`grid ${gridColsClass} relative`}>
@@ -116,10 +119,9 @@ const HourGrid = ({ tasks, type = "Day", days }: HourGridProp) => {
             </div>
             {columns.map((col, colIdx) => (
               <div
-                key={col.date ? `${col.date.toISOString()}-${hour}` : hour}
+                key={col.date ? `${col.date.toISOString()}-${hour}` : `${colIdx}-${hour}`}
                 onClick={() => {
-
-               buildAddTask(type,col.date,hour)
+                  if (col.date) onHandle(col.date, hour);
                 }}
                 className="border-t border-l border-border/30 h-14 hover:bg-muted/20 z-20 transition-colors cursor-pointer relative"
               />
@@ -129,8 +131,8 @@ const HourGrid = ({ tasks, type = "Day", days }: HourGridProp) => {
 
         {columns.map((col, colIdx) => (
           <div
-            key={col.date ? col.date.toISOString() : "day"}
-            className="absolute top-0"
+            key={col.date ? col.date.toISOString() : `day-${colIdx}`}
+            className="absolute top-0 overflow-hidden pointer-events-none"
             style={{
               height: totalHeight,
               left:
@@ -139,35 +141,52 @@ const HourGrid = ({ tasks, type = "Day", days }: HourGridProp) => {
                   : "56px",
               width:
                 type === "Week"
-                  ? `calc((100% - 56px) / 7)`
+                  ? "calc((100% - 56px) / 7)"
                   : "calc(100% - 56px)",
             }}
           >
-            {columnPositions[colIdx].map((position) => {
-              const style = getTaskStyle(position.task, firstHour);
-              if (!style) return null;
+            {columnLayouts[colIdx].map(
+              ({ task, top, height, lane, lanes }, i) => {
+                const time = task.rule?.timer;
+                const isDone = task.status === "done";
+                const short = height < 48;
 
-              return (
-                <div
-                  key={position.task.id}
-                  className="absolute rounded-md px-2 py-1 text-[11px] text-white overflow-hidden shadow-sm cursor-pointer z-30"
-                  style={{
-                    top: style.top,
-                    height: style.height,
-                    backgroundColor:
-                      (position.task as any).rule?.color ?? "#3B82F6",
-                    left: position.index * 70,
-                    right: type === "Week" ? undefined : 4,
-                    width: type === "Week" ? "calc(100% - 8px)" : undefined,
-                  }}
-                  title={position.task.name}
-                >
-                  <span className="font-medium truncate block">
-                    {position.task.name}
-                  </span>
-                </div>
-              );
-            })}
+                return (
+                  <Link
+                    key={`${task.id}-${i}`}
+                    href={`${LINK}/${task.id}`}
+                    title={task.name}
+                    className={`absolute pointer-events-auto flex ${
+                      short ? "flex-row items-center gap-1" : "flex-col gap-0.5"
+                    } rounded-md border border-white px-2 py-1 text-[11px] overflow-hidden shadow-sm cursor-pointer z-30 ${
+                      isDone ? "line-through text-black/60" : "text-white"
+                    }`}
+                    style={{
+                      top,
+                      height,
+                      backgroundColor:
+                        (task as any).rule?.color ?? "#3B82F6",
+                      left: `calc(${(lane / lanes) * 100}% + 1px)`,
+                      width: `calc(${100 / lanes}% - 2px)`,
+                    }}
+                  >
+                    <span className="font-medium truncate">{task.name}</span>
+                    <span className="flex">
+                        {time != null && (
+                      <span className="font-medium truncate shrink-0 opacity-90">
+                        {formatTimer(time)}
+                      </span>
+                    )}
+
+                    {task.rule.endTimer && (<span className="font-medium truncate shrink-0 opacity-90">
+                        - {formatTimer(task.rule.endTimer)}
+                      </span>)}
+                    </span>
+                   {task.rule.end_date && ( <span className="font-medium truncate"><HdIcon className="w-3 h-3"/></span>)}
+                  </Link>
+                );
+              },
+            )}
           </div>
         ))}
       </div>

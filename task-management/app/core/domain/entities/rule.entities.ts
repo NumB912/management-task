@@ -4,15 +4,16 @@ export interface IRepeat {
   dates?: number[],
   days?: number[],
   specificDays?: Date[]
+  until?:Date|null
 }
 
 export interface IRule {
   id: string;
   task?: string|null,
   path: string;
-  start_date?: Date;
+  start_date?: Date|null;
   list:string,
-  end_date?: Date;
+  end_date?: Date|null;
   endTimer?:number|null;
   timer?: number|null;
   color:string,

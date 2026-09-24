@@ -38,6 +38,7 @@ export class MemberMapper implements IMapper<IMemberDocument, IMemberWithId, IMe
   }
 
   toDomainPopulate(doc: IMemberPopulateDocument): IMember {
+    console.log("section:",doc)
     return {
       id: doc._id.toString(),
       user: this.userMapper.toDomainWithoutPassword(doc.user),

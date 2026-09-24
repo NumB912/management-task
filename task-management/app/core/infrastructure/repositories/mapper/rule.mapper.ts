@@ -139,6 +139,7 @@ export class RuleMapper implements IMapper<IRuleDocument, IRuleWithId, IRulePopu
 
 toPersistencePartial(entity: Partial<IRuleWithId>): Partial<IRuleDocument> {
   const update: Partial<IRuleDocument> = {};
+  console.log(entity)
   if (entity.id !== undefined) update._id = new Types.ObjectId(entity.id);
   if (entity.start_date !== undefined) update.start_date = entity.start_date;
   if (entity.end_date !== undefined) update.end_date = entity.end_date;

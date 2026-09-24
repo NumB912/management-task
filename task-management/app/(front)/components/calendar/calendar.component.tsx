@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Calendar } from "@/app/(front)/components/ui/calendar";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/(front)/components/ui/select";
-import {
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenu,
@@ -18,20 +10,27 @@ import { Button } from "@/app/(front)/components/ui/button";
 import Repeat from "./repeat/Repeat";
 import { useCalendar } from "@/app/(front)/hooks/useCalendar.hook";
 import { IRepeat, IRuleModel } from "@/app/(front)/model/rule/rule.model";
-import EndDate from "./end-date/endDate.component";
 import { normalizeDate } from "@/app/(front)/utils/getDayOfMonth.utils";
 import { RepeatProvider } from "../../context/repeat.context";
 import { cn } from "@/lib/utils";
 import { ArrowRight, Calendar1, Clock, Sunrise } from "lucide-react";
 import { vi } from "date-fns/locale";
 import dayjs from "dayjs";
-import { TIME_OPTIONS } from "../../utils/timeOption.utils";
+import TimeRangePicker from "../timerPicker.component";
+import EndRepeat from "./repeat/endRepeat";
+import End from "./repeat/endRepeat";
 
 interface CalendarProp {
   trigger: React.ReactNode;
-  rule: Pick<IRuleModel, "repeat" | "timer" | "end_date" | "start_date"|"priority">;
+  rule: Pick<
+    IRuleModel,
+    "repeat" | "timer" | "end_date" | "start_date" | "priority" | "endTimer"
+  >;
   onChangeSubmit: (
-    rule: Pick<IRuleModel, "repeat" | "timer" | "end_date" | "start_date">,
+    rule: Pick<
+      IRuleModel,
+      "repeat" | "timer" | "end_date" | "start_date" | "endTimer"
+    >,
   ) => void;
 }
 
@@ -91,13 +90,13 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
     chooseNextWeek,
     setIsOpen,
     chooseToday,
-    setIsEndRepeat,
     setMonth,
     month,
     setRepeat,
     year,
     setTimer,
     timer,
+    endTimer,
     setYear,
     repeat,
     selectedEndDate,
@@ -105,29 +104,31 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
     setDefaultRepeat,
     defaultRepeat,
     chooseTomorrow,
-  } = useCalendar({
+    setEndTimer,
+  } = useCalendar({ 
     selectedDate: rule?.start_date
       ? new Date(rule.start_date)
       : normalizeDate(new Date()),
     defaultRepeat: rule?.repeat,
     repeat: rule?.repeat,
-    selectedEndDate: rule?.end_date??null,
+    selectedEndDate: rule?.end_date ?? null,
   });
 
   useEffect(() => {
     setDefaultRepeat(
-      rule.repeat ?? {
+      rule?.repeat ?? {
         mode: "none",
         every: 0,
       },
     );
     setRepeat(
-      rule.repeat ?? {
+      rule?.repeat ?? {
         mode: "none",
         every: 0,
       },
     );
-    setTimer(rule.timer ?? undefined);
+    setTimer(rule?.timer ?? undefined);
+    setEndTimer(rule?.endTimer ?? undefined);
     setSelectedDate(
       rule?.start_date ? new Date(rule.start_date) : normalizeDate(new Date()),
     );
@@ -152,8 +153,9 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
       end_date: null,
       start_date: null,
       timer: null,
+      endTimer:null
     });
-   setIsOpen(false);
+    setIsOpen(false);
   };
 
   return (
@@ -179,7 +181,12 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
       >
         {trigger}
       </DropdownMenuTrigger>
-      <DropdownMenuContent style={{ zIndex: 60 }} className="w-full" align="start" side="left">
+      <DropdownMenuContent
+        style={{ zIndex: 60 }}
+        className="w-full"
+        align="start"
+        side="left"
+      >
         <div className="p-2 text-sm">
           <div className="flex flex-col gap-1 py-3 border-gray-200">
             <div
@@ -225,6 +232,9 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
               endDate: (date) => {
                 return dayjs(selectedEndDate).isSame(date, "day");
               },
+              UtilDate:(date)=>{
+                return dayjs(repeat?.until).isSame(date, "day");
+              },
               startDate: (date) => {
                 return (
                   dayjs(selectedDate).isSame(date, "day") && !!selectedEndDate
@@ -257,7 +267,7 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
 
                 return (
                   factoryCalendar(repeat, d2, d1) &&
-                  (!selectedEndDate || date < selectedEndDate)
+                  (!repeat.until || date < repeat.until)
                 );
               },
 
@@ -272,6 +282,7 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
                 "bg-primary! hover:bg-primary! text-white! hover:text-white! rounded-r-full!",
               startDate:
                 "bg-primary! hover:bg-primary! text-white hover:text-white rounded-l-full!",
+              UtilDate: "bg-primary! hover:bg-primary! text-white! hover:text-white! rounded-r-full!",
             }}
             classNames={{
               day: "m-0.5",
@@ -288,32 +299,17 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
           />
 
           <div className="w-full grid grid-cols-1 py-2 gap-2 justify-center items-center border-gray-200">
-  <Select
-  value={timer?.toString() ?? undefined}
-  onValueChange={(value) => setTimer(Number(value))}
->
-  <SelectTrigger className={cn("w-full flex items-center gap-2")}>
-    <div className="flex gap-2 items-center">
-      <Clock className="w-5 h-5" />
-      <SelectValue placeholder={"Thời gian bắt đầu"} />
-    </div>
-  </SelectTrigger>
-  <SelectContent
-    style={{ zIndex: 70 }}
-    className={cn("max-h-50 overflow-y-auto")}
-  >
-    <SelectGroup>
-      {TIME_OPTIONS.map((timerOption) => (
-        <SelectItem
-          key={timerOption.title}
-          value={timerOption.value.toString()}
-        >
-          {timerOption.title}
-        </SelectItem>
-      ))}
-    </SelectGroup>
-  </SelectContent>
-</Select>
+            <div className="flex gap-2">
+              <TimeRangePicker
+                endTimer={endTimer}
+                onChange={(value) => {
+                  setEndTimer(value.endTimer ?? undefined);
+                  setTimer(value.timer ?? undefined);
+                }}
+                timer={timer}
+                className=""
+              />
+            </div>
             <RepeatProvider
               value={{
                 setRepeat,
@@ -322,15 +318,33 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
                 defaultRepeat,
                 repeat,
                 setSelectedDate,
+                setSelectedEndDate
               }}
             >
               <Repeat />
             </RepeatProvider>
-            <EndDate
-              endDate={selectedEndDate}
-              selectedDate={selectedDate ?? new Date()}
-              setEndDate={setSelectedEndDate}
-            />
+            <>
+              {repeat?.mode != "none" && (
+                <End
+                  placeholder="Ngày dừng lặp"
+                  addTitleDate="Ngày dừng"
+                  endDate={repeat?.until??null}
+                  selectedDate={selectedDate ?? new Date()}
+                  setEndDate={(selectUtil:Date|null)=>{
+                    setRepeat({...repeat, until: selectUtil})
+                  }}
+                />
+              )}
+              {repeat?.mode == "none" && (
+                <End
+                  placeholder="Ngày kết thúc"
+                  addTitleDate="Cho tới ngày"
+                  endDate={selectedEndDate}
+                  selectedDate={selectedDate ?? new Date()}
+                  setEndDate={setSelectedEndDate}
+                />
+              )}
+            </>
           </div>
 
           <div className="flex gap-2 w-full">
@@ -350,6 +364,7 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
                   repeat: repeat,
                   start_date: selectedDate,
                   timer: timer,
+                  endTimer: endTimer,
                 });
                 setIsOpen(false);
               }}

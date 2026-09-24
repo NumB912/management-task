@@ -23,7 +23,6 @@ class RabbitMQ {
   }
 
   public async getChannel(): Promise<Channel> {
-    console.log(RabbitMQConfig.HOST, RabbitMQConfig.PORT, RabbitMQConfig.USER, RabbitMQConfig.PASS);
     if (this.channel) return this.channel;
     return this.connect();
   }

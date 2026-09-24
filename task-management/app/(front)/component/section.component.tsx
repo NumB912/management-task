@@ -231,36 +231,6 @@ const Section = React.memo(
       };
     }, [isOnDrag, isHover, sectionId]);
     if (!sectionExists) return null;
-
-    // const handleAddTask = (task: ITaskModel) => {
-    //   const task_temp_id = `temp-task-id-${Date.now()}`
-    //   addTaskState({
-    //     ...task,
-    //     id:task_temp_id
-    //   });
-    //   addTaskMutate({
-    //     list:task.list,
-    //     name:task.name,
-    //     rule:{
-    //       repeat:task.rule.repeat,
-    //       tags:task.rule.tags,
-    //       end_date:task.rule.end_date,
-    //       priority:task.rule.priority,
-    //       start_date:task.rule.start_date,
-    //       timer:task.rule.timer
-    //     },
-    //     description:task.description
-    //   },{
-    //     onError(error, variables, onMutateResult, context) {
-    //       removeTaskState(task_temp_id)
-    //     },
-    //     onSuccess(data, variables, onMutateResult, context) {
-    //       changeIdTaskState(task_temp_id, data.id.toString())
-    //     },
-    //   })
-
-    // };
-
     return (
       <div
         className={
@@ -380,7 +350,7 @@ const Section = React.memo(
             className={cn(
               "p-0! gap-0.5 flex flex-col items-center",
               "overflow-x-hidden overflow-y-auto",
-              "max-h-[min(50vh,500px)] min-w-65! w-full",
+              "max-h-[min(65vh,600px)]! min-w-65! h-full w-full",
             )}
           >
             {isCreateTask && (
@@ -392,7 +362,7 @@ const Section = React.memo(
                 onHandle={addTaskHandle}
               />
             )}
-            <TaskList tasks={taskIds ?? []} />
+            <TaskList tasks={taskIds ?? []} className="flex-1 min-h-0 max-h-none"/>
           </CardContent>
         </Card>
       </div>

@@ -14,6 +14,7 @@ export const RuleSchema = new Schema<IRuleDocument>({
           enum: { values: ["week", "day", "none", "month", "specificday"], message: "Không tồn tại giá trị này" },
           default: "none",
         },
+        until:{type:Date,require:false},
         every: { type: Number, default: 0 },
         dates: {
           type: [Number],

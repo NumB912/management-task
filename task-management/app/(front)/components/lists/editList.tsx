@@ -32,6 +32,8 @@ export function EditListDialog({ list, onClose }: Readonly<EditListDialogProps>)
     setName(list?.name??"")
   },[list])
 
+  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if(!list) return

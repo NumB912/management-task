@@ -9,6 +9,7 @@ export const TYPES = {
   Cache:Symbol.for("Cache"),
   CheckOwnerTagUsecase:Symbol.for("CheckOwnerTagUsecase"),
   WorkSpaceUsecase:Symbol.for("WorkSpaceUsecase"),
+  RealTimeNotifier:Symbol.for("RealTimeNotifier"),
 
   createPromodoUsecase:Symbol.for("createPromodoUsecase"),
   getPromodoUsecase:Symbol.for("getPromodoUsecase"),

@@ -35,7 +35,6 @@ const CustomRepeatPanel = ({
   onClear,
   setUnit,
 }: CustomRepeatPanelProps) => {
-
   return (
     <div className="min-w-58 cursor-pointer">
       <div className="flex flex-col gap-3 p-2">

@@ -8,7 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { PRIORITY_CONFIG } from "../model/mod/priorityConfig";
+import {
+  PRIORITY_CONFIG,
+} from "../model/mod/priorityConfig";
 
 export interface PriorityOption {
   value: number;
@@ -41,40 +43,50 @@ const PriorityDropdown = ({
     onOpenChange?.(next);
   };
 
-  const current = PRIORITY_CONFIG.find((p) => p.value === (priority ?? 4));
-
   const defaultTrigger = (
     <span className="p-1.5 border rounded-sm text-sm flex items-center gap-2 text-neutral-700 cursor-pointer">
-      <Flag className={cn("size-3", current?.colorClass)} />
-      P{priority ?? 4}
+      <Flag className="size-3" /> P{priority ?? 4}
     </span>
   );
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>{trigger ?? defaultTrigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align={align}>
-        {PRIORITY_CONFIG.map((p) => {
-          const isSelected = (priority ?? 4) === p.value;
-          return (
-            <DropdownMenuItem
-              key={p.value}
-              className="flex gap-3 items-center cursor-pointer"
-              onSelect={() => {
-                onSelectPriority(p.value);
-                setOpen(false);
-              }}
-            >
-              <Flag className={cn("size-3", p.colorClass)} />
-              <span className="flex-1">{p.label}</span>
-              <Check
-                className={cn("h-4 w-4", isSelected ? "opacity-100" : "opacity-0")}
-              />
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    // <DropdownMenu open={open} onOpenChange={setOpen}>
+    //   <DropdownMenuTrigger asChild>
+    //     {trigger ?? defaultTrigger}
+    //   </DropdownMenuTrigger>
+    //   <DropdownMenuContent align={align}>
+    //     {PRIORITY_CONFIG.map((p) => (
+    //       <DropdownMenuItem
+    //         key={p.value}
+    //         className="flex gap-3 items-center cursor-pointer"
+    //         onSelect={() => onSelectPriority(p.value)}
+    //       >
+    //         <Flag className={cn("size-3", p.colorClass)} />
+    //         {p.label}
+    //       </DropdownMenuItem>
+    //     ))}
+    //   </DropdownMenuContent>
+    // </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <span className="p-1.5 border rounded-sm text-sm flex items-center gap-2 text-neutral-700">
+                <Flag className="size-3" /> P{priority ?? 4}
+              </span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {PRIORITY_CONFIG.map((p) => (
+                <DropdownMenuItem
+                  key={p.value}
+                  className="flex gap-3 items-center cursor-pointer"
+                  onSelect={() => onSelectPriority(p.value)}
+                >
+                  <Flag className={cn("size-3", p.colorClass)} />
+                  {p.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
   );
 };
 

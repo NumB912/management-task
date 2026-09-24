@@ -36,7 +36,7 @@ const unitConfigStrategies: Record<Unit, ConfigBuilder> = {
     ...config,
     mode: Unit.Week,
     every: config.every || 1,
-    weekdays:
+    days:
       config.days && config.days.length > 0
         ? config.days
         : [date.getDay()],
@@ -63,7 +63,6 @@ const RepeatByInterval = ({
   unit,
   setUnit,
 }: RepeatByIntervalProps) => {
-
   useEffect(() => {
     onChange(unit&&unitConfigStrategies[unit](config, selectedDate));
   }, [unit]);
@@ -79,7 +78,8 @@ const RepeatByInterval = ({
             defaultValue={1}
             onChange={(e) => {
               onChange({
-                ...config,
+                until:config.until,
+                mode:unit,
                 every: Math.max(1, Number(e.target.value)),
               });
             }}
@@ -109,7 +109,7 @@ const RepeatByInterval = ({
             selected={config?.dates || [selectedDate.getDate()]}
             onSelect={(dates) =>
               onChange({
-                ...config,
+                until:config.until,
                 mode: unit,
                 dates: dates,
                 every: config.every || 1,
@@ -121,10 +121,9 @@ const RepeatByInterval = ({
             selected={config.days || [selectedDate.getDay()]}
             onSelect={(days) =>
               onChange({
-                ...config,
+                until:config.until,
                 mode: unit,
-                days:
-                  days.length > 0 ? days : [selectedDate.getDay()],
+                days:days.length > 0 ? days : [selectedDate.getDay()],
                 every: config.every || 1,
               })
             }

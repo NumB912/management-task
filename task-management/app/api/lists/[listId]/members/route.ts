@@ -13,7 +13,7 @@ export async function POST(
     id:string
   }
   const body = await req.json();
-  const { members,role } = body;
+  const { members } = body;
   const resolvedParams = await params;
   const { listId } = resolvedParams;
   const getByID = await (await GetContainer())
@@ -21,7 +21,6 @@ export async function POST(
     .execute({
         data:members,
         listId:listId,
-        role:role,
         userId:user.id
     });
 

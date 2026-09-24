@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import { tagApi } from "../../feature/api/tags/tag.api";
+import { randomUUID } from "crypto";
 
 interface addTagsDialogProps {
   open:boolean;
@@ -26,15 +27,13 @@ interface addTagsDialogProps {
 export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
-      Object.values(s.tagIndex).map((item) =>
-        item.name.trim().toLowerCase()
-      )
+      s.tagIndex[name]
     )
   );
-
+  const addTag = useWorkspaceStore((s)=>s.addTag)
+  const changeTagId = useWorkspaceStore((s)=>s.changeIdTag)
   useEffect(() => {
     if (open) {
       setError(null);
@@ -46,11 +45,9 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
       return await tagApi.create({ name: newName });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workspace"] });
       toast.success("Đã thêm thẻ");
       setName("");
       setError(null);
-      onClose();
     },
     onError: () => toast.error("Thêm thất bại, thử lại sau"),
   });
@@ -58,7 +55,7 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
   const validate = (value: string): string | null => {
     const trimmed = value.trim();
     if (!trimmed) return "Tên thẻ không được để trống";
-    if (existingNames.includes(trimmed.toLowerCase())) {
+    if (existingNames) {
       return "Tên thẻ đã tồn tại";
     }
     return null;
@@ -78,7 +75,18 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
       setError(validationError);
       return;
     }
-    mutate(trimmed);
+
+    addTag({
+      name:trimmed,
+      id:`temp-tag-${crypto.randomUUID()}`,
+    })
+    mutate(trimmed,{
+      onSuccess(data, variables, onMutateResult, context) {
+        changeTagId(data.id,trimmed)
+      },
+    });
+
+    onClose()
   };
 
   const handleClose = () => {

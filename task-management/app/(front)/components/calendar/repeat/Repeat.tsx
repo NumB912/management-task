@@ -12,9 +12,9 @@ import {
   Unit,
 } from "@/app/(front)/model/rule/repeat.enum";
 import { IRepeat } from "@/app/(front)/model/rule/rule.model";
-import { REPEAT_PRESETS } from "./repeat.types";
+import { DEFAULT_REPEAT_CONFIG, REPEAT_PRESETS } from "./repeat.types";
 import { Button } from "@/app/(front)/components/ui/button";
-import { ArrowDown, Check, ChevronDown, RepeatIcon } from "lucide-react";
+import { ArrowDown, Check, ChevronDown, RepeatIcon, X } from "lucide-react";
 import { useRepeatContext } from "@/app/(front)/context/repeat.context";
 import {
   formatDate,
@@ -30,6 +30,7 @@ const RepeatTypeDay = (repeat: IRepeat): IRepeat => {
 };
 
 const RepeatTypeWeek = (repeat: IRepeat): IRepeat => {
+  console.log(repeat)
   return {
     mode: repeat.mode,
     every: repeat.every,
@@ -128,7 +129,7 @@ const FactoryShowRepeat = (repeat: IRepeat): string | undefined => {
 };
 
 const Repeat = () => {
-  const { repeat, setRepeat, selectedDate, setDefaultRepeat, defaultRepeat } =
+  const { repeat, setRepeat, selectedDate, setDefaultRepeat, defaultRepeat,setSelectedEndDate } =
     useRepeatContext();
   const [isOpenCustom, setIsOpenCustom] = useState<boolean>(false);
   const [repeatType, setRepeatType] = useState<RepeatType>(RepeatType.Repeat);
@@ -147,8 +148,22 @@ const Repeat = () => {
 
   useEffect(() => {
     setRepeat(defaultRepeat);
+    setUnit(
+      prev=>{
+      switch(defaultRepeat.mode){
+        case "day":
+          return Unit.Day;
+        case "month":
+          return Unit.Month;
+        case "week":
+          return Unit.Week
+        default:
+          return Unit.Day
+      }
+      }
+    )
   }, [defaultRepeat]);
-
+  
   useEffect(() => {
     if (repeat.mode == "none") {
       setValueRepeat(RepeatModePresent.None);
@@ -165,6 +180,7 @@ const Repeat = () => {
         break;
     }
   }, []);
+  
 
   useEffect(() => {
     switch (valueRepeat) {
@@ -200,16 +216,20 @@ const Repeat = () => {
       default:
         break;
     }
+
+
   }, [valueRepeat, selectedDate]);
 
   const handleConfirm = () => {
     setIsOpenCustom(false);
     setDefaultRepeat(repeat);
+    setSelectedEndDate(null)
   };
 
   const handleClear = () => {
     setRepeat(defaultRepeat);
     setIsOpenCustom(false);
+    setSelectedEndDate(null)
   };
 
   const handleClose = () => {
@@ -217,7 +237,7 @@ const Repeat = () => {
   };
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative group">
       <DropdownMenu
         open={openMenuCustom}
         onOpenChange={() => {
@@ -227,9 +247,10 @@ const Repeat = () => {
         <DropdownMenuTrigger className="w-full flex" asChild>
           <Button
             className={cn(
-              "w-full! flex! flex-1 justify-start! overflow-hidden",
+             "flex flex-1 items-center justify-start gap-2 rounded-sm! px-2 py-2 text-left text-sm transition-colors hover:bg-accent "
             )}
             variant={"outline"}
+            aria-o
           >
             <div className="flex items-center gap-2 justify-between! w-full">
               <div className="flex gap-2 min-w-0 max-w-65 items-center">
@@ -240,7 +261,7 @@ const Repeat = () => {
                     : FactoryShowRepeat(repeat)}
                 </span>
               </div>
-              <ChevronDown />
+              <ChevronDown className="shrink-0 w-4 h-4 md:group-hover:opacity-0 opacity-100 md:opacity-100"/>
             </div>
           </Button>
         </DropdownMenuTrigger>
@@ -298,6 +319,20 @@ const Repeat = () => {
           />
         </DropdownMenuContent>
       </DropdownMenu>
+          {repeat.mode!="none" && (
+        <button
+          type="button"
+          aria-label="Xóa ngày dừng lặp"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted
+                     opacity-100 md:opacity-0 md:group-hover:opacity-100 z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            setRepeat(DEFAULT_REPEAT_CONFIG)
+          }}
+        >
+          <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+        </button>
+      )}
     </div>
   );
 };

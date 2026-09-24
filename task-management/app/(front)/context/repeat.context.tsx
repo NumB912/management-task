@@ -7,6 +7,7 @@ interface RepeatContextValue {
   setRepeat: (r: IRepeat) => void;
   selectedDate:Date|null,
   setSelectedDate:(date:Date)=>void;
+  setSelectedEndDate:(date:Date|null)=>void;
   setDefaultRepeat:(defaultRepeat:IRepeat)=>void;
   defaultRepeat:IRepeat
 }

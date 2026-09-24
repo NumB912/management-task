@@ -66,14 +66,14 @@ export class MemberRepository
     })
   }
 
-  async checkMembersIsExist(userIds: string[], listId: string): Promise<string[]> {
+  async checkMembersIsExist(userIds: string[], listId: string,session?:ClientSession): Promise<string[]> {
     const docs = await this.db.Member.find({
       user: {
         $in: userIds,
       },
       deleted_at: null,
       list: listId
-    })
+    }).session(session??null)
     return docs.map((doc) => doc.user.toString())
   }
 

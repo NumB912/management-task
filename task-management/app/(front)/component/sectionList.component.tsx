@@ -8,7 +8,6 @@ import { CheckCircle } from "lucide-react";
 import { useCreateSection, useRemoveSection } from "../feature/hook/useSectionMutation.hook";
 import { ISectionModelState } from "../model";
 import { useWorkspaceStore } from "../states/workspace.state";
-import { useAddTask } from "../feature/hook/task/addTask.hook";
 
 const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string[]; listId: string }) => {
   const [sections, setSections] = useState<string[]>(sectionsData ?? []);
@@ -146,7 +145,7 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
   },[mutateAddSection])
 
   return (
-    <div className="flex gap-3 py-3">
+    <div className="flex gap-3 py-3 h-fit">
       {sections?.map((section) => (
         <Section
           key={section}

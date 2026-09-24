@@ -1,4 +1,3 @@
-import { IlistIndex } from "../../states/workspace.state";
 import { IFilterModel } from "../filter.model";
 import { IListModel } from "../list.model";
 import { ITagModel } from "../tag.model";

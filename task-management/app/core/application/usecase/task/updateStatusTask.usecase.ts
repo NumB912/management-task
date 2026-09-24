@@ -35,8 +35,8 @@ async execute(DTO: { taskId: string; data: Pick<ITask, "status">; userId: string
 
       if (repeat?.mode !== undefined && repeat?.mode != "none" && data.status !== "pending") {
         const nextDay = this.calcService.getModeCaculateDeadLine(taskCur.rule!);
-        
-        if (nextDay && taskCur.rule?.end_date && nextDay.getTime() > taskCur.rule?.end_date?.getTime()!) {
+          console.log(taskCur.rule?.repeat.until)
+        if (nextDay && taskCur.rule?.repeat.until && nextDay.getTime() > taskCur.rule?.repeat.until.getTime()!) {
           const updateTask = await this.taskRepository.update(
             taskId,
             { status: data.status, done_at: new Date() },
@@ -57,17 +57,9 @@ async execute(DTO: { taskId: string; data: Pick<ITask, "status">; userId: string
 
         const ruleCreate = await this.ruleRepository.create(
           {
-            priority: rule?.priority,
-            tags: rule?.tags,
-            timer: rule?.timer,
-            end_date: rule?.end_date,
+            ...rule,
+            id:undefined,
             repeat: { mode: "none", dates: [], days: [], every: undefined, specificDays: [] },
-            path: rule?.path,
-            color: rule?.color,
-            endTimer: rule?.endTimer,
-            start_date: rule?.start_date,
-            created_at: rule?.created_at,
-            list: rule?.list,
           },
           session,
         );

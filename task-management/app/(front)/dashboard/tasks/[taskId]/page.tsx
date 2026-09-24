@@ -26,11 +26,8 @@ import ListPicker from "@/app/(front)/components/listCombobox";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
 
 import {
-  IListModel,
-  IListModelState,
   IRuleModel,
-  ISectionModel,
-  ISectionModelState,
+  ITaskModel
 } from "@/app/(front)/model";
 
 import { IStatus } from "@/app/(front)/model/type/type";
@@ -39,8 +36,7 @@ import { formatDate } from "@/app/(front)/utils/getDayOfMonth.utils";
 import { formatTimer } from "@/app/(front)/utils/formatTimer";
 
 import {
-  useUpdateTask,
-  useUpdateTaskStatus,
+  useUpdateTask
 } from "@/app/(front)/feature/hook/useTaskMutation.hook";
 
 import { cn } from "@/lib/utils";
@@ -67,32 +63,23 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
     if (!task || !list) return undefined;
     return sectionIndex[task.section];
   }, [task]);
-  const listOptions = useMemo(() => {
-    return Object.values(listIndex);
-  }, [listIndex]);
   const [name, setName] = useState("");
   const [priority, setPriority] = useState<number>(4);
   const [tags, setTags] = useState<string[]>([]);
   const [status, setStatus] = useState<IStatus>("pending");
   const [openTags, setOpenTags] = useState(false);
   const [openPriority, setOpenPriority] = useState(false);
-  const [confirmList, setConfirmList] = useState<
-    Pick<IListModel, "id" | "name"> | undefined
-  >();
-
-  const [confirmSection, setConfirmSection] = useState<
-    ISectionModelState | undefined
-  >();
+  const [confirmList, setConfirmList] = useState<string>(task?.list);
+  const [confirmSection, setConfirmSection] = useState<string | undefined>();
   const { mutate: updateTaskAPI } = useUpdateTask(task?.list ?? "");
-  const { mutate: updateStatusAPI } = useUpdateTaskStatus();
   useEffect(() => {
     if (!task) return;
     setName(task.name ?? "");
     setPriority(task.rule?.priority ?? 4);
     setTags(task.rule?.tags ?? []);
     setStatus(task.status);
-    setConfirmList(list);
-    setConfirmSection(section);
+    setConfirmList(task.list);
+    setConfirmSection(task?.section);
   }, [
     taskId,
     task?.name,
@@ -127,6 +114,37 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
     //   }
     // );
   };
+
+    const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
+      const prev = task;
+      if (!prev || isTemp(id)) return; 
+  
+      const { section, ...rest } = data;
+      const isMoving = !!section && section !== prev.section;
+      const restKeys = Object.keys(rest) as (keyof ITaskModel)[];
+      if (isMoving) moveTaskIntoSection(id, section!);
+      if (restKeys.length) updateTaskStore(id, rest);
+  
+      updateTask(
+        { taskId: id, data },
+        {
+          onSuccess: () => {
+            
+          },
+          onError: () => {
+            if (isMoving) moveTaskIntoSection(id, prev.section);
+            if (restKeys.length) {
+              updateTaskStore(
+                id,
+                Object.fromEntries(restKeys.map((k) => [k, prev[k]])),
+              );
+            }
+            toast.error("Không thể cập nhật task");
+          },
+        },
+      );
+    };
+  
 
   const handleNameBlur = () => {
     if (!task) return;
@@ -169,21 +187,19 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
   };
 
   useEffect(() => {
+    if (!status) return;
+    if (status == task.status) return;
 
-    if(!status) return
-    if(status==task.status) return
+    const timeOut = setTimeout(() => {
+      updateTask(taskId, {
+        status: status,
+      });
+    }, 1000);
 
-    const timeOut = setTimeout(()=>{
-      updateTask(taskId,{
-        status:status
-      })
-    },1000)
-
-
-    return ()=>{
-      clearTimeout(timeOut)
-    }
-  }, [status,task]);
+    return () => {
+      clearTimeout(timeOut);
+    };
+  }, [status, task]);
 
   useEffect(() => {
     if (!task) return;
@@ -336,12 +352,6 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
               <span className="text-sm font-medium">Danh sách</span>
 
               <ListPicker
-                lists={
-                  listOptions as unknown as Pick<
-                    IListModelState,
-                    "id" | "name" | "sections"
-                  >[]
-                }
                 selectedList={confirmList}
                 selectedSection={confirmSection}
                 onSelect={({ list, section }) => {
@@ -350,14 +360,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                     setConfirmSection(undefined);
                     return;
                   }
-
-                  setConfirmSection({
-                    id: section.id ?? "",
-                    name: section.name ?? "",
-                    list: section.list ?? "",
-                    order: section.order ?? 0,
-                    tasks: section.tasks?.map((task) => task.id) ?? [],
-                  });
+                  setConfirmSection(section);
                 }}
               />
             </div>
@@ -384,7 +387,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                         hover:bg-transparent!
                       "
                     >
-                      {task.rule.start_date ? (
+                      {task.rule?.start_date ? (
                         <div className="flex gap-1.5 items-center">
                           <Calendar1 />
 
@@ -408,7 +411,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                 }
               />
             </div>
-            {task.rule.end_date && (
+            {task.rule?.end_date && (
               <div className="w-full flex flex-col gap-1.5">
                 <span className="text-sm font-medium">Hạn chót</span>
 
@@ -447,11 +450,6 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                 />
               </div>
             </div>
-
-            {/* ============================================= */}
-            {/* TAGS */}
-            {/* ============================================= */}
-
             <div className="grid gap-1.5 min-h-15">
               <div className="flex w-full justify-between items-center">
                 <span className="text-sm font-medium">Thẻ</span>

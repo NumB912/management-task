@@ -23,8 +23,6 @@ export class CreateListUsecase
         data: data,
         session: session
       })
-
-    
       await this.unitWork.commitTransaction();
       return initList;
     } catch (error) {

@@ -2,17 +2,20 @@ import { eachDayOfInterval, endOfWeek, format, isToday, startOfWeek } from "date
 import React, { useMemo } from "react";
 import HourGrid from "./hour/hourGrid";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useShallow } from "zustand/react/shallow";
+import { formatDateVi } from "@/app/(front)/utils/getDayOfMonth.utils";
+interface DayViewProps {
+  currentDate: Date;
+   onCreateTask?: (day: Date, timer?: number) => void;
+}
 
-function WeekView({ currentDate }: Readonly<{ currentDate: Date }>) {
+function WeekView({ currentDate,onCreateTask }: DayViewProps) {
   const days = useMemo(() => {
-    const start = startOfWeek(currentDate);
-    const end = endOfWeek(currentDate);
+  const start = startOfWeek(currentDate);
+  const end = endOfWeek(currentDate);
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
-const {listIndex} = useWorkspaceStore()
-  const task = Object.values(listIndex).flatMap(
-    (list) => list.list.sections?.flatMap((section) => section.tasks) ?? []
-  )
+  const taskIndex = useWorkspaceStore(useShallow((state)=>state.taskIndex))
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border/50 shrink-0 pr-3.5">
@@ -25,7 +28,7 @@ const {listIndex} = useWorkspaceStore()
               className="py-2.5 text-center border-l border-border/50 w-full"
             >
               <div className="text-xs font-medium text-muted-foreground">
-                {format(day, "EEE")}
+                {formatDateVi(day, "EEEE")}
               </div>
               <div
                 className={`mx-auto mt-1 text-sm w-6 h-6 flex items-center justify-center rounded-full ${
@@ -42,7 +45,7 @@ const {listIndex} = useWorkspaceStore()
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <HourGrid tasks={task} type="Week" days={days}/>
+        <HourGrid tasks={Object.values(taskIndex)} type="Week" days={days} onHandle={onCreateTask!}/>
       </div>
 
     </div>

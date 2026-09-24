@@ -80,7 +80,7 @@ export function PomodoroTimelineView({
   const rulerHours = [6, 8, 10, 12, 14, 16, 18, 20, 22];
   const peakPeriodInfo = overallData.timeOfDayStats.find((p) => p.isPeak);
   return (
-    <div className={`flex flex-col gap-4 w-full h-full pr-1 ${className}`}>
+    <div className={`flex flex-col gap-4 w-full h-dvh pr-1 overflow-y-auto ${className}`}>
       <div className="space-y-3">
         <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
@@ -180,7 +180,7 @@ export function PomodoroTimelineView({
         </div>
       </div>
 
-      <div className="space-y-3 pt-2">
+      <div className="space-y-3 pt-2 h-fit">
         <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
             <CalendarDays className="w-3.5 h-3.5 text-primary" />
@@ -265,7 +265,7 @@ export function PomodoroTimelineView({
           </div>
         </div>
 
-        <div className="space-y-2 h-full w-full overflow-y-auto max-h-115">
+        <div className="space-y-2 w-full">
           {overallData.days.map((day) => {
             const isOpen = !!openDays[day.dateKey];
 
@@ -393,7 +393,7 @@ export function PomodoroTimelineView({
                           </div>
                         </div>
 
-                        <div className="space-y-1.5 pt-1 min-h-0 max-h-80 overflow-y-auto">
+                        <div className="space-y-1.5 pt-1 overflow-y-auto h-full min-h-50">
                           {day.sessions.map((session) => {
                             const isHovered = hoveredSessionId === session.id;
                             const isDetailOpen =

@@ -27,8 +27,8 @@ import CalendarComponent from "../calendar/calendar.component";
 import { formatDate } from "../../utils/getDayOfMonth.utils";
 import { IRuleModel } from "../../model/rule/rule.model";
 import { formatTimer } from "../../utils/formatTimer";
-import { PRIORITY_CONFIG } from "../../model/mod/priorityConfig";
 import { useWorkspaceStore } from "../../states/workspace.state";
+import { PRIORITY_CONFIG } from "../../model/mod/priorityConfig";
 
 interface TaskAttributesBarProps {
   lists: Pick<IListModelState, "id" | "sections" | "name">[];
@@ -59,7 +59,6 @@ const TaskAttributesBar = ({
   onSelectPriority,
 }: TaskAttributesBarProps) => {
   const sectionIndex = useWorkspaceStore((state) => state.sectionIndex);
-  console.log(confirmSectionName)
   return (
     <div className="flex flex-wrap items-center gap-1 mt-2 w-full">
       <DropdownMenu>
@@ -78,7 +77,7 @@ const TaskAttributesBar = ({
           className={cn("max-h-50 min-w-50 p-0 rounded-none")}
         >
           {lists.map((p) => (
-            <>
+            <div key={p.id}>
               <DropdownMenuItem
                 key={p.id}
                 className="flex gap-3 items-center cursor-pointer border-b p-2 rounded-none"
@@ -90,7 +89,7 @@ const TaskAttributesBar = ({
               {p.sections?.map((section) => {
                 return (
                   <DropdownMenuItem
-                    key={p.id}
+                    key={section}
                     className="flex gap-3 items-center cursor-pointer rounded-none p-2 border-b"
                     onSelect={() =>
                       onSelectList({
@@ -104,7 +103,7 @@ const TaskAttributesBar = ({
                   </DropdownMenuItem>
                 );
               })}
-            </>
+            </div>
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -205,7 +204,7 @@ const TaskAttributesBar = ({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {confirmedRule.tags.map((t, i) => (
+      {confirmedRule.tags?.map((t, i) => (
         <span
           key={`${t}-${i}`}
           className="p-1.5 border rounded-sm text-sm flex items-center gap-2 text-neutral-500"

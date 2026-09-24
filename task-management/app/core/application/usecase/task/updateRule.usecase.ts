@@ -56,12 +56,11 @@ export class UpdateRuleUsecase implements IUsecase<void> {
     await this.RuleRepository.update(
       taskCur.rule,
       {
-        repeat: data.repeat ? RepeatBuilder.build(data.repeat) : undefined,
-        tags: data.tags,
-        priority: data.priority,
-        timer: data.timer,
-        end_date: data.end_date,
-        start_date: data.start_date,
+        ...data,
+        repeat: data.repeat ? {
+          ...data.repeat,
+          ...RepeatBuilder.build(data.repeat),
+        } : undefined,
         updated_at: new Date(),
       },
       session,
@@ -117,6 +116,7 @@ export class UpdateRuleUsecase implements IUsecase<void> {
     } catch (error: any) {
       await this.unitWork.rollBackTransaction();
       if (error instanceof AppError) throw error;
+      console.log(error)
       throw new AppError(
         error.code ?? "INTERNAL_SERVER",
         error.message ?? "Lỗi trong quá trình cập nhật task",

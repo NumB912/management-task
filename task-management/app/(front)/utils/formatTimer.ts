@@ -12,7 +12,7 @@ export function formatDuration(seconds: number): string {
 export function formatTimer(seconds: number): string {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    return `${String(Math.floor(h%12==0?12:h%12)).padStart(2, "0")}:${String(m).padStart(2, "0")} ${h >= 12?"PM":"AM"}`;
 }
 
 export function getTotalPauseDuration(progress: IPromodoroModel["progress"]): number {

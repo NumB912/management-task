@@ -48,7 +48,7 @@ export const useUpdateTaskSubmit = ({
     const inlineTags = Array.from(value.matchAll(ALL_ACTIVE_TAG_REGEX)).map(
       (m) => m[1],
     );
-    const allTags = Array.from(new Set([...confirmedRule.tags, ...inlineTags]));
+    const allTags = Array.from(new Set([...confirmedRule?.tags, ...inlineTags]));
 
     const cleanName = getCleanTaskName(el);
     if (cleanName.length === 0) return null;
@@ -57,11 +57,11 @@ export const useUpdateTaskSubmit = ({
       name: cleanName,
       rule: {
         tags: allTags,
-        priority: confirmedRule.priority,
-        repeat: confirmedRule.repeat,
-        end_date: confirmedRule.end_date,
-        start_date: confirmedRule.start_date,
-        timer: confirmedRule.timer,
+        priority: confirmedRule?.priority,
+        repeat: confirmedRule?.repeat,
+        end_date: confirmedRule?.end_date,
+        start_date: confirmedRule?.start_date,
+        timer: confirmedRule?.timer,
       },
       section: confirmedSection,
       list: confirmList,

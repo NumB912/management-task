@@ -11,11 +11,12 @@ export interface IRepeatSubdocument {
   dates?: number[];
   days?: number[];
   specificDays?: Date[];
+  until?:Date|null
 }
 
 export interface IRuleDocument extends IBaseDocument {
-  start_date?: Date;
-  end_date?: Date;
+  start_date?: Date|null;
+  end_date?: Date|null;
   path: string;
   priority: RulePriority;
   list:Types.ObjectId,

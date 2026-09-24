@@ -79,7 +79,6 @@ export function PomodoroAnalyticsView({
             </Button>
           </div>
 
-          {/* Nút xem nhanh timeline nếu có callback */}
           {onNavigateToTimeline && (
             <Button
               variant="outline"
@@ -93,7 +92,6 @@ export function PomodoroAnalyticsView({
             </Button>
           )}
 
-          {/* Nút phóng to / xem chi tiết */}
           {onOpenFullModal && (
             <Button
               variant="outline"
@@ -107,22 +105,14 @@ export function PomodoroAnalyticsView({
           )}
         </div>
       </div>
-
-      {/* 4 thẻ KPI chỉ số tổng quan */}
       <PomodoroStatsCards stats={stats} />
-
-      {/* Biểu đồ thời gian tập trung */}
       <PomodoroFocusChart data={stats.chartData} timeRange={timeRange} />
-
-      {/* Thống kê theo thời gian trong ngày (Sáng, Chiều, Tối, Đêm) */}
-      <PomodoroTimeOfDayStats
+    <PomodoroTimeOfDayStats
         stats={stats.timeOfDayStats}
         hourlyDistribution={stats.hourlyDistribution}
         totalFocusMinutes={stats.totalFocusMinutes}
         showHourlyChart={timeRange === "today" || !isCompact}
       />
-
-      {/* Phân bổ theo nhiệm vụ & Gợi ý năng suất */}
       {!isCompact && <PomodoroTaskBreakdown stats={stats} />}
     </div>
   );

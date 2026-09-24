@@ -8,9 +8,11 @@ import { useShallow } from "zustand/react/shallow";
 import { Task } from "./taskCard";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { Button } from "@/components/ui/button";
+import { cn } from "cn";
 
 interface TaskSectionProp {
   tasks: string[];
+  className?:string;
 }
 
 const COMPLETED_PREVIEW = 10;
@@ -20,7 +22,7 @@ type VirtualTaskItem =
   | { type: "completed-header"; id: "completed-header" }
   | { type: "toggle-more"; id: "toggle-more" };
 
-export const TaskList = memo(({ tasks }: TaskSectionProp) => {
+export const TaskList = memo(({ tasks,className="" }: TaskSectionProp) => {
   const [openSeeMore, setOpenSeeMore] = useState(false);
   const [openCollapsible, setOpenCollapsible] = useState(true);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -92,7 +94,7 @@ const virtualizer = useVirtualizer({
   }
 
   return (
-    <div ref={parentRef} className="w-full max-h-150 overflow-y-auto overflow-x-hidden">
+    <div ref={parentRef} className={cn("w-full max-h-150 overflow-y-auto overflow-x-hidden",className)}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,

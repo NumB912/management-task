@@ -99,6 +99,7 @@ const layout = ({
   const [openAddList, setOpenAddList] = useState<boolean>(false);
   const getTaskWithFilter = useWorkspaceStore((state)=>state.getTaskFilter)
   const getTaskQuantityWithList = useWorkspaceStore((state)=>state.getTaskQuantityWithList)
+  const getTaskQuantityWithTag = useWorkspaceStore((state)=>state.getTaskQuantityWithTag)
   const tabs = [
     {
       title: "Hôm nay",
@@ -120,7 +121,6 @@ const layout = ({
     },
   ];
   const listEntries = Object.entries(listIndex);
-  console.log(listEntries)
   return (
     <div className="flex h-screen relative overflow-hidden overflow-y-scroll">
       <Sidebar className={cn("absolute left-0")}>
@@ -443,6 +443,7 @@ const layout = ({
                           },
                         ],
                       ]}
+                      count={getTaskQuantityWithTag(tag.name)}
                     />
                   ))}
 
@@ -480,6 +481,7 @@ const layout = ({
                             link={`/dashboard/work/tags/${tag.id}`}
                             icon={<Tag data-icon="inline-start" size={16} />}
                             name={tag.name}
+                            count={getTaskQuantityWithTag(tag.name)}
                             actionGroups={[
                               [
                                 {

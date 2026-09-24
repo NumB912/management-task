@@ -28,7 +28,7 @@ interface IWorkspaceState {
   nextDayCount: number;
   listIndex: Record<
     string,
-    Pick<IListModelState, "isShareList" | "name" | "user" | "id" | "sections">
+    Pick<IListModelState, "isShareList" | "name" | "user" | "id" | "sections"|"members">
   >;
   sectionIndex: Record<string, ISectionModelState>;
   tagIndex: Record<string, ITagModel>;
@@ -41,7 +41,7 @@ interface IWorkspaceState {
   setlistIndex: (
     listId: string,
     info: Partial<
-      Pick<IListModel, "isShareList" | "name" | "user" | "id" | "sections">
+      Pick<IListModel, "isShareList" | "name" | "user" | "id" | "sections"|"members">
     >,
   ) => void;
   removelistIndex: (listId: string) => void;
@@ -80,12 +80,17 @@ interface IWorkspaceState {
   updateTaskStatus: (taskId: string, status: IStatus) => void;
   getTaskWithSection: (sectionId: string) => ITaskModel[];
   getTaskQuantityWithList: (listId: string) => number;
+  getTaskQuantityWithTag:(name:string)=>number;
   moveSection: (startId: string, changeId: string) => void;
   moveTaskIntoSection: (taskId: string, newSectionId: string) => void;
   addSection: (listId: string, newSection: ISectionModelState) => void;
   editList:(listId:string,newName:string)=>void;
   removeSection: (sectionId: string) => void;
   addTask: (task: ITaskModel) => void;
+  addTag:(tag:ITagModel)=>void;
+  editTagWithShare:(name:string,tag:Pick<ITagModel,"name">)=>void;
+  editTagWithOnly:(name:string,tag:Pick<ITagModel,"name">)=>void;
+  changeIdTag:(id:string,name:string)=>void;
   changeIdSection: (tempId: string, id: string) => void;
   changeIdTask: (tempId: string, id: string) => void;
   removeTask: (taskId: string) => void;
@@ -165,6 +170,7 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
             isShareList: info?.isShareList ?? current?.isShareList ?? false,
             user: info?.user ?? current?.user ?? "",
             sections: info.sections?.map((section) => section.id) ?? [],
+            members: info.members ?? current?.members ?? [],
           },
         },
       };
@@ -292,6 +298,18 @@ editList(listId, newName) {
       }
     }
     return count;
+  },
+  getTaskQuantityWithTag(name) {
+
+    const {taskIndex,tagIndex} = get()
+    const tagItem = tagIndex[name]
+    if(!tagItem) return 0
+
+    const taskValues = Object.values(taskIndex)??[]
+
+    const length =taskValues.filter((task)=>task.rule?.tags&&task.rule.tags.some((tag)=>tag==name)).length
+
+    return length
   },
   moveTaskIntoSection: (taskId, newSectionId) =>
     set((state) => {
@@ -483,7 +501,7 @@ editList(listId, newName) {
   hydrate: (data) => {
     const listIndex: Record<
       string,
-      Pick<IListModelState, "isShareList" | "name" | "user" | "id" | "sections">
+      Pick<IListModelState, "isShareList" | "name" | "user" | "id" | "sections"|"members">
     > = {};
 
     const sectionIndex: Record<string, ISectionModelState> = {};
@@ -496,6 +514,7 @@ editList(listId, newName) {
         user: list.user,
         isShareList: list.isShareList,
         sections: list.sections?.map((section) => section.id) ?? [],
+        members:list.members
       };
 
       for (const section of list.sections ?? []) {
@@ -614,7 +633,7 @@ editList(listId, newName) {
       (task: ITaskModel) =>
         task.rule?.start_date &&
         new Date(task.rule.start_date) >= today &&
-        next7Day >= new Date(task.rule.start_date),
+        next7Day > new Date(task.rule.start_date),
     );
   },
   getTaskById(taskId: string): ITaskModel | undefined {
@@ -716,6 +735,166 @@ editList(listId, newName) {
       };
     });
   },
+editTagWithShare: (name, patch) =>
+  set((state) => {
+    const tagItem = state.tagIndex[name];
+    if (!tagItem) return state;
+
+    const newName = patch.name?.trim();
+    const renamed = !!newName && newName !== name;
+    if (!renamed) {
+      return {
+        tagIndex: { ...state.tagIndex, [name]: { ...tagItem, ...patch } },
+      };
+    }
+
+    if (state.tagIndex[newName!]) return state;
+    const tagIndex = Object.fromEntries(
+      Object.entries(state.tagIndex).map(([key, value]) =>
+        key === name
+          ? [newName!, { ...value, ...patch, name: newName! }]
+          : [key, value],
+      ),
+    );
+    let taskChanged = false;
+    const taskIndex = { ...state.taskIndex };
+    for (const [id, task] of Object.entries(state.taskIndex)) {
+      const tags = task.rule?.tags;
+      if (!tags?.includes(name)) continue;
+
+      taskChanged = true;
+      taskIndex[id] = {
+        ...task,
+        rule: {
+          ...task.rule,
+          tags: [...new Set(tags.map((t) => (t === name ? newName! : t)))],
+        },
+      };
+    }
+
+    let filterChanged = false;
+    const filterIndex = { ...state.filterIndex };
+    for (const [id, filter] of Object.entries(state.filterIndex)) {
+      if (!Array.isArray(filter.tags) || !filter.tags.includes(name)) continue;
+      filterChanged = true;
+      filterIndex[id] = {
+        ...filter,
+        tags: filter.tags.map((t) => (t === name ? newName! : t)),
+      };
+    }
+    return {
+      tagIndex,
+      taskIndex: taskChanged ? taskIndex : state.taskIndex,
+      filterIndex: filterChanged ? filterIndex : state.filterIndex,
+    };
+  })
+  ,
+editTagWithOnly: (name, patch) =>
+  set((state) => {
+    const tagItem = state.tagIndex[name];
+    if (!tagItem) return state;
+
+    const newName = patch.name?.trim();
+
+    if (!newName || newName === name) {
+      return {
+        tagIndex: { ...state.tagIndex, [name]: { ...tagItem, ...patch } },
+      };
+    }
+
+    if (state.tagIndex[newName]) return state; 
+    let usedInShared = false;
+    let taskChanged = false;
+    const taskIndex = { ...state.taskIndex };
+
+    for (const [id, task] of Object.entries(state.taskIndex)) {
+      const tags = task.rule?.tags;
+      if (!tags?.includes(name)) continue;
+
+      if (state.listIndex[task.list]?.isShareList) {
+        usedInShared = true;
+        continue;
+      }
+
+      taskChanged = true;
+      taskIndex[id] = {
+        ...task,
+        rule: {
+          ...task.rule,
+          tags: [...new Set(tags.map((t) => (t === name ? newName : t)))],
+        },
+      };
+    }
+
+    const tagIndex: typeof state.tagIndex = {};
+    for (const [key, value] of Object.entries(state.tagIndex)) {
+      if (key !== name) {
+        tagIndex[key] = value;
+        continue;
+      }
+
+      const renamed = { ...value, ...patch, name: newName };
+
+      if (usedInShared) {
+        tagIndex[name] = {
+          ...value,
+          name,
+          isShareTag: true,
+        };
+      }
+      tagIndex[newName] = renamed;
+    }
+
+    let filterChanged = false;
+    const filterIndex = { ...state.filterIndex };
+    for (const [id, filter] of Object.entries(state.filterIndex)) {
+      if (!Array.isArray(filter.tags) || !filter.tags.includes(name)) continue;
+      filterChanged = true;
+      filterIndex[id] = {
+        ...filter,
+        tags: filter.tags.map((t) => (t === name ? newName : t)),
+      };
+    }
+    console.log(filterIndex)
+    return {
+      tagIndex,
+      taskIndex: taskChanged ? taskIndex : state.taskIndex,
+      filterIndex: filterChanged ? filterIndex : state.filterIndex,
+    };
+  }),
+  addTag(tag) {
+    set((state)=>{
+      const itemTag = state.tagIndex[tag.name]
+      if(itemTag) return state
+
+      return {
+        tagIndex:{
+          ...state.tagIndex,
+          [tag.name]:{
+            ...tag
+          }
+        }
+      }
+    })
+  },
+  changeIdTag(id,name) {
+
+    set((state)=>{
+      const tagItem = state.tagIndex[name]
+      if(!tagItem) return state
+
+      return {
+        tagIndex:{
+          ...state.tagIndex,
+          [name]:{
+            ...tagItem,
+            id:id
+          }
+        }
+      }
+    })
+
+  },
   changeIdSection: (tempId, id) => {
     set((state) => {
       const itemSection = state.sectionIndex[tempId];
@@ -747,14 +926,18 @@ editList(listId, newName) {
     set((state) => {
       const task = state.taskIndex[tempId];
       if (!task) return state;
-
       const { [tempId]: _removed, ...restTasks } = state.taskIndex;
       const section = state.sectionIndex[task.section];
 
       return {
         taskIndex: {
           ...restTasks,
-          [id]: { ...task, id },
+          [id]: { ...task, id,
+            rule:{
+              ...task.rule,
+              task:id
+            }
+           },
         },
         sectionIndex: section
           ? {
@@ -771,6 +954,7 @@ editList(listId, newName) {
     set((state) => {
       const listItem = state.listIndex[task.list];
       const section = state.sectionIndex[task.section];
+      console.log(task)
       if (!listItem) {
         if (process.env.NODE_ENV === "development") {
           console.warn(

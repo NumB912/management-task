@@ -58,6 +58,7 @@ import { GetAllListSectionUsecase } from "../../application/usecase/list/getList
 import { GetTodayUsecase } from "../../application/usecase/task/today.usecase";
 import { GetUpcomingUsecase } from "../../application/usecase/task/upComming.usecase";
 import { GetPromodoUsecase } from "../../application/usecase/promodo/getPromodo.usecase";
+import { RealtimeNotifier } from "../../application/usecase/notification/notification.usecase";
 
 export class Container {
   private static instancePromise: Promise<DependencyContainer> | null = null;
@@ -82,6 +83,7 @@ export class Container {
     this.registerInfrastructure(db);
     this.registerIcache();
     this.registerMiddleware();
+    this.registerNotifier();
     this.registerInitUsecases();
     this.registerWorkSpace();
     this.registerUserUsecase()
@@ -120,7 +122,7 @@ export class Container {
     this.c.register(TYPES.CheckPermissionListUsecase, { useFactory: (c) => new CheckPermissionListUsecase(c.resolve(TYPES.MemberRepository), c.resolve(TYPES.ListRepository)) });
     this.c.register(TYPES.CheckPermissionSectionUsecase, { useFactory: (c) => new CheckPermissionSectionUsecase(c.resolve(TYPES.SectionRepository), c.resolve(TYPES.CheckPermissionListUsecase)) });
     this.c.register(TYPES.CheckPermissionTaskUsecase, { useFactory: (c) => new CheckPermissionTaskUsecase(c.resolve(TYPES.TaskRepository), c.resolve(TYPES.CheckPermissionListUsecase)) });
-    this.c.register(TYPES.InviteMemberUsecase, { useFactory: (c) => new InviteMemberUsecase(c.resolve(TYPES.MemberRepository), c.resolve(TYPES.UserRepository), c.resolve(TYPES.ListRepository), c.resolve(TYPES.UnitWork)) });
+    this.c.register(TYPES.InviteMemberUsecase, { useFactory: (c) => new InviteMemberUsecase(c.resolve(TYPES.MemberRepository), c.resolve(TYPES.UserRepository), c.resolve(TYPES.ListRepository),c.resolve(TYPES.RealTimeNotifier),c.resolve(TYPES.Publisher), c.resolve(TYPES.UnitWork)) });
     this.c.register(TYPES.SearchMemberUsecase, { useFactory: (c) => new SearchMemberUsecase(c.resolve(TYPES.MemberRepository), c.resolve(TYPES.UserRepository)) });
     this.c.register(TYPES.DeleteMemberUsecase, { useFactory: (c) => new DeleteMemberUsecase(c.resolve(TYPES.MemberRepository), c.resolve(TYPES.ListRepository), c.resolve(TYPES.UnitWork)) });
     this.c.register(TYPES.ChangeRoleUsecase, { useFactory: (c) => new ChangeRoleUsecase(c.resolve(TYPES.MemberRepository), c.resolve(TYPES.UnitWork)) });
@@ -172,14 +174,14 @@ export class Container {
     this.c.register(TYPES.DeleteTagUsecase, { useFactory: (c) => new DeleteTagWithShareUsecase(c.resolve(TYPES.TagRepository), c.resolve(TYPES.ListRepository), c.resolve(TYPES.RuleRepository), c.resolve(TYPES.UnitWork)) });
     this.c.register(TYPES.DeleteTagOnlyMeUsecase, { useFactory: (c) => new DeleteTagOnlyMeUsecase(c.resolve(TYPES.TagRepository), c.resolve(TYPES.ListRepository), c.resolve(TYPES.RuleRepository), c.resolve(TYPES.UnitWork)) });
     this.c.register(TYPES.UpdateTagUsecase, { useFactory: (c) => new UpdateTagUsecase(c.resolve(TYPES.TagRepository), c.resolve(TYPES.ListRepository), c.resolve(TYPES.RuleRepository), c.resolve(TYPES.AddTagsForMemberUsecase), c.resolve(TYPES.UnitWork)) });
-    this.c.register(TYPES.UpdateTagOnlyMeUsecase, { useFactory: (c) => new UpdateTagOnlyMeUsecase(c.resolve(TYPES.TagRepository), c.resolve(TYPES.ListRepository), c.resolve(TYPES.RuleRepository), c.resolve(TYPES.UnitWork)) });
+    this.c.register(TYPES.UpdateTagOnlyMeUsecase, { useFactory: (c) => new UpdateTagOnlyMeUsecase(c.resolve(TYPES.TagRepository), c.resolve(TYPES.ListRepository), c.resolve(TYPES.RuleRepository),c.resolve(TYPES.FilterRepository), c.resolve(TYPES.UnitWork)) });
     this.c.register(TYPES.SynsMemberTagUsecase, { useFactory: (c) => new SyncMemberTagsUseCase(c.resolve(TYPES.TagRepository)) });
     this.c.register(TYPES.AddTagsForMemberUsecase, { useFactory: (c) => new AddTagsForMemberUsecase(c.resolve(TYPES.MemberRepository), c.resolve(TYPES.SynsMemberTagUsecase)) });
   }
 
   private registerPromodoUsecases(): void {
     this.c.register(TYPES.createPromodoUsecase, { useFactory: (c) => new CreatePromodoUsecase(c.resolve(TYPES.PromodoRepository),c.resolve(TYPES.UnitWork)) });
-    this.c.register(TYPES.getPromodoUsecase, { useFactory: (c) => new GetPromodoUsecase(c.resolve(TYPES.PromodoRepository),c.resolve(TYPES.UnitWork)) });
+    this.c.register(TYPES.getPromodoUsecase, { useFactory: (c) => new GetPromodoUsecase(c.resolve(TYPES.PromodoRepository)) });
   }
 
   private registerFilterUsecase(): void {
@@ -241,14 +243,18 @@ export class Container {
     this.c.register(TYPES.GetProfileUsecase, { useFactory: (c) => new GetProfileUsecase(c.resolve(TYPES.UserRepository)) })
   }
 
+  private registerNotifier():void{
+     this.c.register(TYPES.RealTimeNotifier, { useFactory: (c) => new RealtimeNotifier(c.resolve(TYPES.Publisher)) })
+  }
+
   private registerMapper(): void {
     this.c.register(TYPES.UserMapper, { useValue: new UserMapper() });
     this.c.register(TYPES.TagMapper, { useValue: new TagMapper(this.c.resolve(TYPES.UserMapper)) });
     this.c.register(TYPES.RuleMapper, { useValue: new RuleMapper() });
     this.c.register(TYPES.TaskMapper, { useValue: new TaskMapper(this.c.resolve(TYPES.RuleMapper)) });
     this.c.register(TYPES.SectionMapper, { useValue: new SectionMapper(this.c.resolve(TYPES.TaskMapper)) });
-    this.c.register(TYPES.ListMapper, { useValue: new ListMapper(this.c.resolve(TYPES.UserMapper), this.c.resolve(TYPES.SectionMapper)) });
     this.c.register(TYPES.MemberMapper, { useValue: new MemberMapper(this.c.resolve(TYPES.UserMapper)) });
+      this.c.register(TYPES.ListMapper, { useValue: new ListMapper(this.c.resolve(TYPES.MemberMapper), this.c.resolve(TYPES.SectionMapper)) });
     this.c.register(TYPES.FilterMapper, { useValue: new FilterMapper(this.c.resolve(TYPES.TagMapper), this.c.resolve(TYPES.UserMapper)) });
     this.c.register(TYPES.PromodoMapper, { useValue: new PromodoMapper() });
   }
@@ -256,6 +262,7 @@ export class Container {
   private registerIcache(): void {
     this.c.register<ICache>(TYPES.Cache, { useFactory: () => RedisCache.getInstance() });
   }
+  
 
   private async registerMessageQueue(): Promise<void> {
     const publisher = await Publisher.create();

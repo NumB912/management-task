@@ -25,11 +25,11 @@ export default class Publisher implements IPublisher{
       throw new Error("[Publisher] Channel đã đóng");
     }
 
-    this.channel.assertExchange(exchangeName, type, {
+    await this.channel.assertExchange(exchangeName, type, {
       durable: true,
     });
 
-    const ok = this.channel.publish(
+    const ok = await this.channel.publish(
       exchangeName,
       routingKey,
       Buffer.from(JSON.stringify(event)),

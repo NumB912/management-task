@@ -25,6 +25,14 @@ export const useCreateTaskWithSection = (listId: string, sectionId: string) => {
   });
 };
 
+export const useCreateTaskWithSectionObject = () => {
+  return useMutation({
+    mutationFn: (data: ICreateTaskWithSectionDTO) =>
+      taskApi.createTaskWithSectionInObject(data),
+  });
+};
+
+
 export const useUpdateTask = (listId: string) => {
   return useMutation({
     mutationFn: ({ data, taskId }: { taskId: string; data: Partial<IUpdateTaskDTO> }) =>

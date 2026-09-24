@@ -1,9 +1,10 @@
-import { IUsecase, AppError, ITagRepository, IListRepository, IRuleRepository, IUnitWork } from "@/app/core/domain";
+import { IUsecase, AppError, ITagRepository, IListRepository, IRuleRepository, IUnitWork, IFilterRepository, ITaskRepository } from "@/app/core/domain";
+import { UpdateFilterUsecase } from "../filters";
 
 export class UpdateTagOnlyMeUsecase implements IUsecase<
   boolean
 > {
-  constructor(private readonly TagRepository: ITagRepository, private readonly ListRepository: IListRepository, private readonly RuleRepository: IRuleRepository, private readonly unitWork: IUnitWork) { }
+  constructor(private readonly TagRepository: ITagRepository, private readonly ListRepository: IListRepository, private readonly RuleRepository: IRuleRepository,private readonly FilterRepository:IFilterRepository, private readonly unitWork: IUnitWork) { }
   async execute(
     updateTagDTO: {
       id: string,
@@ -16,7 +17,7 @@ export class UpdateTagOnlyMeUsecase implements IUsecase<
     if (!tagCur) {
       throw new AppError("NOT_FOUND", `Không tìm thấy`, 404);
     }
-    console.log(name)
+
     if (name != undefined) {
       const isSameName = await this.TagRepository.findTagByName({ name: name, userId: userId })
       if (isSameName) {
@@ -54,6 +55,13 @@ export class UpdateTagOnlyMeUsecase implements IUsecase<
           user: userId,
         }, session)
       }
+      
+      await this.FilterRepository.changeNameTag({
+        userId:userId,
+        currentName:tagCur.name,
+        newName:name,
+        session:session
+      })
 
       await Promise.all([this.ListRepository.updateListShareTag({
         currentName: tagCur.name,
@@ -71,8 +79,8 @@ export class UpdateTagOnlyMeUsecase implements IUsecase<
       await this.unitWork.commitTransaction()
       return true
     } catch (error) {
-      await this.unitWork.rollBackTransaction()
       console.error(error);
+      await this.unitWork.rollBackTransaction()
       throw new AppError(
         "ERROR_UPDATE",
         `Lỗi trong quá trình cập nhật tag:${error}`,

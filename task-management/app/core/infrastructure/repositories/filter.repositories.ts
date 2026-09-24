@@ -8,6 +8,7 @@ import { IFilterDocument } from "./database/interface";
 import {  IFilterWithId } from "../../domain/entities/filter.entities";
 import { FilterMapper } from "./mapper/filter.mapper";
 import { DatabaseModels } from "./database/clientSchema.database";
+import { ClientSession } from "mongoose";
 @injectable()
 export class FilterRepository
   extends BaseRepository<IFilterDocument,IFilterWithId>
@@ -33,5 +34,44 @@ export class FilterRepository
   ) {
     super(db.Filter);
   }
+
+async changeNameTag(DTO: {
+  userId: string;
+  currentName: string;
+  newName: string;
+  session?: ClientSession;
+}) {
+  const { userId, currentName, newName, session } = DTO;
+  if (currentName === newName) return 0;
+const result = await this.db.Filter.updateMany(
+  { user: userId, tags: currentName },
+  [
+    {
+      $set: {
+        tags: {
+          $concatArrays: [
+            {
+              $filter: {
+                input: "$tags",
+                as: "t",
+                cond: {
+                  $and: [
+                    { $ne: ["$$t", currentName] },
+                    { $ne: ["$$t", newName] },
+                  ],
+                },
+              },
+            },
+            [newName],
+          ],
+        },
+      },
+    },
+  ],
+  { session, updatePipeline: true }, 
+);
+
+  return result.modifiedCount;
+}
 
 }

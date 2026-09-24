@@ -52,29 +52,13 @@ import { Ipriority, IStatus } from "../../model/type/type";
 import { useCreateTag } from "../../feature/hook/useTagMutation.hook";
 import { formatTimer } from "../../utils/formatTimer";
 import { getNextOccurrence } from "../../utils/caculateNextDay";
+import useTaskHook from "../../feature/hook/task/task.hook";
+import { PRIORITY_BORDER, PRIORITY_COLORS } from "../../model/mod/priorityConfig";
 
 export interface TaskProp {
   taskId: string;
   depth: number;
 }
-
-const PRIORITY_COLORS: Record<number, string> = {
-  1: "text-red-500!",
-  2: "text-orange-500!",
-  3: "text-blue-500!",
-  4: "text-gray-400!",
-};
-
-const PRIORITY_BORDER: Record<number, string> = {
-  1: "border-red-500!",
-  2: "border-orange-500!",
-  3: "border-blue-500!",
-  4: "border-gray-400!",
-};
-
-// đọc snapshot mới nhất từ store (không bị đóng kín theo lần render cũ)
-const getTask = (id: string) => useWorkspaceStore.getState().taskIndex[id];
-const isTemp = (id: string) => id.startsWith("temp-");
 
 interface TaskCheckboxProps {
   status: IStatus;
@@ -114,36 +98,31 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
   const [isOpenTaskEdit, setisOpenTaskEdit] = useState<boolean>(false);
   const [openTagEdit, setOpenTagEdit] = useState<boolean>(false);
   const [openContextMenu, setOpenContextMenu] = useState<boolean>(false);
-
+  const {
+    addTaskStore,
+    changeIdTask,
+    moveTaskIntoSection,
+    removeTaskStore,
+    task,
+    updateTaskStore,
+    deleteTask,
+    updateRule,
+    updateStatusApi,
+    updateTask,
+    isTemp
+  } = useTaskHook(taskId);
   const listGet = useWorkspaceStore((state) => state.getListWithName);
-  const addTask = useWorkspaceStore((state) => state.addTask);
-  const updateTaskStore = useWorkspaceStore((state) => state.updateTask);
-  const removeTaskStore = useWorkspaceStore((state) => state.removeTask);
-  const sectionIndex = useWorkspaceStore((state) => state.sectionIndex);
-  const moveTaskIntoSection = useWorkspaceStore(
-    (state) => state.moveTaskIntoSection,
-  );
   const lists = useMemo(() => listGet(""), [listGet]);
-
-  const task = useWorkspaceStore(
-    useShallow((state) => state.taskIndex[taskId]),
-  );
   const taskRef = useRef<HTMLDivElement>(null);
-
-  const { mutate: updateRule } = useUpdateRule(task?.list ?? "");
-  const { mutate: updateTask } = useUpdateTask(task?.list ?? "");
-  const { mutate: deleteTask } = useRemoveTask(task?.list ?? "");
-  const { mutate: updateStatusApi } = useUpdateTaskStatus();
+  const sectionIndex = useWorkspaceStore(useShallow((state)=>state.sectionIndex))
   const { mutate: createTag } = useCreateTag();
   if (!task?.id || depth > 4) return null;
-
   const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
     const prev = task;
-    if (!prev || isTemp(id)) return; 
+    if (!prev || isTemp(id)) return;
 
     const { section, ...rest } = data;
     const isMoving = !!section && section !== prev.section;
-    console.log(section)
     const restKeys = Object.keys(rest) as (keyof ITaskModel)[];
     if (isMoving) moveTaskIntoSection(id, section!);
     if (restKeys.length) updateTaskStore(id, rest);
@@ -167,11 +146,9 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
   };
 
   const handleUpdateRule = (id: string, data: Partial<IRuleModel>) => {
-    const prev = getTask(id);
+    const prev = task;
     if (!prev || isTemp(id)) return;
-
     updateTaskStore(id, { rule: { ...prev.rule, ...data } });
-
     updateRule(
       { taskId: id, data },
       {
@@ -190,14 +167,12 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
   };
 
   const handleUpdateStatusTask = (id: string, status: IStatus) => {
-    const prev = getTask(id);
+    const prev = task;
     if (!prev || isTemp(id)) return;
-
     const nextDate = getNextOccurrence(prev);
-    const tempId = nextDate ? `temp-task-${crypto.randomUUID()}` : null;
-
+    const tempId = `temp-task-${crypto.randomUUID()}`;
     if (nextDate && tempId) {
-      addTask({
+      addTaskStore({
         ...prev,
         id: tempId,
         status,
@@ -214,7 +189,9 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
     updateStatusApi(
       { taskId: id, data: { status } },
       {
-        onSuccess: () => {},
+        onSuccess(data, variables, onMutateResult, context) {
+          changeIdTask(tempId, data.id);
+        },
         onError: () => {
           if (tempId) removeTaskStore(tempId);
           updateTaskStore(id, { status: prev.status, rule: prev.rule });
@@ -240,8 +217,8 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
             open={openContextMenu}
             onOpenChange={(open) => setOpenContextMenu(open)}
           >
-            <ContextMenuTrigger asChild>
-              <div className="w-full hover:bg-gray-200 cursor-pointer p-2 relative">
+            <ContextMenuTrigger asChild onClick={(e)=>e.stopPropagation()}>
+              <div className="w-full hover:bg-gray-200 cursor-pointer p-2 relative" onClick={(e)=>e.stopPropagation()}>
                 <Link
                   href={`/dashboard/tasks/${task.id}`}
                   className="inset-0 absolute"
@@ -282,9 +259,16 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                         <CalendarComponent
                           rule={task.rule}
                           onChangeSubmit={(
-                            rule: Pick<IRuleModel,"end_date" | "repeat" | "start_date" | "timer">,
+                            rule: Pick<
+                              IRuleModel,
+                              | "end_date"
+                              | "repeat"
+                              | "start_date"
+                              | "timer"
+                              | "endTimer"
+                            >,
                           ) => {
-                            handleUpdateRule(task.id, rule); // có optimistic + rollback
+                            handleUpdateRule(task.id, rule);
                           }}
                           trigger={
                             <Button className="flex rounded text-primary bg-transparent hover:bg-transparent">
@@ -315,7 +299,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                       <div className="flex items-center gap-0.5 text-sm text-gray-500">
                         {task.rule.tags.slice(0, 3).map((tag) => (
                           <Link
-                            href={`/dashboard/tags/${tag}`}
+                            href={`/dashboard/work/tags/${tag}`}
                             key={tag}
                             className={cn(
                               "flex items-center gap-0.5 p-0.5! bg-transparent! text-neutral-600 hover:bg-transparent! hover:underline z-30",
@@ -413,7 +397,10 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
 
                   <CalendarComponent
                     onChangeSubmit={(
-                      rule: Pick<IRuleModel,"repeat" | "timer" | "end_date" | "start_date">,
+                      rule: Pick<
+                        IRuleModel,
+                        "repeat" | "timer" | "end_date" | "start_date"
+                      >,
                     ) => {
                       handleUpdateRule(task.id, {
                         repeat: rule.repeat ?? { mode: "none" },
@@ -439,7 +426,8 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                       </Button>
                     }
                     rule={
-                      task.rule as Pick<IRuleModel,
+                      task.rule as Pick<
+                        IRuleModel,
                         "repeat" | "timer" | "end_date" | "start_date"
                       >
                     }

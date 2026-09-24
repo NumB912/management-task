@@ -7,12 +7,10 @@ export type MemberStatus = "accept" | "deny" | "pending";
 export interface IMemberDocument extends IBaseDocument {
   user: Types.ObjectId;
   list: Types.ObjectId;
-  members:Types.ObjectId[];
   role: MemberRole;
   status: MemberStatus;
   expire_at: Date;
 }
-export interface IMemberPopulateDocument extends Omit<IMemberDocument,"user"|"members">{
+export interface IMemberPopulateDocument extends Omit<IMemberDocument,"user">{
   user:IUserWithouPasswordDocument,
-  members:IMemberDocument,
 }

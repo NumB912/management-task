@@ -73,10 +73,11 @@ export function AddListDialog({ open, onClose }: Readonly<AddListDialogProps>) {
       toast.success("Đã thêm danh sách");
       setName("");
       setError(null);
-      onClose();
     },
     onError: () => toast.error("Thêm thất bại, thử lại sau"),
     });
+
+    onClose();
   };
 
   const handleClose = () => {

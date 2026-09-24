@@ -9,6 +9,7 @@ export interface IRuleModel {
   endTimer?:number|null;
   repeat: IRepeat;
   tags:string[],
+  color?:string,
   priority?:1|2|3|4,
 }
 
@@ -19,5 +20,6 @@ export interface IRepeat {
   dates?: number[];
   days?: number[];
   specificDays?: Date[];
+  until?:Date|null,
 }
 

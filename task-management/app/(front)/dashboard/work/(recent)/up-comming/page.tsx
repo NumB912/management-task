@@ -171,7 +171,7 @@ const Page = () => {
                   defaultConfirmRule={{
                     start_date: new Date(),
                   }}
-                  onHandle={(task) => {}}
+                  onHandle={handleAddTask}
                 />
               )}
             </CardContent>

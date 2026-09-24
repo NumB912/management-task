@@ -2,6 +2,8 @@ import dayjs from "dayjs"
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import isoWeek from "dayjs/plugin/isoWeek";
 import "dayjs/locale/vi"
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 dayjs.locale("vi")
 dayjs.extend(isSameOrBefore)
 dayjs.extend(isoWeek);
@@ -60,6 +62,9 @@ export function getDaysInRange(from: string, to: string) {
 
 function capitalizeFirst(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+export function formatDateVi(date: Date, pattern: string = "dd/MM/yyyy"): string {
+  return format(date, pattern, { locale: vi });
 }
 
 export function formatDate(from: Date): string {
