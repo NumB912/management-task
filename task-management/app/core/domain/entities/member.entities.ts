@@ -4,7 +4,8 @@ export type IRole = "read only" | "can edit" |"owner";
 export type IStatusMember = "accept" | "deny" |"pending";
 export interface IMember {
   id: string;
-  user: IUserWithouPassword;
+  user?: IUserWithouPassword|null;
+  email:string;
   role: IRole;
   list:string,
   status: IStatusMember;
@@ -15,5 +16,5 @@ export interface IMember {
 }
 
 export interface IMemberWithId extends Omit<IMember,"user">{
-  user:string,
+  user?:string|null,
 }

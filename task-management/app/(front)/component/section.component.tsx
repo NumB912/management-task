@@ -53,14 +53,10 @@ const Section = React.memo(
     const [sectionNameError, setSectionNameError] = useState<string>("");
     const wasDraggingRef = useRef(false);
     const { mutate: mutateUpdateSection } = useUpdateSection(listId);
-    const {mutate:addTaskMutate} = useCreateTask(listId)
     const taskIds = useWorkspaceStore(
       useShallow((state) => state.sectionIndex[sectionId]?.tasks ?? []),
     );
-      const addTaskHandle = useAddTask(listId)
-    const changeIdTaskState= useWorkspaceStore((state)=>state.changeIdTask)
-    const addTaskState = useWorkspaceStore((state) => state.addTask);
-    const removeTaskState = useWorkspaceStore((state)=>state.removeTask)
+    const addTaskHandle = useAddTask(listId,sectionId)
     const sectionNameFromStore = useWorkspaceStore(
       (state) => state.sectionIndex[sectionId]?.name,
     );

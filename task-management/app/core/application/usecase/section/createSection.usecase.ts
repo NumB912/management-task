@@ -25,14 +25,6 @@ export class CreateSectionUsecase implements IUsecase<ISectionWithId | null> {
     try {
       await this.unitWork.startTransaction()
       const session = this.unitWork.getSession();
-      const isListExist = await this.listRepository.findOne({
-        id: list_id,
-        user: user_id
-      }, session);
-
-      if (!isListExist) {
-        throw new AppError("NOT_FOUND", "Danh sách (List) không tồn tại", 404);
-      }
       const createdSection = await this.sectionRepository.create(
         {
           name: data.name,

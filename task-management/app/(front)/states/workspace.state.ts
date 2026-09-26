@@ -954,7 +954,6 @@ editTagWithOnly: (name, patch) =>
     set((state) => {
       const listItem = state.listIndex[task.list];
       const section = state.sectionIndex[task.section];
-      console.log(task)
       if (!listItem) {
         if (process.env.NODE_ENV === "development") {
           console.warn(

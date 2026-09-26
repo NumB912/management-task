@@ -1,5 +1,3 @@
-import { GetUpcomingUsecase } from "../../application/usecase/task/upComming.usecase";
-
 export const TYPES = {
   DatabaseType: Symbol.for("DatabaseClient"),
   MessageQueue:Symbol.for("MessageQueue"),
@@ -11,8 +9,12 @@ export const TYPES = {
   WorkSpaceUsecase:Symbol.for("WorkSpaceUsecase"),
   RealTimeNotifier:Symbol.for("RealTimeNotifier"),
 
+
+  readNotification:Symbol.for("readNotification"),
+  getNotification:Symbol.for("NotificationUsecase"),
   createPromodoUsecase:Symbol.for("createPromodoUsecase"),
   getPromodoUsecase:Symbol.for("getPromodoUsecase"),
+  notificationRepository:Symbol.for("notificationRepository"),
 
   GetProfileUsecase:Symbol.for("GetProfileUsecase"),
   GetTodayUsecase:Symbol.for("GetTodayUsecase"),
@@ -37,8 +39,6 @@ export const TYPES = {
   InitListUsecase:Symbol.for("InitListUsecase"),
   SortSectionUsecase:Symbol.for("SortSectionUsecase"),
   GetAllListSectionUsecase:Symbol.for("GetAllListSectionUsecase"),
-
-
   GetInboxUsecase:Symbol.for("GetInboxUsecase"),
 
   TaskRepository: Symbol.for("TaskRepository"),
@@ -111,5 +111,6 @@ export const TYPES = {
   ListMapper:Symbol.for("ListMapper"),
   FilterMapper:Symbol.for("FilterMapper"),
   TaskMapper:Symbol.for("TaskMapper"),
-  PromodoMapper:Symbol.for("PromodoMapper")
+  PromodoMapper:Symbol.for("PromodoMapper"),
+  NotificationMapper:Symbol.for("NotificationMapper")
 };

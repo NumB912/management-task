@@ -12,11 +12,12 @@ export class MemberMapper implements IMapper<IMemberDocument, IMemberWithId, IMe
   toDomain(doc: IMemberDocument): IMemberWithId {
     return {
       id: doc._id.toString(),
-      user: doc.user.toString(),
+      user: doc.user?.toString()??null,
       list: doc.list.toString(),
       role: doc.role,
       status: doc.status,
       expired_at: doc.expire_at,
+      email:doc.email,
       created_at: doc.created_at,
       updated_at: doc.updated_at ?? undefined,
       deleted_at: doc.deleted_at ?? undefined,
@@ -29,6 +30,7 @@ export class MemberMapper implements IMapper<IMemberDocument, IMemberWithId, IMe
     if (doc.user) partial.user = doc.user.toString();
     if (doc.list) partial.list = doc.list.toString();
     if (doc.role) partial.role = doc.role;
+    if (doc.email) partial.email = doc.email
     if (doc.status) partial.status = doc.status;
     if (doc.expire_at) partial.expired_at = doc.expire_at;
     if (doc.created_at) partial.created_at = doc.created_at;
@@ -38,13 +40,13 @@ export class MemberMapper implements IMapper<IMemberDocument, IMemberWithId, IMe
   }
 
   toDomainPopulate(doc: IMemberPopulateDocument): IMember {
-    console.log("section:",doc)
     return {
       id: doc._id.toString(),
-      user: this.userMapper.toDomainWithoutPassword(doc.user),
+      user: doc.user&&this.userMapper.toDomainWithoutPassword(doc.user),
       list:doc.list.toString(),
       role: doc.role,
       status: doc.status,
+      email:doc.email,
       expired_at: doc.expire_at,
       created_at: doc.created_at,
       updated_at: doc.updated_at ?? undefined,
@@ -59,6 +61,7 @@ export class MemberMapper implements IMapper<IMemberDocument, IMemberWithId, IMe
     if (doc.list) partial.list = doc.list.toString();
     if (doc.role) partial.role = doc.role;
     if (doc.status) partial.status = doc.status;
+    if (doc.email) partial.email = doc.email
     if (doc.expire_at) partial.expired_at = doc.expire_at;
     if (doc.created_at) partial.created_at = doc.created_at;
     if (doc.updated_at) partial.updated_at = doc.updated_at ?? undefined;
@@ -77,10 +80,11 @@ export class MemberMapper implements IMapper<IMemberDocument, IMemberWithId, IMe
   toPersistence(member: IMemberWithId): IMemberDocument {
     return {
       _id: new Types.ObjectId(member.id),
-      user: new Types.ObjectId(member.user),
+      user: member.user&&new Types.ObjectId(member.user),
       list: new Types.ObjectId(member.list),
       role: member.role,
       status: member.status,
+      email:member.email,
       expire_at: member.expired_at!,
       created_at: member.created_at,
       updated_at: member.updated_at ?? null,
@@ -93,6 +97,7 @@ export class MemberMapper implements IMapper<IMemberDocument, IMemberWithId, IMe
     if (member.id) update._id = new Types.ObjectId(member.id);
     if (member.user) update.user = new Types.ObjectId(member.user);
     if (member.list) update.list = new Types.ObjectId(member.list);
+    if (member.email) update.email = member.email
     if (member.role) update.role = member.role as MemberRole;
     if (member.status) update.status = member.status;
     if (member.expired_at) update.expire_at = member.expired_at;
@@ -102,11 +107,12 @@ export class MemberMapper implements IMapper<IMemberDocument, IMemberWithId, IMe
   toPersistencePopulate(member: IMember): Partial<IMemberPopulateDocument> {
     return {
       _id: new Types.ObjectId(member.id),
-      user: this.userMapper.toPersistenceWithoutPasswordPartial(member.user) as IUserWithouPasswordDocument,
+      user: member.user?this.userMapper.toPersistencePopulate(member.user):null,
       list:new Types.ObjectId(member.list),
       role: member.role as MemberRole,
       status: member.status,
       expire_at: member.expired_at!,
+      email:member.email,
       created_at: member.created_at,
       updated_at: member.updated_at ?? null,
       deleted_at: member.deleted_at ?? null,
@@ -118,6 +124,7 @@ export class MemberMapper implements IMapper<IMemberDocument, IMemberWithId, IMe
     if (member.user) update.user = this.userMapper.toPersistenceWithoutPassword(member.user);
     if (member.list) update.list = new Types.ObjectId(member.list);
     if (member.role) update.role = member.role as MemberRole;
+    if (member.email) update.email = member.email
     if (member.status) update.status = member.status;
     if (member.expired_at) update.expire_at = member.expired_at;
     return update;

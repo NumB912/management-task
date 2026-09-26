@@ -9,8 +9,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import NotificationBell from "../components/notifier/notificationBell";
 
 const Side = () => {
+  const apiUrl = `${process.env.NEXT_PUBLIC_NOTIFICATION_URL}notifications/stream`
   const pathName = usePathname();
   const { user } = useUserState();
   const navItems = [
@@ -74,6 +76,10 @@ const Side = () => {
             </Link>
           );
         })}
+      </div>
+
+      <div className="h-full flex flex-col-reverse items-center py-6">
+        <NotificationBell apiUrl={apiUrl} />
       </div>
     </div>
   );

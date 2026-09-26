@@ -1,15 +1,15 @@
 
 import { useCallback } from "react";
 import { toast } from "sonner"; 
-import { useCreateTask } from "@/app/(front)/feature/hook/useTaskMutation.hook";
+import { useCreateTaskWithSection } from "@/app/(front)/feature/hook/useTaskMutation.hook";
 import { ITaskModel } from "@/app/(front)/model";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
 
-export function useAddTask(listId: string) {
+export function useAddTask(listId: string,sectionId:string) {
   const addTask = useWorkspaceStore((s) => s.addTask);
   const changeIdTask = useWorkspaceStore((s) => s.changeIdTask);
   const removeTask = useWorkspaceStore((s) => s.removeTask);
-  const { mutateAsync } = useCreateTask(listId);
+  const { mutateAsync } = useCreateTaskWithSection(listId,sectionId);
 
   return useCallback(
     async (task: ITaskModel) => {
@@ -17,6 +17,7 @@ export function useAddTask(listId: string) {
       addTask({ ...task, id: tempId }); 
       try {
         const data = await mutateAsync({
+          section:sectionId,
           list: task.list,
           name: task.name,
           description: task.description,

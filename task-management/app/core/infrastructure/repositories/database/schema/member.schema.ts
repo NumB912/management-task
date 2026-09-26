@@ -11,6 +11,7 @@ export const MemberSchema = new Schema<IMemberDocument>({
     required: true,
   },
   expire_at: { type: Date, required: false },
+  email:{type:String,require:true},
   status: {
     type: String,
     enum: {

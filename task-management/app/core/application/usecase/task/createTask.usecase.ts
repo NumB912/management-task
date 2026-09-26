@@ -67,8 +67,6 @@ export class CreateTaskUsecase implements IUsecase<string> {
       if (tagNotInList.length > 0) {
         tagCreateList = tagNotInList
       }
-
-      console.log(pickRandomColor())
       const [ruleCreate] = await Promise.all([
         this.CreateRuleUsecase.execute({
           taskId: task.id,

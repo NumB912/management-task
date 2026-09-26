@@ -16,6 +16,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { useWorkspaceStore } from "../../states/workspace.state";
+import { useShallow } from "zustand/react/shallow";
+import { IMemberModel } from "../../model/member.model";
 
 interface ShareContentProps {
   listId: string;
@@ -24,15 +27,6 @@ interface ShareContentProps {
 
 type Status = "pending" | "accepted" | "cancelled" | "expired";
 type Role = "owner" | "editor" | "viewer";
-
-interface Member {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  role: Role;
-  status: Status;
-}
 
 interface Contact {
   name: string;
@@ -54,46 +48,15 @@ const ROLE_LABEL: Record<Role, string> = {
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// dữ liệu mẫu: thành viên của list này
-const INITIAL_MEMBERS: Member[] = [
-  {
-    id: "1",
-    name: "Nguyễn Văn A",
-    email: "a@gmail.com",
-    role: "owner",
-    status: "accepted",
-  },
-  {
-    id: "2",
-    name: "Trần Thị B",
-    email: "b@gmail.com",
-    role: "editor",
-    status: "pending",
-  },
-  {
-    id: "3",
-    name: "Lê Văn C",
-    email: "c@gmail.com",
-    role: "viewer",
-    status: "expired",
-  },
-];
-
-// dữ liệu mẫu: những người chủ đã mời ở các list khác
-// TODO: lấy từ API (distinct member.user của mọi list mà owner là chủ)
-const KNOWN_CONTACTS: Contact[] = [
-  { name: "Phạm Thị D", email: "d@gmail.com" },
-  { name: "Hoàng Văn E", email: "e@gmail.com" },
-  { name: "Vũ Minh F", email: "f@gmail.com" },
-];
-
 function initialsOf(text: string) {
   return text[0]?.toUpperCase() ?? "?";
 }
 
-export function ShareContent({ onClose }: Readonly<ShareContentProps>) {
-  const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
+export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
+  const listIndex = useWorkspaceStore(useShallow((state)=>state.listIndex))
+  const list = useMemo(()=>listIndex[listId],[listId])
+  const lists = useMemo(()=>Object.values(listIndex),[listId])
+  const [members, setMembers] = useState<IMemberModel[]>(list.members??[]);
   const [input, setInput] = useState("");
   const [staged, setStaged] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -101,20 +64,19 @@ export function ShareContent({ onClose }: Readonly<ShareContentProps>) {
 
   const query = input.trim().toLowerCase();
   const isInviting = query.length > 0 || staged.length > 0;
-
   const memberEmails = useMemo(
-    () => new Set(members.map((m) => m.email.toLowerCase())),
+    () => new Set(members?.map((m) => m.email?.toLowerCase())),
     [members],
   );
 
   const suggestions = useMemo(
     () =>
-      KNOWN_CONTACTS.filter(
+      lists.filter(
         (c) =>
-          !memberEmails.has(c.email) &&
-          !staged.includes(c.email) &&
+          !c.members.some((member)=>memberEmails.has(member.email)) &&
+          !c.members.some((member)=>staged.includes(member.email)) &&
           query.length > 0 &&
-          (c.email.includes(query) || c.name.toLowerCase().includes(query)),
+          (c.members.some((member)=>query.includes(member.email)) || c.name.toLowerCase().includes(query)),
       ),
     [memberEmails, staged, query],
   );
@@ -127,6 +89,8 @@ export function ShareContent({ onClose }: Readonly<ShareContentProps>) {
         name: contact.name,
         email: contact.email,
         avatar: contact.avatar,
+        list:listId,
+        user:crypto.randomUUID(),
         role: "editor",
         status: "pending",
       },

@@ -35,7 +35,6 @@ async execute(DTO: { taskId: string; data: Pick<ITask, "status">; userId: string
 
       if (repeat?.mode !== undefined && repeat?.mode != "none" && data.status !== "pending") {
         const nextDay = this.calcService.getModeCaculateDeadLine(taskCur.rule!);
-          console.log(taskCur.rule?.repeat.until)
         if (nextDay && taskCur.rule?.repeat.until && nextDay.getTime() > taskCur.rule?.repeat.until.getTime()!) {
           const updateTask = await this.taskRepository.update(
             taskId,

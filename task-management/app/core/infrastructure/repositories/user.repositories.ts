@@ -27,7 +27,6 @@ export class UserRepository extends BaseRepository<IUserDocument, IUser> impleme
     @inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
     private readonly UserMapper: UserMapper,
   ) { super(db.User) }
-
   async update(
     id: string,
     user: Partial<IUser>,
@@ -66,6 +65,16 @@ export class UserRepository extends BaseRepository<IUserDocument, IUser> impleme
     }).limit(100);
 
     return results.map((result)=>this.UserMapper.toDomainWithoutPassword(result));
+  }
+
+  async searchByManyEmail(email:string[],session?:ClientSession):Promise<IUserWithouPassword[]>{
+    const results = await this.db.User.find({
+      email: {
+        $in:email
+      },
+    }).session(session??null);
+
+    return results.map((result)=>this.UserMapper.toDomainWithoutPassword(result))
   }
 }
 

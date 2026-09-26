@@ -4,6 +4,7 @@ export type IStatusMember = "accept" | "deny" |"pending";
 export interface IMemberModel {
   id: string;
   user: IUserModel;
+  email:string;
   role: IRole;
   list:string,
   status: IStatusMember;

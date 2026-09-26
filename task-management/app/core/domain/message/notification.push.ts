@@ -7,6 +7,7 @@ export const REALTIME_MQ = {
 
 export interface RealtimePushMessage<T = unknown> {
   userIds: string[];
+  notificationIds:string[]
   event: string;    
   data: T;          
 }

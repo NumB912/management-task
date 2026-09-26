@@ -5,12 +5,13 @@ import { IUserWithouPasswordDocument } from "./user.document";
 export type MemberRole = "can edit" | "read only";
 export type MemberStatus = "accept" | "deny" | "pending";
 export interface IMemberDocument extends IBaseDocument {
-  user: Types.ObjectId;
+  user?: Types.ObjectId|null;
   list: Types.ObjectId;
   role: MemberRole;
   status: MemberStatus;
+  email:string;
   expire_at: Date;
 }
 export interface IMemberPopulateDocument extends Omit<IMemberDocument,"user">{
-  user:IUserWithouPasswordDocument,
+  user?:IUserWithouPasswordDocument|null,
 }

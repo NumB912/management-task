@@ -1,17 +1,17 @@
-import { AppError, IPromodo, IPromodoRepository, IUnitWork, IUsecase } from "@/app/core/domain";
+import { AppError, IPromodo, IPromodoRepository, IPromodoWithId, IUnitWork, IUsecase } from "@/app/core/domain";
 
 
 export class CreatePromodoUsecase
-  implements IUsecase<Partial<IPromodo> | null> {
+  implements IUsecase<Partial<IPromodoWithId> | null> {
   constructor(
     private readonly promodoRepository:IPromodoRepository,
     private readonly unitWork: IUnitWork,
   ) { }
 
   async execute(
-    data: Pick<IPromodo,"task"|"duration"|"name"|"start"|"progress">,
+    data: Pick<IPromodoWithId,"name"|"progress"|"start"|"task">,
     userId:string,
-  ): Promise<Partial<IPromodo> | null> {
+  ): Promise<Partial<IPromodoWithId> | null> {
     try {
       await this.unitWork.startTransaction();
       const session = this.unitWork.getSession();

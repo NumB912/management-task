@@ -13,13 +13,13 @@ export async function POST(
     id:string
   }
   const body = await req.json();
-  const { members } = body;
+  const { email } = body;
   const resolvedParams = await params;
   const { listId } = resolvedParams;
   const getByID = await (await GetContainer())
     .resolve<InviteMemberUsecase>(TYPES.InviteMemberUsecase)
     .execute({
-        data:members,
+        data:email,
         listId:listId,
         userId:user.id
     });

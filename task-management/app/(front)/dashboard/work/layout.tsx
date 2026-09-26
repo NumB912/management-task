@@ -67,6 +67,7 @@ import { AddFilterDialog } from "../../components/filters/addFilter.filters";
 import { EditFilterDialog } from "../../components/filters/editFilter.filters";
 import { IFilterModel } from "../../model/filter.model";
 import { DeleteFilterDialog } from "../../components/filters/deleteFilter";
+import NotificationBell from "../../components/notifier/notificationBell";
 const layout = ({
   children,
 

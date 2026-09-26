@@ -2,16 +2,16 @@ import { AppError, IUnitWork, IUsecase } from "@/app/core/domain";
 import { IMemberWithId, IRole } from "@/app/core/domain/entities/member.entities";
 import { IMemberRepository } from "@/app/core/domain/repositories/IMember.repository";
 
-export class ChangeRoleUsecase implements IUsecase<Partial<IMemberWithId> | null> {
+export class ChangeRoleUsecase implements IUsecase<Partial<boolean>> {
   constructor(private readonly memberRepository: IMemberRepository, private readonly unitWork: IUnitWork) { }
-  async execute(ChangeRole:{memberId: string, role: IRole,listId:string}): Promise<Partial<IMemberWithId> | null> {
-    if (!ChangeRole.memberId) {
+  async execute(ChangeRole:{email: string, role: IRole,listId:string}): Promise<boolean> {
+    if (!ChangeRole.email) {
       throw new AppError("", "", 400);
     }
     await this.unitWork.startTransaction();
     try {
       const member = await this.memberRepository.findOne({
-        id:ChangeRole.memberId,
+        email:ChangeRole.email,
         list:ChangeRole.listId,
         status:"accept"
       });
@@ -19,7 +19,9 @@ export class ChangeRoleUsecase implements IUsecase<Partial<IMemberWithId> | null
         throw new AppError("NOT_FOUND", "Không tìm thấy thành viên", 404);
       }
 
-      const update = await this.memberRepository.update(ChangeRole.memberId, {
+      const update = await this.memberRepository.updateBy({
+        email:ChangeRole.email
+      }, {
         role: ChangeRole.role,
       });
       

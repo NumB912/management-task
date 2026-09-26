@@ -1,25 +1,25 @@
-import "dotenv/config";
-import Consumer from "@infrastructure/service/message/consumer.message.js";
-import NodeMailerService from "@infrastructure/service/email/nodeMailer.service.js";
-import SendEmail from "@application/usecase/email.usecase.js";
-import SendChangePassConsumer from "@application/event/sendChangePass.event.js";
-import SendOtpUsecase from "@application/event/sendOtp.event.js";
-import SendMailInviteConsumer from "@application/event/sendInviteMember.event.js";
-async function bootstraping() {
-  try {
-    const consumer = await Consumer.create();
-    console.log("Consumer connected to RabbitMQ successfully");
-    const nodeMailService = new NodeMailerService()
-    const sendMailUC = new SendEmail(nodeMailService)
-    const sendOtp = new SendOtpUsecase(sendMailUC,consumer)
-    const sendChangePassEvent = new SendChangePassConsumer(sendMailUC,consumer)
-    const sendInviteInvite = new SendMailInviteConsumer(sendMailUC,consumer)
-    sendChangePassEvent.execute()
-    sendOtp.execute()
-    sendInviteInvite.execute()
-  } catch (error) {
-    console.error(error);
-  }
-}
+import routerNotifier from "@infrastructure/api/express/route/route.js";
+import cors from 'cors'
+import express, { type Request, type Response } from 'express'
+import cookieParser from "cookie-parser";
+const app = express();
 
-bootstraping();
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+
+app.use(cookieParser());
+app.use((req, res, next) => {
+  console.log(`[APP] ${req.method} ${req.url} — Origin: ${req.headers.origin}`);
+  next();
+});
+app.use(cookieParser())
+app.use(cors(corsOptions))
+app.use("/", routerNotifier)
+app.listen(3005,()=>{
+  console.log("server đang mở tại port 3005")
+})
+

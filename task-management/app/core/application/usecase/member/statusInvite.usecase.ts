@@ -5,35 +5,32 @@ import {
     IListRepository,
     IListWithId,
 } from "@/app/core/domain";
-import { IStatusMember } from "@/app/core/domain/entities/member.entities";
+import { IMember, IMemberWithId, IStatusMember } from "@/app/core/domain/entities/member.entities";
 import { IMemberRepository } from "@/app/core/domain/repositories/IMember.repository";
 import { SyncMemberTagsUseCase } from "../tag/SynsMemberTag.usecase";
+import { INotificationRepository } from "@/app/core/domain/repositories/INotification.repository";
 
 interface IStatusMemberInviteInput {
-    memberId: string;
+    email: string;
     userId: string;
     status: IStatusMember;
     listId: string;
 }
 
-interface IStatusMemberInviteOutput {
-    status: IStatusMember;
-}
-
 const VALID_STATUSES: Set<IStatusMember> = new Set(["accept", "deny"]);
 
-export class StatusInviteUsecase implements IUsecase<IStatusMemberInviteOutput | null> {
+export class StatusInviteUsecase implements IUsecase<boolean> {
     constructor(
         private readonly memberRepository: IMemberRepository,
         private readonly listRepository: IListRepository,
+        private readonly notificationRepository:INotificationRepository,
         private readonly syncMemberTag: SyncMemberTagsUseCase,
         private readonly unitWork: IUnitWork,
     ) { }
 
-    async execute(data: IStatusMemberInviteInput): Promise<IStatusMemberInviteOutput | null> {
+    async execute(data: IStatusMemberInviteInput): Promise<boolean> {
         this.validateInput(data);
-        const { memberId, userId, status, listId } = data;
-
+        const { email, userId, status, listId } = data;
         const list = await this.listRepository.findById(listId);
         if (!list) {
             throw new AppError("NOT_FOUND", "Không tồn tại list", 404);
@@ -45,9 +42,9 @@ export class StatusInviteUsecase implements IUsecase<IStatusMemberInviteOutput |
             const member = await this.memberRepository.findOne({
                 list: listId,
                 status: "pending",
-                id: memberId,
-            });
-            this.validateMember({ member, userId });
+                email: email,
+            },session);
+            this.validateMember({ member , userId });
             if (status === "accept") {
                 await this.acceptInvite({
                     list,
@@ -56,15 +53,25 @@ export class StatusInviteUsecase implements IUsecase<IStatusMemberInviteOutput |
                     userId,
                 });
             }
-            const updated = await this.memberRepository.update(
-                memberId,
+
+            const updated = await this.memberRepository.updateBy(
+                {
+                    email:email
+                },
                 { status, updated_at: new Date(), expired_at: undefined },
                 session,
             );
 
+            await this.notificationRepository.updateNotificationInviteMemberStatus({
+                listId:listId,
+                status:status,
+                userId:userId
+            },session)
+            
             await this.unitWork.commitTransaction();
-            return { status: updated?.status as IStatusMember };
+            return updated;
         } catch (error: any) {
+            console.log(error)
             await this.unitWork.rollBackTransaction();
             throw new AppError(
                 error.code ?? "INTERNAL_SERVER",
@@ -75,8 +82,8 @@ export class StatusInviteUsecase implements IUsecase<IStatusMemberInviteOutput |
     }
 
     private validateInput(data: IStatusMemberInviteInput): void {
-        const { memberId, userId, status } = data;
-        if (!memberId || !userId || !status) {
+        const { email, userId, status } = data;
+        if (!email || !userId || !status) {
             throw new AppError("BAD_REQUEST", "Thiếu thông tin cần thiết", 400);
         }
         if (!VALID_STATUSES.has(status)) {
@@ -86,7 +93,7 @@ export class StatusInviteUsecase implements IUsecase<IStatusMemberInviteOutput |
 
     private validateMember(
         DTO: {
-            member: { user: string; status: IStatusMember; expired_at?: Date | null; id: string } | null,
+            member: Pick<IMemberWithId,"email"|"expired_at"|"status"|"user"> | null,
             userId: string
         }
     ): void {
@@ -95,7 +102,8 @@ export class StatusInviteUsecase implements IUsecase<IStatusMemberInviteOutput |
         if (!member) {
             throw new AppError("NOT_FOUND", "Không tìm thấy lời mời", 404);
         }
-        if (member.user?.toString() !== userId?.toString()) {
+        if (member.user?.toString() != userId?.toString()) {
+            console.log(member.user,userId)
             throw new AppError("FORBIDDEN", "Bạn không có quyền thay đổi lời mời này", 403);
         }
         if ((member.expired_at?.getTime() ?? Date.now()) <= Date.now()) {

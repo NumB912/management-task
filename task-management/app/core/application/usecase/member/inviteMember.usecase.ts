@@ -28,7 +28,10 @@ export class InviteMemberUsecase implements IUsecase<void> {
     listId: string;
     userId: string;
   }): Promise<void> {
-    const userIds = [...new Set(dto.data)];
+    const emailList = [...new Set(dto.data.map((e) => e.trim().toLowerCase()))];
+    if (emailList.length === 0) {
+      throw new AppError("BAD_REQUEST", "Chưa nhập email nào", 400);
+    }
     const list = await this.listRepository.findOne({
       id: dto.listId,
       user: dto.userId,
@@ -36,36 +39,54 @@ export class InviteMemberUsecase implements IUsecase<void> {
     if (!list) {
       throw new AppError("NOT_FOUND", "Không tìm thấy danh sách", 404);
     }
-    if (userIds.includes(dto.userId)) {
+
+    const owner = await this.userRepository.findById(dto.userId);
+    if (owner && emailList.includes(owner.email.toLowerCase())) {
       throw new AppError("CONFLICT", "Không thể tự mời chính mình", 409);
     }
-    if (userIds.length === 0) {
-      throw new AppError("BAD_REQUEST", "Chưa chọn người dùng nào", 400);
-    }
-    const owner = await this.userRepository.findById(dto.userId);
+
     let created: IMemberWithId[] = [];
-    let invitedUsers: { id: string; email: string; name: string }[] = [];
+    let matchedUserByEmail = new Map<
+      string,
+      { id: string; email: string; name: string }
+    >();
 
     try {
       await this.unitWork.startTransaction();
       const session = await this.unitWork.getSession();
-
-      const findUsers = await this.userRepository.findManyByIds(
-        userIds,
+      const matchedUsers = await this.userRepository.searchByManyEmail(
+        emailList,
         session,
       );
-      if (findUsers.length === 0) {
-        throw new AppError("NOT_FOUND", "Không tìm thấy người dùng", 404);
-      }
-
-      const existed = await this.memberRepository.checkMembersIsExist(
-        userIds,
-        dto.listId,
-        session,
+      matchedUserByEmail = new Map(
+        matchedUsers.map((u) => [u.email.toLowerCase(), u]),
       );
-      invitedUsers = findUsers.filter((u) => !existed.includes(u.id));
 
-      if (invitedUsers.length === 0) {
+      const matchedEmails = new Set(matchedUserByEmail.keys());
+      const unmatchedEmails = emailList.filter((e) => !matchedEmails.has(e));
+      const existedUserIds = matchedUsers.length
+        ? await this.memberRepository.checkMembersIsExist(
+            matchedUsers.map((u) => u.id),
+            dto.listId,
+            session,
+          )
+        : [];
+
+      const existedEmails = unmatchedEmails.length
+        ? await this.memberRepository.checkMembersIsExist(
+            unmatchedEmails,
+            dto.listId,
+            session,
+          )
+        : [];
+
+      const newMatchedUsers = matchedUsers.filter(
+        (u) => !existedUserIds.includes(u.id),
+      );
+      const newUnmatchedEmails = unmatchedEmails.filter(
+        (e) => !existedEmails.includes(e),
+      );
+      if (newMatchedUsers.length === 0 && newUnmatchedEmails.length === 0) {
         await this.unitWork.commitTransaction();
         return;
       }
@@ -74,14 +95,26 @@ export class InviteMemberUsecase implements IUsecase<void> {
         Date.now() + INVITE_EXPIRES_DAYS * 24 * 60 * 60 * 1000,
       );
 
-      created = await this.memberRepository.createMany(
-        invitedUsers.map<Partial<IMemberWithId>>((u) => ({
+      const membersToCreate: Partial<IMemberWithId>[] = [
+        ...newMatchedUsers.map<Partial<IMemberWithId>>((u) => ({
           status: "pending",
           list: dto.listId,
           role: "can edit",
+          email:u.email,
           user: u.id,
           expired_at: expiredAt,
         })),
+        ...newUnmatchedEmails.map<Partial<IMemberWithId>>((email) => ({
+          status: "pending",
+          list: dto.listId,
+          role: "can edit",
+          email: email,
+          expired_at: expiredAt,
+        })),
+      ];
+
+      created = await this.memberRepository.createMany(
+        membersToCreate,
         session,
       );
 
@@ -95,33 +128,58 @@ export class InviteMemberUsecase implements IUsecase<void> {
         error.status ?? 500,
       );
     }
-    const userById = new Map(invitedUsers.map((u) => [u.id, u]));
-    const results = await Promise.allSettled(
-      created.flatMap((member) => {
-        const user = userById.get(String(member.user))!;
 
-        return [
-          this.pub.pub("exchange.invite.member", "member.invite", "direct", {
-            email: user.email,
-            name: user.name,
+    const emailResults = await Promise.allSettled(
+      created.map((member) => {
+        const email = member.user
+          ? (matchedUserByEmail.get(String(member.user))?.email ??
+            matchedUserByEmail.get(
+              [...matchedUserByEmail.values()].find((u) => u.id === member.user)
+                ?.email ?? "",
+            )?.email)
+          : member.email!;
+
+        const matchedEntry = member.user
+          ? [...matchedUserByEmail.values()].find((u) => u.id === member.user)
+          : undefined;
+
+        return this.pub.pub(
+          "exchange.invite.member",
+          "member.invite",
+          "direct",
+          {
+            email: matchedEntry?.email ?? member.email,
+            name: matchedEntry?.name ?? "",
             ownerName: owner?.name ?? "Một người dùng",
             listName: list.name,
             inviteLink: `${APP_URL}/invite/${member.id}`,
-          }),
-          this.notifier.push([user.id], "member.invited", {
-            listId: dto.listId,
-            listName: list.name,
-            ownerName: owner?.name ?? "Một người dùng",
-            memberId: member.id,
-          }),
-        ];
+          },
+        );
       }),
     );
-
-    const failed = results.filter((r) => r.status === "rejected");
+    const userIds =
+      created
+        .filter((member) => member.user)
+        .map((member) => member.user?.toString()) ?? [];
+    if (userIds.length == 0) {
+      return;
+    }
+    const pushResults =await Promise.allSettled([this.notifier.push(
+      userIds as string[],
+      "invite-member",
+      {
+        listId: dto.listId,
+        listName: list.name,
+        ownerName: owner?.name ?? "Một người dùng",
+        status:"pending",
+      },
+    )])
+    const failed = [...emailResults, ...pushResults].filter(
+      (r) => r.status === "rejected",
+    );
     if (failed.length > 0) {
       console.error(
-        `Publish lỗi ${failed.length}/${results.length} lời mời cho list ${dto.listId}`,
+        `Publish lỗi ${failed.length} lời mời cho list ${dto.listId}`,
         failed.map((f) => (f as PromiseRejectedResult).reason?.message),
       );
     }

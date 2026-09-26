@@ -15,6 +15,8 @@ import { MongodbClient } from "./mongoClient.Database";
 import { databaseConfig } from "@/app/core/config";
 import { IPromodoDocument } from "./interface/promodo.document";
 import { PromodoSchema } from "./schema/promodo.schema";
+import { INotificationDocument } from "./interface/notification.document";
+import { NotificationSchema } from "./schema/notification.schema";
 const globalWithModels = globalThis as typeof globalThis & {
   _dbModels?: DatabaseModels;
 };
@@ -29,6 +31,7 @@ export class DatabaseModels {
   readonly User: Model<IUserDocument>;
   readonly Member: Model<IMemberDocument>;
   readonly Promodo:Model<IPromodoDocument>
+  readonly Notification:Model<INotificationDocument>
 
   private constructor(client: Mongoose) {
     this.Task = this.getOrCreate<ITaskDocument>(client, "task", TaskSchema);
@@ -44,6 +47,7 @@ export class DatabaseModels {
     this.User = this.getOrCreate<IUserDocument>(client, "user", UserSchema)
     this.Member = this.getOrCreate<IMemberDocument>(client, "member", MemberSchema)
     this.Promodo = this.getOrCreate<IPromodoDocument>(client, "promodo", PromodoSchema)
+    this.Notification = this.getOrCreate<INotificationDocument>(client,"notification",NotificationSchema)
   }
 
   private getOrCreate<T>(client: Mongoose, name: string, schema: any): Model<T> {
@@ -51,7 +55,6 @@ export class DatabaseModels {
   }
 
   static async getInstance(): Promise<DatabaseModels> {
-    console.log(databaseConfig.URI)
     if (!globalWithModels._dbModels) {
       const mongo = await MongodbClient.getInstance();
       const client = mongo.getClient();

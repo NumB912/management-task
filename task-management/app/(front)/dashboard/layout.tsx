@@ -15,7 +15,6 @@ const layout = ({
 }) => {
   const hydrate = useWorkspaceStore((s) => s.hydrate);
   const { data, isSuccess } = useWorkspace();
-  console.log(data?.lists)
   useEffect(() => {
     if (isSuccess && data) {
       hydrate({
@@ -37,7 +36,6 @@ const layout = ({
         <HeaderProvider>
           <main className="flex-1 min-w-0">
             {children}
-
             {modal}
           </main>
         </HeaderProvider>

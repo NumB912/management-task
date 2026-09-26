@@ -7,11 +7,11 @@ import type IUsecase from "@domain/usecase/usecase.entities.js";
 import { MailConfig } from "src/config.js";
 export interface InviteTemplateParams {
   email:string,
-  name: string;          // tên người được mời
-  ownerName: string;     // tên chủ list
+  name: string;
+  ownerName: string;    
   listName: string;
-  inviteLink: string;    // link chấp nhận lời mời
-  expiresInDays?: number; // hiển thị hạn của lời mời (tùy chọn)
+  inviteLink: string; 
+  expiresInDays?: number; 
 }
 export default class SendMailInviteConsumer implements IUsecase<void> {
   private mailService: SendEmail;
@@ -23,7 +23,6 @@ export default class SendMailInviteConsumer implements IUsecase<void> {
   }
 
   async handle(event: InviteTemplateParams) {
-    console.log(event)
     this.mailService.execute(
       new Email({
         from: MailConfig.AUTH,

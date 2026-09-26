@@ -12,6 +12,19 @@ services:
         condition: service_healthy
     networks:
       - tm-network
+  notifier-services:
+    build: "./notifier-services"
+    container_name: task-management-notifier-services
+    ports:
+      - "3005:3005"
+    env_file: ./notifier-services/.env
+    depends_on:
+      mailhog: 
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - tm-network
   # app:
   #   build: ./task-management
   #   ports:

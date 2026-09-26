@@ -148,8 +148,6 @@ export class ListRepository
       { $unset: "memberIds" },
     ]).session(session ?? null);
 
-    console.log(lists.map((doc) => this.ListMapper.toDomainPopulate(doc).members))
-
     return {
       lists: lists.map((doc) => this.ListMapper.toDomainPopulate(doc)),
     };
