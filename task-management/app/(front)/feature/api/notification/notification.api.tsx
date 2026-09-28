@@ -12,6 +12,7 @@ export const notificationApi = {
     const res = await axiosInstance.patch<{
       success:boolean
     }>(`/user/me/notification`);
+
     return res.data.success;
   }
 

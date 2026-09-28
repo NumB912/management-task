@@ -22,7 +22,7 @@ export const checkOwner =async (): Promise<middlewareFn> => {
             return null;
         } catch (error) {
             console.error(error)
-            return NextResponse.json({ error: "Lỗi" }, { status: 500 })
+            return NextResponse.json({ error: error }, { status: 500 })
         }
     }
 }

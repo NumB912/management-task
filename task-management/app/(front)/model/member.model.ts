@@ -1,11 +1,11 @@
 import { IUserModel } from "./user.model";
-export type IRole = "read only" | "can edit" |"owner";
+export type IRoleMember = "read only" | "can edit" |"owner";
 export type IStatusMember = "accept" | "deny" |"pending";
 export interface IMemberModel {
   id: string;
-  user: IUserModel;
+  user: Omit<IUserModel,"role">;
   email:string;
-  role: IRole;
+  role: IRoleMember;
   list:string,
   status: IStatusMember;
   expired_at?: Date;

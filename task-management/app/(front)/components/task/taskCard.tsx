@@ -209,6 +209,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
     });
   };
 
+
   return (
     <div className="task flex flex-col flex-1">
       {!isOpenTaskEdit && (

@@ -48,6 +48,7 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
 
   const saveOrderPosition = useCallback(
     (startId: string, changeId: string) => {
+      moveSection(startId, changeId)
       mutate(
         { fromId: startId, toId: changeId },
         {
@@ -59,7 +60,6 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
           },
           onSuccess: () => {
             toast.success("Đổi vị trí thành công");
-            moveSection(startId, changeId)
           },
           onSettled: () => {
             reorderSnapshotRef.current = null;

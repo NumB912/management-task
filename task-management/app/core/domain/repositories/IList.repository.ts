@@ -50,7 +50,7 @@ export interface IListRepository extends IRepository<IListWithId, string> {
       tags: string[]
       members:{
         id:string,
-        userId:string,
+        userId?:string|null,
       }[]
     }[]>
   getCurrentTag(DTO:{

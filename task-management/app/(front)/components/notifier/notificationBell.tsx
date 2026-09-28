@@ -15,6 +15,7 @@ import { Separator } from "../ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useUserState from "../../states/user/user.state";
+import { INotificationModel } from "../../model/notification.model";
 
 interface NotificationBellProps {
   apiUrl: string;
@@ -39,6 +40,7 @@ export default function NotificationBell({ apiUrl }: NotificationBellProps) {
     updateRead,
     clearUnreadCount,
     handleRespond,
+    setNotification,
     open,
     setOpen,
   } = useNotifications(apiUrl);
@@ -47,22 +49,23 @@ export default function NotificationBell({ apiUrl }: NotificationBellProps) {
 
   const filteredNotification =
     valueToggle === "unread" ? filterUnReadNotification : notification;
-
   useEffect(() => {
     if (!open) return;
-    updateRead(undefined,{
-      onSuccess(data, variables, onMutateResult, context) {
-        
-      },
+    const hasUnread = notification.some((n) => !n.is_read);
+    if (!hasUnread) return;
+    const snapshot = notification;
+    updateRead(undefined, {
+      onSuccess(data, variables, onMutateResult, context) {},
       onError(error, variables, onMutateResult, context) {
-        
+        setNotification(snapshot);
       },
-    })
+    });
     clearUnreadCount();
+
+   return ()=>{
+      setNotification((notification)=>notification.map((value:INotificationModel)=>({...value,is_read:true})))
+    }
   }, [open]);
-
-
-
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -80,7 +83,9 @@ export default function NotificationBell({ apiUrl }: NotificationBellProps) {
           />
           {filterUnReadNotification.length > 0 && (
             <Badge className="absolute bg-destructive -right-0.5 -top-0.5 h-4 min-w-4 justify-center rounded-full px-1 text-[10px] text-white">
-              {filterUnReadNotification.length > 9 ? "9+" : filterUnReadNotification.length}
+              {filterUnReadNotification.length > 9
+                ? "9+"
+                : filterUnReadNotification.length}
             </Badge>
           )}
           {!connect && (
@@ -142,7 +147,9 @@ export default function NotificationBell({ apiUrl }: NotificationBellProps) {
                   <div className="flex gap-3 px-4 py-3">
                     <Avatar>
                       <AvatarImage />
-                      <AvatarFallback>{user?.name?.slice(0, 2) ?? "?"}</AvatarFallback>
+                      <AvatarFallback>
+                        {user?.name?.slice(0, 2) ?? "?"}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm leading-snug">
@@ -184,7 +191,9 @@ export default function NotificationBell({ apiUrl }: NotificationBellProps) {
                             </>
                           ) : (
                             <span className="text-xs text-muted-foreground">
-                              {n.data.status === "accept" ? "Đã chấp nhận" : "Đã từ chối"}
+                              {n.data.status === "accept"
+                                ? "Đã chấp nhận"
+                                : "Đã từ chối"}
                             </span>
                           )}
                         </div>

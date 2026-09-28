@@ -479,7 +479,7 @@ const layout = ({
                         .map((tag: ITagModel) => (
                           <EntityRow
                             key={tag.id}
-                            link={`/dashboard/work/tags/${tag.id}`}
+                            link={`/dashboard/work/tags/${tag.name}`}
                             icon={<Tag data-icon="inline-start" size={16} />}
                             name={tag.name}
                             count={getTaskQuantityWithTag(tag.name)}

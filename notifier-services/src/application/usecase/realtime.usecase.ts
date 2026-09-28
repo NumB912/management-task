@@ -20,12 +20,12 @@ export default class NotifierUsecase implements IUsecase<void> {
       "realtime.queue",
       ["realtime.push"],
       "direct",
-      async (event) => {
-        event.map((data) => {
-          this.realtimeGateway.pushToUser(data.user, data.event, {
-            data:data.data,
-            id:data.id,
-            is_read:data.is_read,
+      async (events) => {
+        events.forEach((event) => {
+          this.realtimeGateway.pushToUser(event.user, event.event, {
+            data:event.data,
+            id:event.id,
+            is_read:event.is_read,
           });
         });
       },

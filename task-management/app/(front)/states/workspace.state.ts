@@ -83,7 +83,7 @@ interface IWorkspaceState {
   getTaskQuantityWithTag:(name:string)=>number;
   moveSection: (startId: string, changeId: string) => void;
   moveTaskIntoSection: (taskId: string, newSectionId: string) => void;
-  addSection: (listId: string, newSection: ISectionModelState) => void;
+  addSection: (listId: string, newSection: Pick<ISectionModelState,"name"|"id">) => void;
   editList:(listId:string,newName:string)=>void;
   removeSection: (sectionId: string) => void;
   addTask: (task: ITaskModel) => void;
@@ -319,7 +319,6 @@ editList(listId, newName) {
       const from = state.sectionIndex[task.section];
       const to = state.sectionIndex[newSectionId];
       if (!from || !to) return state;
-      const taskIndex = { ...state.taskIndex };
 
       return {
         taskIndex:{
@@ -639,44 +638,63 @@ editList(listId, newName) {
   getTaskById(taskId: string): ITaskModel | undefined {
     return get().taskIndex[taskId];
   },
-  updateTask: (taskId, patch) =>
-    set((state) => {
-      const currentTask = state.taskIndex[taskId];
-      if (!currentTask) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn(
-            `[workspace-store] updateTask: taskId "${taskId}" chưa tồn tại`,
-          );
-        }
-
-        return state;
+updateTask: (taskId, patch) =>
+  set((state) => {
+    const currentTask = state.taskIndex[taskId];
+    if (!currentTask) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`[workspace-store] updateTask: taskId "${taskId}" chưa tồn tại`);
       }
+      return state;
+    }
 
-      const hasChange = Object.keys(patch).some((key) => {
-        const newVal = (patch as any)[key];
-        const oldVal = (currentTask as any)[key];
+    const hasChange = Object.keys(patch).some((key) => {
+      const newVal = (patch as any)[key];
+      const oldVal = (currentTask as any)[key];
+      if (typeof newVal === "object" && newVal !== null) {
+        return JSON.stringify(newVal) !== JSON.stringify(oldVal);
+      }
+      return newVal !== oldVal;
+    });
+    if (!hasChange) return state;
 
-        if (typeof newVal === "object" && newVal !== null) {
-          return JSON.stringify(newVal) !== JSON.stringify(oldVal);
-        }
+    const updatedTask = { ...currentTask, ...patch };
+    const nextTaskIndex = { ...state.taskIndex, [taskId]: updatedTask };
 
-        return newVal !== oldVal;
-      });
+    const isSectionChanged =
+      patch.section !== undefined && patch.section !== currentTask.section;
+    const isListChanged =
+      patch.list !== undefined && patch.list !== currentTask.list;
 
-      if (!hasChange) return state;
+    if (!isSectionChanged && !isListChanged) {
+      return { taskIndex: nextTaskIndex };
+    }
 
-      const updatedTask = {
-        ...currentTask,
-        ...patch,
+    const oldSectionId = currentTask.section;
+    const newSectionId = updatedTask.section;
+    const nextSectionIndex = { ...state.sectionIndex };
+
+    const oldSection = oldSectionId ? nextSectionIndex[oldSectionId] : undefined;
+    if (oldSection) {
+      nextSectionIndex[oldSectionId!] = {
+        ...oldSection,
+        tasks: oldSection.tasks.filter((id) => id !== taskId),
       };
+    }
 
-      return {
-        taskIndex: {
-          ...state.taskIndex,
-          [taskId]: updatedTask,
-        },
+    const newSection = newSectionId ? nextSectionIndex[newSectionId] : undefined;
+    if (newSection) {
+      nextSectionIndex[newSectionId!] = {
+        ...newSection,
+        tasks: [...newSection.tasks.filter((id) => id !== taskId), taskId],
       };
-    }),
+    }
+
+    return {
+      taskIndex: nextTaskIndex,
+      sectionIndex: nextSectionIndex,
+    };
+  }),
   setTask: (taskId: string, task: ITaskModel) =>
     set((state) => ({
       taskIndex: {
@@ -710,7 +728,6 @@ editList(listId, newName) {
   addSection(listId, newSection) {
     set((state) => {
       const listItem = state.listIndex[listId];
-
       if (!listItem) {
         if (process.env.NODE_ENV === "development") {
           console.warn(
@@ -730,7 +747,11 @@ editList(listId, newName) {
         },
         sectionIndex: {
           ...state.sectionIndex,
-          [newSection.id]: newSection,
+          [newSection.id]: {
+            ...newSection,
+            list: listId,
+            tasks: [],
+          },
         },
       };
     });
@@ -953,6 +974,7 @@ editTagWithOnly: (name, patch) =>
   addTask: (task) =>
     set((state) => {
       const listItem = state.listIndex[task.list];
+      console.log(task.list)
       const section = state.sectionIndex[task.section];
       if (!listItem) {
         if (process.env.NODE_ENV === "development") {

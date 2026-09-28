@@ -1,4 +1,3 @@
-
 import { inject, injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { IMemberRepository } from "../../domain/repositories/IMember.repository";
@@ -11,76 +10,100 @@ import { DatabaseModels } from "./database/clientSchema.database";
 @injectable()
 export class MemberRepository
   extends BaseRepository<IMemberDocument, IMemberWithId, string>
-  implements IMemberRepository {
+  implements IMemberRepository
+{
   protected toDomain(doc: IMemberDocument): IMemberWithId {
-    return this.MemberMapper.toDomain(doc)
+    return this.MemberMapper.toDomain(doc);
   }
-  protected toDomainPartial(doc: Partial<IMemberDocument>): Partial<IMemberWithId> {
-    return this.MemberMapper.toDomainPartial(doc)
+  protected toDomainPartial(
+    doc: Partial<IMemberDocument>,
+  ): Partial<IMemberWithId> {
+    return this.MemberMapper.toDomainPartial(doc);
   }
-  protected toPresistence(doc: Partial<IMemberWithId>): Partial<IMemberDocument> {
-    return this.MemberMapper.toPersistencePartial(doc)
+  protected toPresistence(
+    doc: Partial<IMemberWithId>,
+  ): Partial<IMemberDocument> {
+    return this.MemberMapper.toPersistencePartial(doc);
   }
-  protected toPresistencePartial(doc: Partial<IMemberWithId>): Partial<IMemberDocument> {
-    return this.MemberMapper.toPersistencePartial(doc)
+  protected toPresistencePartial(
+    doc: Partial<IMemberWithId>,
+  ): Partial<IMemberDocument> {
+    return this.MemberMapper.toPersistencePartial(doc);
   }
-  constructor(@inject(TYPES.DatabaseType) private readonly db: DatabaseModels, @inject(TYPES.MemberMapper) private readonly MemberMapper: MemberMapper) {
+  constructor(
+    @inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
+    @inject(TYPES.MemberMapper) private readonly MemberMapper: MemberMapper,
+  ) {
     super(db.Member);
   }
 
-  async getMembersInLists(listIds: string[], session?: ClientSession):Promise<{
-    id:string,
-    members:IMemberWithId[]
-  }[]>{
-    const docs = await this.db.List.aggregate([{
-      $lookup:{
-        from:"members",
-        foreignField:"_id",
-        localField:"members",
-        as:"membersData",
-        pipeline:[{
-          $match:{
-            status:"accept"
-          }
-        }]
-      }
-    },{
-      $match:{
-        _id:{
-          $in:listIds.map((listId)=>new Types.ObjectId(listId))
-        },
-      }
-    },{
-      $project:{
-        membersData:true
-      }
-    }]).session(session??null) as {
-      _id:Types.ObjectId,
-      membersData:IMemberDocument[]
+  async getMembersInLists(
+    listIds: string[],
+    session?: ClientSession,
+  ): Promise<
+    {
+      id: string;
+      members: IMemberWithId[];
     }[]
-    return docs.map((doc)=>{
-      return {
-        id:doc._id.toString(),
-        members:doc.membersData.map((doc)=>this.MemberMapper.toDomain(doc))
-      }
-    })
-  }
-
-  async checkMembersIsExist(email: string[], listId: string,session?:ClientSession): Promise<string[]> {
-    const docs = await this.db.Member.find({
-      email: {
-        $in: email,
+  > {
+    const docs = (await this.db.List.aggregate([
+      {
+        $lookup: {
+          from: "members",
+          foreignField: "_id",
+          localField: "members",
+          as: "membersData",
+          pipeline: [
+            {
+              $match: {
+                status: "accept",
+              },
+            },
+          ],
+        },
       },
-      deleted_at: null,
-      list: listId
-    }).session(session??null)
-    return docs.map((doc) => doc.email?.toString())
+      {
+        $match: {
+          _id: {
+            $in: listIds.map((listId) => new Types.ObjectId(listId)),
+          },
+        },
+      },
+      {
+        $project: {
+          membersData: true,
+        },
+      },
+    ]).session(session ?? null)) as {
+      _id: Types.ObjectId;
+      membersData: IMemberDocument[];
+    }[];
+    return docs.map((doc) => {
+      return {
+        id: doc._id.toString(),
+        members: doc.membersData.map((doc) => this.MemberMapper.toDomain(doc)),
+      };
+    });
   }
 
-  async searchMember(email: string, listId: string): Promise<void> {
-    const docs = await this.db.Member.find({
-    }).populate("list")
-  }
+async checkMembersIsExist(
+  email: string[],
+  listId: string,
+  session?: ClientSession,
+): Promise<string[]> {
+  const docs = await this.db.Member.find({
+    email: { $in: email },
+    deleted_at: null,
+    list: listId,
+    status: { $in: ["pending", "accept"] }, 
+  }).session(session ?? null);
+
+  return docs
+    .map((doc) => doc.email?.toString())
+    .filter((email): email is string => Boolean(email));
 }
 
-
+  async searchMember(email: string, listId: string): Promise<void> {
+    const docs = await this.db.Member.find({}).populate("list");
+  }
+}

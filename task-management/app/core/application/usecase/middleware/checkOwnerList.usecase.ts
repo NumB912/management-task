@@ -18,7 +18,7 @@ export class CheckOwnerUsecase implements IUsecase<boolean> {
             return true
         } catch (error) {
             console.error(error)
-            throw new AppError("ERROR", "Lỗi trong quá trình thực thi", 500)
+            throw new AppError("ERROR", "Bạn không có quyền thực thi", 500)
         }
     }
 }

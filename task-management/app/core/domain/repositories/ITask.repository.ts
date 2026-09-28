@@ -3,7 +3,7 @@ import { Ipriority, ISpecials, IStatus } from "../entities";
 import { ITask, ITaskPartial, ITaskWithId } from "../entities/task.entites";
 import { IRepository } from "./IRepositories";
 export interface ITaskRepository extends IRepository<ITaskWithId, string> {
-  findByIdPopulate(id: string): Promise<ITask | null>
+  findByIdPopulate(id: string,session?:unknown): Promise<ITask | null>
   findTasksByTagForUser(DTO: {
     tagName: string,
     userId: string,

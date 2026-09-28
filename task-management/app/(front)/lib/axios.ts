@@ -1,5 +1,21 @@
 import axios from 'axios';
 
+interface ApiErrorBody {
+  code: string;
+  message: string;
+}
+
+export class ApiError extends Error {
+  code: string;
+  status: number;
+
+  constructor(body: ApiErrorBody, status: number) {
+    super(body.message);
+    this.code = body.code;
+    this.status = status;
+  }
+}
+
 export const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL, 
   withCredentials: true, 

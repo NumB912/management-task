@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { tagApi } from "../../feature/api/tags/tag.api";
 import { ITagModel } from "../../model";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "../ui/label";
@@ -22,12 +21,6 @@ import { useUpdateTagOnlyMe, useUpdateTagWithShare } from "../../feature/hook/us
 interface EditTagDialogProps {
   tag: ITagModel | null;
   onClose: () => void;
-}
-
-function EditTag(
-  isShare: boolean,
-): (id: string, data: Omit<ITagModel, "id">) => Promise<ITagModel> {
-  return !isShare ? tagApi.updateOnlyMe : tagApi.updateShareWithMe;
 }
 
 export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
@@ -42,6 +35,7 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
   const editTagWithShare = useWorkspaceStore((state)=>state.editTagWithShare)
   const editTagOnlyMe = useWorkspaceStore((state)=>state.editTagWithOnly)
   const isPending = isPendingOnlyMe || isPendingShare;
+
  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!tag) return;
@@ -62,6 +56,7 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
       editTagWithShare(tag.name,{
         name:trimmed
       })
+      
       updateWithShare({
         id: tag.id,
         name: trimmed
@@ -84,7 +79,8 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
   useEffect(() => {
     if (tag) {
       setName(tag.name);
-      setIsEditShareTag(false);
+
+      setIsEditShareTag(tag?.isShareTag??false);
       setOpenEdit(true);
     } else {
       setOpenEdit(false);
@@ -171,13 +167,13 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
             </DialogDescription>
           </DialogHeader>
 
-          {tag?.isShareTag == true && (
-            <div className="flex gap-2 py-2 items-center">
+          {tag.isShareTag == true && (
+            <div className="flex gap-2 py-2 bg-black items-center">
               <Checkbox
                 id="edit-with-share"
                 checked={isEditShareTag}
                 onCheckedChange={(checked) =>
-                  setIsEditShareTag(checked === true)
+                  setIsEditShareTag(!!checked)
                 }
               />
               <Label htmlFor="edit-with-share">

@@ -3,7 +3,6 @@ import { GetAllTasksUsecase } from "@/app/core/application/usecase/task/findAllT
 import { GetContainer } from "@/app/core/infrastructure/container/container";
 import { TYPES } from "@/app/core/infrastructure/container/type.container";
 import { NextRequest, NextResponse } from "next/server";
-
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ listId: string;sectionId:string }> },
@@ -15,7 +14,7 @@ export async function POST(
   }
   const { listId,sectionId } = await params;
   const task = await req.json();
-  const taskId = await (await GetContainer())
+  const result = await (await GetContainer())
     .resolve<CreateTaskWithSection>(TYPES.CreateTaskWithSectionUsecase)
     .execute({
       data:task,
@@ -23,7 +22,7 @@ export async function POST(
       userId:user.id,
       sectionId:sectionId
     });
-  return NextResponse.json({ task:{id:taskId} }, { status: 200 });
+  return NextResponse.json({ task:result }, { status: 200 });
 }
 
 export async function GET(

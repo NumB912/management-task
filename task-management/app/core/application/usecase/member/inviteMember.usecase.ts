@@ -12,6 +12,15 @@ import { RealtimeNotifier } from "../notification/notification.usecase";
 
 const INVITE_EXPIRES_DAYS = 7;
 const APP_URL = process.env.APP_URL ?? "";
+const PUSH_CHUNK_SIZE = 50;
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
 
 export class InviteMemberUsecase implements IUsecase<void> {
   constructor(
@@ -32,6 +41,7 @@ export class InviteMemberUsecase implements IUsecase<void> {
     if (emailList.length === 0) {
       throw new AppError("BAD_REQUEST", "Chưa nhập email nào", 400);
     }
+
     const list = await this.listRepository.findOne({
       id: dto.listId,
       user: dto.userId,
@@ -46,14 +56,12 @@ export class InviteMemberUsecase implements IUsecase<void> {
     }
 
     let created: IMemberWithId[] = [];
-    let matchedUserByEmail = new Map<
-      string,
-      { id: string; email: string; name: string }
-    >();
+    let matchedUserByEmail = new Map<string,{ id: string; email: string; name: string }>();
 
     try {
       await this.unitWork.startTransaction();
       const session = await this.unitWork.getSession();
+
       const matchedUsers = await this.userRepository.searchByManyEmail(
         emailList,
         session,
@@ -64,14 +72,15 @@ export class InviteMemberUsecase implements IUsecase<void> {
 
       const matchedEmails = new Set(matchedUserByEmail.keys());
       const unmatchedEmails = emailList.filter((e) => !matchedEmails.has(e));
+
       const existedUserIds = matchedUsers.length
         ? await this.memberRepository.checkMembersIsExist(
-            matchedUsers.map((u) => u.id),
+            matchedUsers.map((u) => u.email),
             dto.listId,
             session,
           )
         : [];
-
+          
       const existedEmails = unmatchedEmails.length
         ? await this.memberRepository.checkMembersIsExist(
             unmatchedEmails,
@@ -81,11 +90,12 @@ export class InviteMemberUsecase implements IUsecase<void> {
         : [];
 
       const newMatchedUsers = matchedUsers.filter(
-        (u) => !existedUserIds.includes(u.id),
+        (u) => !existedUserIds.includes(u.email),
       );
       const newUnmatchedEmails = unmatchedEmails.filter(
         (e) => !existedEmails.includes(e),
       );
+
       if (newMatchedUsers.length === 0 && newUnmatchedEmails.length === 0) {
         await this.unitWork.commitTransaction();
         return;
@@ -100,7 +110,7 @@ export class InviteMemberUsecase implements IUsecase<void> {
           status: "pending",
           list: dto.listId,
           role: "can edit",
-          email:u.email,
+          email: u.email,
           user: u.id,
           expired_at: expiredAt,
         })),
@@ -113,32 +123,24 @@ export class InviteMemberUsecase implements IUsecase<void> {
         })),
       ];
 
-      created = await this.memberRepository.createMany(
-        membersToCreate,
-        session,
-      );
+      created = await this.memberRepository.createMany(membersToCreate, session);
+    
+      await this.listRepository.pushMembersIntoList({memberIds:created.map((member)=>member.id),listId:dto.listId,session})
+
 
       await this.unitWork.commitTransaction();
-    } catch (error: any) {
+    } catch (error) {
       await this.unitWork.rollBackTransaction();
-      console.error(error);
-      throw new AppError(
-        error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lỗi trong quá trình mời thành viên",
-        error.status ?? 500,
-      );
+      console.error("[InviteMemberUsecase]", error);
+      throw error;
+    }
+
+    if (created.length === 0) {
+      return;
     }
 
     const emailResults = await Promise.allSettled(
       created.map((member) => {
-        const email = member.user
-          ? (matchedUserByEmail.get(String(member.user))?.email ??
-            matchedUserByEmail.get(
-              [...matchedUserByEmail.values()].find((u) => u.id === member.user)
-                ?.email ?? "",
-            )?.email)
-          : member.email!;
-
         const matchedEntry = member.user
           ? [...matchedUserByEmail.values()].find((u) => u.id === member.user)
           : undefined;
@@ -157,23 +159,34 @@ export class InviteMemberUsecase implements IUsecase<void> {
         );
       }),
     );
-    const userIds =
-      created
-        .filter((member) => member.user)
-        .map((member) => member.user?.toString()) ?? [];
-    if (userIds.length == 0) {
+
+    const userIds = created
+      .filter((member) => member.user)
+      .map((member) => member.user!.toString());
+
+    if (userIds.length === 0) {
+      const failedEmailOnly = emailResults.filter((r) => r.status === "rejected");
+      if (failedEmailOnly.length > 0) {
+        console.error(
+          `Publish email lỗi ${failedEmailOnly.length} lời mời cho list ${dto.listId}`,
+          failedEmailOnly.map((f) => (f as PromiseRejectedResult).reason?.message),
+        );
+      }
       return;
     }
-    const pushResults =await Promise.allSettled([this.notifier.push(
-      userIds as string[],
-      "invite-member",
-      {
-        listId: dto.listId,
-        listName: list.name,
-        ownerName: owner?.name ?? "Một người dùng",
-        status:"pending",
-      },
-    )])
+
+    const userChunks = chunkArray(userIds, PUSH_CHUNK_SIZE);
+    const pushResults = await Promise.allSettled(
+      userChunks.map((chunk) =>
+        this.notifier.push(chunk, "invite-member", {
+          listId: dto.listId,
+          listName: list.name,
+          ownerName: owner?.name ?? "Một người dùng",
+          status: "pending",
+        }),
+      ),
+    );
+
     const failed = [...emailResults, ...pushResults].filter(
       (r) => r.status === "rejected",
     );

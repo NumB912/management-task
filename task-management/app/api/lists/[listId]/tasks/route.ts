@@ -14,12 +14,12 @@ export async function POST(
   }
   const { listId } = await params;
   const task = await req.json();
-  const taskId = await (await GetContainer())
+  const result = await (await GetContainer())
     .resolve<CreateTaskUsecase>(TYPES.CreateTaskUsecase)
     .execute({
       data:task,
       listId:listId,
       userId:user.id
     });
-  return NextResponse.json({ task:{id:taskId} }, { status: 200 });
+  return NextResponse.json({ task:result }, { status: 200 });
 }

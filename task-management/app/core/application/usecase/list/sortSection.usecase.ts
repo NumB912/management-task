@@ -1,26 +1,35 @@
-import { AppError, IListRepository, IUnitWork, IUsecase } from "@/app/core/domain";
+import {
+  AppError,
+  IListRepository,
+  IPublisher,
+  IUnitWork,
+  IUsecase,
+} from "@/app/core/domain";
+import { IMemberRepository } from "@/app/core/domain/repositories/IMember.repository";
 
 export class SortSectionUsecase implements IUsecase<boolean> {
   constructor(
     private readonly repositories: IListRepository,
+    private readonly MemberRepository:IMemberRepository,
+    private readonly publisher: IPublisher,
     private readonly unitWork: IUnitWork,
   ) {}
 
- async execute(
-    DTO: { listId: string; startSectionId: string; endSectionId: string }
-  ): Promise<boolean> {
+  async execute(DTO: {
+    listId: string;
+    startSectionId: string;
+    endSectionId: string;
+    userId:string
+  }): Promise<boolean> {
     try {
-      const { listId, startSectionId, endSectionId } = DTO;
+      const { listId, startSectionId, endSectionId,userId } = DTO;
       await this.unitWork.startTransaction();
       const session = this.unitWork.getSession();
-
       const list = await this.repositories.findById(listId, session);
       if (!list) {
         throw new AppError("NOT_FOUND", "Không thấy list", 404);
       }
-
       const sections = list.sections;
-
       const fromIndex = sections.findIndex((s) => s === startSectionId);
       const toIndex = sections.findIndex((s) => s === endSectionId);
       if (fromIndex === -1 || toIndex === -1) {
@@ -33,6 +42,21 @@ export class SortSectionUsecase implements IUsecase<boolean> {
         { sections: reorderedSections },
         session,
       );
+
+     if (list.isShareList) {
+        const members =await this.MemberRepository.findManyByIds(list.members)
+        const users = members.map((member)=>member.user).filter((user)=>user!=userId)
+        this.publisher.pub("section.exchange", "section.change.position", "direct", users.map((user)=>{
+          return {
+          data:{
+            startId:startSectionId,
+            endId:endSectionId
+          },
+          user:user,
+          event:"section-change-position",
+        }
+        }));
+      }
 
       await this.unitWork.commitTransaction();
       return !!updated;
@@ -47,11 +71,11 @@ export class SortSectionUsecase implements IUsecase<boolean> {
     }
   }
 
-    moveItem<T>(array: T[], fromIndex: number, toIndex: number): T[] {
-  if (fromIndex === toIndex) return [...array];
-  const result = [...array];
-  const [item] = result.splice(fromIndex, 1);
-  result.splice(toIndex, 0, item);
-  return result;
-}
+  moveItem<T>(array: T[], fromIndex: number, toIndex: number): T[] {
+    if (fromIndex === toIndex) return [...array];
+    const result = [...array];
+    const [item] = result.splice(fromIndex, 1);
+    result.splice(toIndex, 0, item);
+    return result;
+  }
 }

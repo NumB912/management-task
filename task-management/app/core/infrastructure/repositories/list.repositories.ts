@@ -278,11 +278,12 @@ export class ListRepository
   }): Promise<void> {
     const { listId, memberIds, session } = DTO;
     await this.db.List.findByIdAndUpdate(listId, {
-      members: {
         $pull: {
-          $in: memberIds.map((memberIds) => new Types.ObjectId(memberIds)),
-        },
-      },
+          members:{
+             $in: memberIds.map((memberIds) => new Types.ObjectId(memberIds)),
+          }
+
+        }
     }).session(session ?? null);
   }
 
@@ -509,7 +510,7 @@ export class ListRepository
       tags: string[];
       members: {
         id: string;
-        userId: string;
+        userId?: string|null;
       }[];
     }[]
   > {
@@ -556,7 +557,7 @@ export class ListRepository
         members: doc.membersData.map((member) => {
           return {
             id: member._id.toString(),
-            userId: member.user.toString(),
+            userId: member.user?.toString()??null,
           };
         }),
         tags: doc.shared_tags.map((shareTag) => shareTag.tag),

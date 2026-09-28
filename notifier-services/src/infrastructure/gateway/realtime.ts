@@ -22,11 +22,12 @@ export class SSERealtimeGateway implements IRealtimeGateway{
     const userClients = this.clients.get(userId);
     if (!userClients) return;
     const endPayload = {
-      user:userId,
       ...payload,
+      user:userId,
       event:event,
     }
-    const message = `event: ${event}\ndata: ${JSON.stringify(endPayload)}\n\n`;
+    const message = `event: ${event}\ndata:${JSON.stringify(endPayload)}\n\n`;
+    console.log(message)
     userClients.forEach((res) => {
       res.write(message)
     });

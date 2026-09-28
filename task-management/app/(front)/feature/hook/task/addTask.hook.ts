@@ -30,7 +30,7 @@ export function useAddTask(listId: string,sectionId:string) {
             timer: task.rule.timer,
           },
         });
-
+        console.log(data)
         const realId = data.id.toString();
         changeIdTask(tempId, realId);
         return realId;

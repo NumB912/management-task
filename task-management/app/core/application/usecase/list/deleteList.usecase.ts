@@ -15,18 +15,20 @@ export class DeleteListUsecase implements IUsecase<IListWithId | null> {
 
   async execute(id: string): Promise<IListWithId | null> {
 
-    if (!id) {
-      throw new AppError("NOT_FOUND", "Không tìm thấy dữ liệu", 404);
-    }
-
-    const listId = await this.listRepository.findById(id);
-    if (!listId) {
-      throw new AppError("NOT_FOUND", "Không tìm thấy dữ liệu", 404);
-    }
     try {
       await this.unitWork.startTransaction();
       const session = await this.unitWork.getSession();
       const findList = await this.listRepository.findById(id,session)
+
+          if (!id) {
+      throw new AppError("NOT_FOUND", "Không tìm thấy dữ liệu", 404);
+    }
+
+    const listId = await this.listRepository.findById(id,session);
+    if (!listId) {
+      throw new AppError("NOT_FOUND", "Không tìm thấy dữ liệu", 404);
+    }
+
       if(findList?.name=="Inbox"){
         throw new AppError("CAN_NOT_DEL","Không thể xóa list này",400)
       }

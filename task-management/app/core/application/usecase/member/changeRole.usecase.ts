@@ -6,7 +6,7 @@ export class ChangeRoleUsecase implements IUsecase<Partial<boolean>> {
   constructor(private readonly memberRepository: IMemberRepository, private readonly unitWork: IUnitWork) { }
   async execute(ChangeRole:{email: string, role: IRole,listId:string}): Promise<boolean> {
     if (!ChangeRole.email) {
-      throw new AppError("", "", 400);
+      throw new AppError("NOT_FOUND", "Không tìm thấy email", 400);
     }
     await this.unitWork.startTransaction();
     try {

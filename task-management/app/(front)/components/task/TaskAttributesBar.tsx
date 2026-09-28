@@ -12,9 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  IListModel,
   IListModelState,
-  ISectionModel,
   ISectionModelState,
 } from "../../model";
 import {

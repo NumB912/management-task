@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, Edit2, Eye, Trash, Trash2, UserPlus, X } from "lucide-react";
+import { ChevronDown, Edit2, Eye, Trash2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,50 +18,58 @@ import {
 } from "../ui/dropdown-menu";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { useShallow } from "zustand/react/shallow";
-import { IMemberModel } from "../../model/member.model";
+import {
+  IMemberModel,
+  IRoleMember,
+  IStatusMember,
+} from "../../model/member.model";
+import {
+  useInvite,
+  useRemoveMember,
+  useUpdateMember,
+} from "../../feature/hook/useMemberMutation.hook";
+import useUserState from "../../states/user/user.state";
 
 interface ShareContentProps {
   listId: string;
   onClose?: () => void;
 }
-
-type Status = "pending" | "accepted" | "cancelled" | "expired";
-type Role = "owner" | "editor" | "viewer";
-
 interface Contact {
   name: string;
   email: string;
   avatar?: string;
 }
 
-const STATUS_LABEL: Record<Status, string> = {
-  pending: "Đang chờ",
-  accepted: "Đồng ý",
-  cancelled: "Hủy",
-  expired: "Hết hạn",
-};
-
-const ROLE_LABEL: Record<Role, string> = {
-  owner: "Chủ sở hữu",
-  editor: "Chỉnh sửa",
-  viewer: "Chỉ xem",
-};
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function initialsOf(text: string) {
   return text[0]?.toUpperCase() ?? "?";
 }
 
-export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
-  const listIndex = useWorkspaceStore(useShallow((state)=>state.listIndex))
-  const list = useMemo(()=>listIndex[listId],[listId])
-  const lists = useMemo(()=>Object.values(listIndex),[listId])
-  const [members, setMembers] = useState<IMemberModel[]>(list.members??[]);
+const ROLE_LABEL: Record<IRoleMember, string> = {
+  "can edit": "Có thể chỉnh sửa",
+  "read only": "Chỉ có thể đọc",
+  owner: "Chủ danh sách",
+};
+
+const STATUS_LABEL: Record<IStatusMember, string> = {
+  accept: "Chấp thuận",
+  deny: "Từ chối",
+  pending: "Đang chờ chấp thuận",
+};
+
+export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
+  const listIndex = useWorkspaceStore(useShallow((state) => state.listIndex));
+  const {user} = useUserState()
+  const list = useMemo(() => listIndex[listId], [listId]);
+  const lists = useMemo(() => Object.values(listIndex), [listId]);
+  const [members, setMembers] = useState<IMemberModel[]>(list.members ?? []);
   const [input, setInput] = useState("");
   const [staged, setStaged] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const { mutate: updateMember } = useUpdateMember();
+  const { mutate: Invite } = useInvite();
+  const { mutate: removeMember } = useRemoveMember();
   const isOwner = true;
-
   const query = input.trim().toLowerCase();
   const isInviting = query.length > 0 || staged.length > 0;
   const memberEmails = useMemo(
@@ -69,18 +77,37 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
     [members],
   );
 
-  const suggestions = useMemo(
-    () =>
-      lists.filter(
-        (c) =>
-          !c.members.some((member)=>memberEmails.has(member.email)) &&
-          !c.members.some((member)=>staged.includes(member.email)) &&
+  const suggestions = useMemo(() => {
+    const seen = new Set<string>();
+    const result: IMemberModel[] = [];
+
+    for (const l of lists) {
+      if (l.id === listId) continue;
+
+      for (const member of l.members) {
+        const email = member.email?.toLowerCase();
+        if (!email) continue;
+        if (member.status !== "accept") continue;
+        if (memberEmails.has(email)) continue;
+        if (staged.includes(email)) continue;
+        if (seen.has(email)) continue;
+        const matchQuery =
           query.length > 0 &&
-          (c.members.some((member)=>query.includes(member.email)) || c.name.toLowerCase().includes(query)),
-      ),
-    [memberEmails, staged, query],
-  );
+          (email.includes(query) ||
+            member.user.name.toLowerCase().includes(query));
+
+        if (!matchQuery) continue;
+
+        seen.add(email);
+        result.push(member);
+      }
+    }
+
+    return result;
+  }, [lists, listId, memberEmails, staged, query]);
+
   const canAddTyped = EMAIL_REGEX.test(query);
+
   const addContactNow = (contact: Contact) => {
     setMembers((prev) => [
       ...prev,
@@ -89,13 +116,38 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
         name: contact.name,
         email: contact.email,
         avatar: contact.avatar,
-        list:listId,
-        user:crypto.randomUUID(),
-        role: "editor",
+        list: listId,
+        user: {
+          id: crypto.randomUUID(),
+          name: contact.name,
+          avatar: contact.avatar,
+        },
+        role: "can edit",
         status: "pending",
       },
     ]);
-    toast.success(`Đã thêm ${contact.email}`);
+  };
+
+  const handleInviteContact = (contact: Contact) => {
+    const previousMembers = members;
+    addContactNow(contact);
+    setInput("");
+
+    Invite(
+      {
+        email: [contact.email],
+        listId,
+      },
+      {
+        onError(error) {
+          setMembers(previousMembers);
+          toast.error(error.message ?? "Không thể mời người dùng này");
+        },
+        onSuccess() {
+          toast.success(`Đã mời ${contact.email}`);
+        },
+      },
+    );
   };
 
   const submitInput = () => {
@@ -118,13 +170,7 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
         continue;
       }
       if (nextStaged.includes(email)) continue;
-
-      const known = KNOWN_CONTACTS.find((c) => c.email === email);
-      if (known) {
-        addContactNow(known);
-      } else {
-        nextStaged.push(email);
-      }
+      nextStaged.push(email);
     }
 
     setStaged(nextStaged);
@@ -142,37 +188,86 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
   };
 
   const sendInvites = () => {
-    const list = [...staged];
-    if (canAddTyped && !list.includes(query) && !memberEmails.has(query)) {
-      list.push(query);
+    const emailsToInvite = [...staged];
+    if (
+      canAddTyped &&
+      !emailsToInvite.includes(query) &&
+      !memberEmails.has(query)
+    ) {
+      emailsToInvite.push(query);
     }
-    if (list.length === 0) return;
-    setMembers((prev) => [
-      ...prev,
-      ...list.map<Member>((email) => ({
-        id: crypto.randomUUID(),
-        name: email.split("@")[0],
-        email,
-        role: "editor",
-        status: "pending",
-      })),
-    ]);
-    toast.success(`Đã mời ${list.length} người`);
+    if (emailsToInvite.length === 0) return;
+
+    Invite(
+      { email: emailsToInvite, listId },
+      {
+        onSuccess(data, variables, onMutateResult, context) {},
+
+        onError(error, variables, onMutateResult, context) {
+          console.log(error);
+        },
+      },
+    );
+
+    toast.success(`Đã mời ${emailsToInvite.length} người`);
     resetInvite();
   };
 
   const pendingCount =
     staged.length + (canAddTyped && !staged.includes(query) ? 1 : 0);
+  const handleRoleChange = (email: string, role: IRoleMember) => {
+    const previous = members;
+    setMembers((prev) =>
+      prev.map((m) => (m.email === email ? { ...m, role } : m)),
+    );
+
+    updateMember(
+      { email, listId, role },
+      {
+        onError: (error:Error) => {
+
+          
+          console.log(error.message)
+
+          setMembers(previous);
+          toast.error("Không thể đổi quyền, vui lòng thử lại");
+        },
+      },
+    );
+  };
+
+  const handleRemoveMember = (email: string, status: IStatusMember) => {
+    const previous = members;
+    setMembers((prev) => prev.filter((m) => m.email !== email));
+
+    removeMember(
+      { listId, email },
+      {
+        onSuccess: () => {
+          toast.success(
+            status === "accept" ? "Đã xoá khỏi danh sách" : "Đã huỷ lời mời",
+          );
+        },
+        onError: () => {
+          setMembers(previous);
+          toast.error("Có lỗi xảy ra, vui lòng thử lại");
+        },
+      },
+    );
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 px-4">
+             {
+            user?.id==list.user&&( 
       <div className="space-y-1.5">
-        <div className="relative">
+     <div className="relative">
           <Input
             type="email"
             className={cn("rounded-sm! p-4! pr-11!")}
             placeholder="Nhập email để thêm người dùng"
             value={input}
+            disabled={user?.id!=list.user}
             onChange={(e) => {
               setInput(e.target.value);
               setError("");
@@ -194,8 +289,9 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
             <UserPlus className="size-4" />
           </button>
         </div>
-        {error && <p className="text-xs text-destructive">{error}</p>}
-      </div>
+        
+            {error && <p className="text-xs text-destructive">{error}</p>}
+       </div>  )}
 
       {isInviting ? (
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
@@ -206,29 +302,40 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
               </span>
               <div className="divide-y">
                 {suggestions.map((c) => (
-                  <button
-                    key={c.email}
+                  <Button
+                    key={c.id}
                     type="button"
+                    variant={"ghost"}
                     onClick={() => {
-                      addContactNow(c);
+                      handleInviteContact({
+                        email: c.email,
+                        name: c.user.name,
+                        avatar: c.user.avatar,
+                      });
                       setInput("");
                     }}
-                    className="flex w-full items-center gap-3 py-2.5 text-left hover:bg-muted/50"
+                    className="flex w-full h-fit items-center gap-3 p-2! text-left hover:bg-muted/50"
                   >
-                    <Avatar className="size-9">
-                      <AvatarImage src={c.avatar} alt={c.name} />
-                      <AvatarFallback>{initialsOf(c.name)}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{c.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {c.email}
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      Thêm
-                    </span>
-                  </button>
+                    <>
+                      <Avatar className="size-9">
+                        <AvatarImage src={c.user.avatar} alt={c.user.name} />
+                        <AvatarFallback>
+                          {initialsOf(c.user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {c.user.name}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {c.email}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        Thêm
+                      </span>
+                    </>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -237,7 +344,7 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
           {canAddTyped &&
             !staged.includes(query) &&
             !memberEmails.has(query) &&
-            !KNOWN_CONTACTS.some((c) => c.email === query) && (
+            !suggestions.some((c) => c.email === query) && (
               <button
                 type="button"
                 onClick={submitInput}
@@ -254,6 +361,7 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
                 </div>
               </button>
             )}
+
           {staged.length > 0 && (
             <div>
               <span className="text-sm font-medium text-neutral-400">
@@ -290,45 +398,51 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
               {members.map((m) => (
                 <div key={m.id} className="flex items-center gap-3 py-2.5">
                   <Avatar className="size-9">
-                    <AvatarImage src={m.avatar} alt={m.name} />
-                    <AvatarFallback>{initialsOf(m.name)}</AvatarFallback>
+                    <AvatarImage src={m.user.avatar} alt={m.user.name} />
+                    <AvatarFallback>{initialsOf(m.user.name)}</AvatarFallback>
                   </Avatar>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{m.name}</p>
+                    <p className="truncate text-sm font-medium">
+                      {m.user.name}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {m.status !== "accepted" &&
-                        `${STATUS_LABEL[m.status]} · `}
+                      {m.status !== "accept" && `${STATUS_LABEL[m.status]} · `}
                       {m.email}
                     </p>
                   </div>
 
-                  {isOwner && m.role !== "owner" ? (
+                  {isOwner && m.role !== "owner" && user?.id === list.user ? (
                     <DropdownMenu>
-                      <DropdownMenuTrigger className="flex h-8 w-25 shrink-0 items-center justify-end gap-1 rounded-sm px-2 text-xs text-muted-foreground outline-0 hover:bg-muted data-[state=open]:bg-muted">
+                      <DropdownMenuTrigger className="flex h-8 w-fit shrink-0 items-center justify-end gap-1 rounded-sm px-2 text-xs text-muted-foreground outline-0 hover:bg-muted data-[state=open]:bg-muted">
                         {ROLE_LABEL[m.role]}
                         <ChevronDown className="size-3.5" />
                       </DropdownMenuTrigger>
 
-                      <DropdownMenuContent align="end" className="w-40 p-1.5">
+                      <DropdownMenuContent align="end" className="w-45 p-1.5">
                         <DropdownMenuRadioGroup
                           value={m.role}
-           
+                          onValueChange={(value) =>
+                            handleRoleChange(m.email, value as IRoleMember)
+                          }
                         >
-                          <DropdownMenuRadioItem value="editor">
-                            <Edit2 className="w-2 h-2"/> {ROLE_LABEL.editor}
+                          <DropdownMenuRadioItem value="can edit">
+                            <Edit2 className="w-2 h-2" />{" "}
+                            {ROLE_LABEL["can edit"]}
                           </DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="viewer">
-                            <Eye/> {ROLE_LABEL.viewer}
+                          <DropdownMenuRadioItem value="read only">
+                            <Eye className="w-2 h-2" />{" "}
+                            {ROLE_LABEL["read only"]}
                           </DropdownMenuRadioItem>
                         </DropdownMenuRadioGroup>
 
                         <DropdownMenuSeparator />
 
                         <DropdownMenuItem
+                          onClick={() => handleRemoveMember(m.email, m.status)}
                         >
-                          <Trash2 className="w-2 h-2"/>
-                          {m.status === "accepted"
+                          <Trash2 className="w-2 h-2" />
+                          {m.status === "accept"
                             ? "Xóa khỏi danh sách"
                             : "Hủy lời mời"}
                         </DropdownMenuItem>
@@ -362,6 +476,7 @@ export function ShareContent({ listId,onClose }: Readonly<ShareContentProps>) {
           )}
         </>
       )}
+
       {isInviting && (
         <div className="mt-auto flex justify-end gap-2 border-t py-3">
           <Button

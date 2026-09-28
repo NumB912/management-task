@@ -17,26 +17,26 @@ export class DeleteMemberUsecase implements IUsecase<void> {
     listId: string,
     userId: string
   }): Promise<void> {
-
+    console.log(deleteMemberDTO)
     const { email, listId, userId } = deleteMemberDTO
 
     await this.unitWork.startTransaction();
     const session = await this.unitWork.getSession()
     try {
-      if (!email || !userId || listId) {
-        throw new AppError("NOT_FOUND", "Khong chua du lieu phu hop", 404);
+      if (!email || !userId || !listId) {
+        throw new AppError("NOT_FOUND", "Không chứa dữ liệu phù hợp", 404);
       }
       const member = await this.memberRepository.findOne({
         list: listId,
         email: email
       })
       if (!member) {
-        throw new AppError("NOT_FOUND", "Khong tim thay thanh vien", 400);
+        throw new AppError("NOT_FOUND", "Không tìm thấy thành viên", 400);
       }
-      await Promise.all([this.memberRepository.delete(member.id, session),
-         this.listRepository.pullMembersOutOfList({
+      await this.memberRepository.delete(member.id, session)
+      await this.listRepository.pullMembersOutOfList({
         memberIds: [member.id], listId: listId, session: session
-      })])
+      })
       await this.unitWork.commitTransaction();
     } catch (error: any) {
       await this.unitWork.rollBackTransaction();

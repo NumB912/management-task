@@ -60,11 +60,11 @@ export class TaskRepository
     return update ? this.TaskMapper.toDomain(update) : null;
   }
 
-  async findByIdPopulate(id: string): Promise<ITask | null> {
-    const task = (await this.db.Task.findOne({
+  async findByIdPopulate(id: string,session?:ClientSession): Promise<ITask | null> {
+    const task = await this.db.Task.findOne({
       _id: new Types.ObjectId(id),
       deleted_at: null,
-    }).populate("rule")) as unknown as ITaskDocumentPopulate;
+    }).session(session??null).populate("rule").lean() as unknown as ITaskDocumentPopulate;
 
     return this.TaskMapper.toDomainPopulate(task);
   }
