@@ -7,7 +7,7 @@ export const getNextOccurrence = (task: ITaskModel): Date | null => {
   const { rule } = task;
   if (!rule?.start_date || rule.repeat.mode === "none") return null;
 
-  const next = calculateNextDate(rule.repeat, rule.start_date);
+  const next = calculateNextDate(rule?.repeat, rule.start_date);
   if (!next) return null;
   if (rule.end_date && new Date(next) > new Date(rule.end_date)) return null;
   return next;

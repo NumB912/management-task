@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import CalendarComponent from "../calendar/calendar.component";
@@ -39,12 +39,6 @@ import {
 import { Field, FieldLabel } from "../ui/field";
 import { IRuleModel } from "../../model/rule/rule.model";
 import TagCombobox from "../tagCompobox";
-import {
-  useRemoveTask,
-  useUpdateRule,
-  useUpdateTask,
-  useUpdateTaskStatus,
-} from "../../feature/hook/useTaskMutation.hook";
 import EditTask from "./editTask";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { useShallow } from "zustand/react/shallow";
@@ -53,7 +47,11 @@ import { useCreateTag } from "../../feature/hook/useTagMutation.hook";
 import { formatTimer } from "../../utils/formatTimer";
 import { getNextOccurrence } from "../../utils/caculateNextDay";
 import useTaskHook from "../../feature/hook/task/task.hook";
-import { PRIORITY_BORDER, PRIORITY_COLORS } from "../../model/mod/priorityConfig";
+import {
+  PRIORITY_BORDER,
+  PRIORITY_COLORS,
+} from "../../model/mod/priorityConfig";
+import { formatISO } from "date-fns";
 
 export interface TaskProp {
   taskId: string;
@@ -98,6 +96,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
   const [isOpenTaskEdit, setisOpenTaskEdit] = useState<boolean>(false);
   const [openTagEdit, setOpenTagEdit] = useState<boolean>(false);
   const [openContextMenu, setOpenContextMenu] = useState<boolean>(false);
+
   const {
     addTaskStore,
     changeIdTask,
@@ -109,18 +108,28 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
     updateRule,
     updateStatusApi,
     updateTask,
-    isTemp
+    isTemp,
   } = useTaskHook(taskId);
   const listGet = useWorkspaceStore((state) => state.getListWithName);
   const lists = useMemo(() => listGet(""), [listGet]);
   const taskRef = useRef<HTMLDivElement>(null);
-  const sectionIndex = useWorkspaceStore(useShallow((state)=>state.sectionIndex))
+  const sectionIndex = useWorkspaceStore(
+    useShallow((state) => state.sectionIndex),
+  );
+  type Pending = {
+    status: ITaskModel["status"];
+    record: Record<string, Date>;
+    snapshot: { status: ITaskModel["status"]; rule: ITaskModel["rule"] };
+  };
+  const pendings = useRef<Record<string, Pending>>({});
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
   const { mutate: createTag } = useCreateTag();
   if (!task?.id || depth > 4) return null;
+
   const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
     const prev = task;
     if (!prev || isTemp(id)) return;
-
     const { section, ...rest } = data;
     const isMoving = !!section && section !== prev.section;
     const restKeys = Object.keys(rest) as (keyof ITaskModel)[];
@@ -166,49 +175,90 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
     handleUpdateRule(taskId, { tags });
   };
 
-  const handleUpdateStatusTask = (id: string, status: IStatus) => {
-    const prev = task;
-    if (!prev || isTemp(id)) return;
-    const nextDate = getNextOccurrence(prev);
-    const tempId = `temp-task-${crypto.randomUUID()}`;
-    if (nextDate && tempId) {
-      addTaskStore({
-        ...prev,
-        id: tempId,
-        status,
-        rule: { ...prev.rule, repeat: { mode: "none" } },
-      });
-      updateTaskStore(id, {
-        status: "pending",
-        rule: { ...prev.rule, start_date: nextDate },
-      });
-    } else {
-      updateTaskStore(id, { status });
-    }
-
+  const flush = (id: string) => {
+    clearTimeout(timers.current[id]);
+    delete timers.current[id];
+    const p = pendings.current[id];
+    if (!p) return;
+    delete pendings.current[id];
     updateStatusApi(
-      { taskId: id, data: { status } },
       {
-        onSuccess(data, variables, onMutateResult, context) {
-          changeIdTask(tempId, data.id);
+        taskId: id,
+        data: {
+          id: id,
+          record: p.record,
+          status: p.status,
+        },
+      },
+      {
+        onSuccess: (data) => {
+          Object.entries(data).forEach((value)=>{
+            changeIdTask(value[0],value[1])
+          })
         },
         onError: () => {
-          if (tempId) removeTaskStore(tempId);
-          updateTaskStore(id, { status: prev.status, rule: prev.rule });
+          // p.records.forEach((r) => r.tempId && removeTaskStore(r.tempId));
+          updateTaskStore(id, p.snapshot);
           toast.error("Không thể cập nhật trạng thái");
         },
       },
     );
   };
 
+  const schedule = (
+    id: string,
+    status: IStatus,
+    tempId: string | undefined,
+    snapshot: Pending["snapshot"],
+    nextDate?: Date,
+  ) => {
+    if (pendings.current[id] && pendings.current[id].status !== status) {
+      flush(id);
+    }
+    const p = (pendings.current[id] ??= { status, record: {}, snapshot });
+    if (tempId && nextDate) p.record[tempId] = new Date(nextDate);
+
+    clearTimeout(timers.current[id]);
+    timers.current[id] = setTimeout(() => flush(id), 500);
+  };
+const canRecur = (task: ITaskModel, nextDate: Date | null): nextDate is Date => {
+  if (!nextDate || !task.rule.start_date) return false;
+  const until = task.rule.repeat.until && new Date(task.rule.repeat.until);
+  return !until || nextDate.getTime() <= until.getTime();
+};
+  const handleUpdateStatusTask = (id: string, status: IStatus) => {
+    const current = task;
+    if (!current || isTemp(id)) return;
+    const snapshot = { status: current.status, rule: current.rule };
+    const nextDate = getNextOccurrence(current);
+    const tempId = `temp-task-${crypto.randomUUID()}`;
+    if (nextDate && tempId && current.rule.start_date && canRecur(current,nextDate)) {
+      addTaskStore({
+        ...current,
+        id: tempId,
+        status,
+        rule: { ...current.rule, repeat: { mode: "none" } },
+      });
+      updateTaskStore(id, {
+        status: "pending",
+        rule: { ...current.rule, start_date: nextDate },
+      });
+      schedule(id, status, tempId, snapshot, current?.rule?.start_date!);
+    } else {
+      updateTaskStore(id, { status });
+      schedule(id, status, undefined, snapshot);
+    }
+  };
+
   const handleDeleteTask = (id: string) => {
     if (isTemp(id)) return;
+
+    removeTaskStore(id);
+
     deleteTask(id, {
-      onSuccess: () => removeTaskStore(id),
       onError: () => toast.error("Không thể xoá task"),
     });
   };
-
 
   return (
     <div className="task flex flex-col flex-1">
@@ -218,8 +268,11 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
             open={openContextMenu}
             onOpenChange={(open) => setOpenContextMenu(open)}
           >
-            <ContextMenuTrigger asChild onClick={(e)=>e.stopPropagation()}>
-              <div className="w-full hover:bg-gray-200 cursor-pointer p-2 relative" onClick={(e)=>e.stopPropagation()}>
+            <ContextMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <div
+                className="w-full hover:bg-gray-200 cursor-pointer p-2 relative"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Link
                   href={`/dashboard/tasks/${task.id}`}
                   className="inset-0 absolute"

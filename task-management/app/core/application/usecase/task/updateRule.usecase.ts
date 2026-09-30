@@ -6,10 +6,12 @@ import {
   IRule,
   ITagRepository,
   IListRepository,
+  IPublisher,
 } from "@/app/core/domain";
 import { IUnitWork } from "@/app/core/domain/entities/unitwork.entities";
 import { AddTagsForMemberUsecase } from "../tag";
 import { RepeatBuilder } from "@/app/core/domain/services/repeatBuild.service";
+import { IMemberRepository } from "@/app/core/domain/repositories/IMember.repository";
 
 export class UpdateRuleUsecase implements IUsecase<void> {
   constructor(
@@ -17,7 +19,9 @@ export class UpdateRuleUsecase implements IUsecase<void> {
     private readonly RuleRepository: IRuleRepository,
     private readonly TagRepository: ITagRepository,
     private readonly ListRepository: IListRepository,
+    private readonly MemberRepository: IMemberRepository,
     private readonly AddMemberTags: AddTagsForMemberUsecase,
+    private readonly publisher: IPublisher,
     private readonly unitWork: IUnitWork,
   ) {}
 
@@ -48,19 +52,28 @@ export class UpdateRuleUsecase implements IUsecase<void> {
       }
     }
 
-    const listOfTask = await this.ListRepository.findById(taskCur.list, session);
+    const listOfTask = await this.ListRepository.findById(
+      taskCur.list,
+      session,
+    );
     if (!listOfTask) {
-      throw new AppError("NOT_FOUND", "Không tìm thấy danh sách để cập nhật", 404);
+      throw new AppError(
+        "NOT_FOUND",
+        "Không tìm thấy danh sách để cập nhật",
+        404,
+      );
     }
 
     await this.RuleRepository.update(
       taskCur.rule,
       {
         ...data,
-        repeat: data.repeat ? {
-          ...data.repeat,
-          ...RepeatBuilder.build(data.repeat),
-        } : undefined,
+        repeat: data.repeat
+          ? {
+              ...data.repeat,
+              ...RepeatBuilder.build(data.repeat),
+            }
+          : undefined,
         updated_at: new Date(),
       },
       session,
@@ -79,13 +92,11 @@ export class UpdateRuleUsecase implements IUsecase<void> {
         new Set(tagShareList?.shared_tags.map((tag) => tag.tag)),
       );
       if ([...tagsNotInList].length > 0) {
-        await this.AddMemberTags.execute(
-          {
-            listIds: [taskCur.list],
-            newTags: [...tagsNotInList],
-            session,
-          },
-        );
+        await this.AddMemberTags.execute({
+          listIds: [taskCur.list],
+          newTags: [...tagsNotInList],
+          session,
+        });
       }
     }
 
@@ -103,25 +114,44 @@ export class UpdateRuleUsecase implements IUsecase<void> {
     );
   }
 
-  async execute(
-    taskId: string,
-    data: Partial<IRule>,
-    userId: string,
-  ): Promise<void> {
-    try {
-      await this.unitWork.startTransaction();
-      const session = await this.unitWork.getSession();
-      await this.run(taskId, data, userId, session);
-      await this.unitWork.commitTransaction();
-    } catch (error: any) {
-      await this.unitWork.rollBackTransaction();
-      if (error instanceof AppError) throw error;
-      console.log(error)
-      throw new AppError(
-        error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lỗi trong quá trình cập nhật task",
-        error.status ?? 500,
-      );
+async execute(
+  taskId: string,
+  data: Partial<IRule>,
+  userId: string,
+): Promise<void> {
+  try {
+    await this.unitWork.startTransaction();
+    const txSession = await this.unitWork.getSession();
+    const taskCur = await this.TaskRepository.findById(taskId, txSession);
+    if (!taskCur) throw new AppError("NOT_FOUND", "Không tìm thấy task", 404);
+
+    await this.run(taskId, data, userId, txSession);
+
+    const list = await this.ListRepository.findById(taskCur.list, txSession);
+    if (list?.isShareList) {
+      const members = await this.MemberRepository.findManyByIds(list.members, txSession);
+      const users = members.map((m) => m.user).filter((u) => u !== userId);
+      await this.publisher.pub("Rule.exchange", "Rule.update", "direct", {
+        userIds: users,
+        data:{
+          ...data,
+          task:taskId
+        },
+        event:"rule-update",
+      });
     }
+
+    await this.unitWork.commitTransaction();
+  } catch (error: any) {
+    console.log(error)
+    await this.unitWork.rollBackTransaction();
+    if (error instanceof AppError) throw error;
+    console.log(error);
+    throw new AppError(
+      error.code ?? "INTERNAL_SERVER",
+      error.message ?? "Lỗi trong quá trình cập nhật rule",
+      error.status ?? 500,
+    );
   }
+}
 }

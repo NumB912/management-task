@@ -34,6 +34,15 @@ export const routes: Route[] = [
       }),
     ],
   },
+    {
+    matcher: "/api/lists/:listId/sortSection",
+    chain: [
+      await verifyToken(),
+      await checkPermission({
+        "can edit": ["PATCH"],
+      }),
+    ],
+  },
   {
     matcher: "/api/lists/:listId/sections",
     chain: [

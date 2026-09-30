@@ -97,6 +97,7 @@ export const TYPES = {
   ConfirmOtpUsecase:Symbol.for("ConfirmOtpUsecase"),
   RefreshUsecase:Symbol.for("RefreshTokenUseCase"),
   
+  generateId:Symbol.for("generateId"),
   calculateDeadLineService:Symbol.for("calculateDeadLineService"),
   HashService:Symbol.for("HashService"),
   TokenService:Symbol.for("TokenService"),

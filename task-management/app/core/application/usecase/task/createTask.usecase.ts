@@ -27,7 +27,7 @@ export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> 
     private readonly SectionRepository: ISectionRepository,
     private readonly TagRepository: ITagRepository,
     private readonly ListRepository: IListRepository,
-    private readonly MemberRepository:IMemberRepository,
+    private readonly MemberRepository: IMemberRepository,
     private readonly CreateRuleUsecase: CreateRuleUsecase,
     private readonly AddTagsForMemberUsecase: AddTagsForMemberUsecase,
     private readonly publisher: IPublisher,
@@ -39,13 +39,11 @@ export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> 
   ): Promise<Partial<ITaskWithId> | null> {
     const { data, listId, userId } = createTaskDTO;
     const rule = data.rule;
-    const list = await this.getListOrThrow(listId);
     try {
       await this.unitWork.startTransaction();
       const session = this.unitWork.getSession();
-
+      const list = await this.getListOrThrow(listId, session);
       let Createtask: Partial<ITaskWithId> | null = {};
-
       const HaveTag = await this.TagRepository.isUserHaveTag({
         userId: userId,
         tagNames: rule.tags,
@@ -55,7 +53,10 @@ export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> 
         throw new AppError("NOT_FOUND", "Không tìm thấy section", 404);
       }
 
-      const section = await this.getSectionOrThrow(list.sections[0]);
+      const section = await this.getSectionOrThrow(
+        createTaskDTO.data.section,
+        session,
+      );
       const path = `${section.path}/section-${section.id}`;
       const task = await this.TaskRepository.create(
         {
@@ -128,25 +129,23 @@ export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> 
         tasks: [task.id],
         session,
       });
-      console.log(list.isShareList)
-      if (list.isShareList) {
-        const members =await this.MemberRepository.findManyByIds(list.members,session)
-        const users = members.map((member)=>member.user).filter((user)=>user!=userId)
-        console.log(ruleCreate)
-            await this.publisher.pub(
-          "Task.exchange",
-          "Task.create",
-          "direct",
-          {
-            userids:users,
-            data:{
-              ...Createtask,
-              ...ruleCreate,
-            },
-            event:"task-create"
-          }
-        );
 
+      if (list.isShareList) {
+        const members = await this.MemberRepository.findManyByIds(
+          list.members,
+          session,
+        );
+        const users = members
+          .map((member) => member.user)
+          .filter((user) => user != userId);
+        await this.publisher.pub("Task.exchange", "Task.create", "direct", {
+          userids: users,
+          data: {
+            ...Createtask,
+            ...ruleCreate,
+          },
+          event: "task-create",
+        });
       }
 
       await this.unitWork.commitTransaction();

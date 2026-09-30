@@ -25,17 +25,13 @@ import ListPicker from "@/app/(front)/components/listCombobox";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
 
 import { IRuleModel, ITaskModel } from "@/app/(front)/model";
-
 import { IStatus } from "@/app/(front)/model/type/type";
-
 import { formatDate } from "@/app/(front)/utils/getDayOfMonth.utils";
 import { formatTimer } from "@/app/(front)/utils/formatTimer";
-import { DialogDescription } from "@/app/(front)/components/ui/dialog";
 import useTaskHook from "@/app/(front)/feature/hook/task/task.hook";
 import { toast } from "sonner";
 import { TaskCheckbox } from "@/app/(front)/components/task/taskCard";
 import { getNextOccurrence } from "@/app/(front)/utils/caculateNextDay";
-import Link from "next/link";
 import ColorPicker from "@/app/(front)/components/color/colorPicker.component";
 
 interface PageProps {
@@ -80,6 +76,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
     setName(task.name ?? "");
     setTags(task.rule?.tags ?? []);
     setStatus(task.status);
+    setColor(task?.rule?.color!)
   }, [
     taskId,
     task?.name,
@@ -88,6 +85,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
     task?.rule?.tags,
     task.list,
     task.section,
+    task?.rule?.color!,
     list,
     section,
   ]);
@@ -202,7 +200,6 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
   const handleUpdateRule = (id: string, data: Partial<IRuleModel>) => {
     const prev = task;
     const {id:ruleId,...rest} = data
-    console.log(rest)
     if (!prev || isTemp(id)) return;
     updateTaskStore(id, { rule: { ...prev.rule, ...data } });
     updateRule(

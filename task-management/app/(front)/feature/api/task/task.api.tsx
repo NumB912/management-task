@@ -2,6 +2,7 @@ import { axiosInstance } from '@/app/(front)/lib/axios';
 import { ITaskModel } from '@/app/(front)/model';
 import { ICreateTaskDTO, ICreateTaskWithSectionDTO, IUpdateTaskDTO } from '@/app/(front)/model/DTO/task.DTO';
 import { IRuleModel } from '@/app/(front)/model/rule/rule.model';
+import { IStatus } from '@/app/(front)/model/type/type';
 
 export const taskApi = {
   getById: async (id: string): Promise<ITaskModel> => {
@@ -52,8 +53,12 @@ export const taskApi = {
     await axiosInstance.delete(`/tasks/${id}`);
   },
 
-updateStatus: async (id: string, status: Pick<ITaskModel, "status">): Promise<ITaskModel> => {
-  const res = await axiosInstance.patch(`/tasks/${id}/status`, status)
+updateStatus: async (id: string, data:{
+  id:string,
+  record:Record<string,Date>,
+  status:IStatus
+} ): Promise<ITaskModel> => {
+  const res = await axiosInstance.patch(`/tasks/${id}/status`, data)
   return res.data.data
 }
 };

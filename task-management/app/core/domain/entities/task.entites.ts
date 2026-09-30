@@ -1,7 +1,7 @@
 
 import { IRule } from "./rule.entities"
 
-
+export type IStatusTask  ="done"|"won't do"|"pending"
 export interface ITask {
   id: string
   name: string
@@ -11,7 +11,7 @@ export interface ITask {
   list:string,
   children?:ITask[]
   done_at?:Date
-  status:"done"|"won't do"|"pending"
+  status:IStatusTask,
   parent?:ITask
   path:string
   order:number

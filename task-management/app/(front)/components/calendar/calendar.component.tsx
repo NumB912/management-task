@@ -332,6 +332,7 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
                   selectedDate={selectedDate ?? new Date()}
                   setEndDate={(selectUtil:Date|null)=>{
                     setRepeat({...repeat, until: selectUtil})
+                    setSelectedEndDate(null)
                   }}
                 />
               )}
@@ -341,7 +342,10 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
                   addTitleDate="Cho tới ngày"
                   endDate={selectedEndDate}
                   selectedDate={selectedDate ?? new Date()}
-                  setEndDate={setSelectedEndDate}
+                  setEndDate={(endDate)=>{
+                               setSelectedEndDate(endDate)
+                    setRepeat({...repeat, until: null})
+                  }}
                 />
               )}
             </>

@@ -101,6 +101,7 @@ import { NotificationRepository } from "../repositories/notification.repositorie
 import { GetNotificationsUsecase } from "../../application/usecase/notification/getNotification.usecase";
 import { NotificationMapper } from "../repositories/mapper/notification.mapper";
 import { ReadedNotificationUsecase } from "../../application/usecase/notification/readNotification.usecase";
+import { GenerateIdService } from "../service/generateId.service";
 
 export class Container {
   private static instancePromise: Promise<DependencyContainer> | null = null;
@@ -551,7 +552,9 @@ export class Container {
           c.resolve(TYPES.RuleRepository),
           c.resolve(TYPES.TagRepository),
           c.resolve(TYPES.ListRepository),
+          c.resolve(TYPES.MemberRepository),
           c.resolve(TYPES.AddTagsForMemberUsecase),
+          c.resolve(TYPES.Publisher),
           c.resolve(TYPES.UnitWork),
         ),
     });
@@ -563,6 +566,9 @@ export class Container {
   private registerService(): void {
     this.c.register(TYPES.calculateDeadLineService, {
       useFactory: () => new CaculateDeadLine(),
+    });
+        this.c.register(TYPES.generateId, {
+      useFactory: () => new GenerateIdService(),
     });
     this.c.register(TYPES.HashService, { useFactory: () => new HashService() });
     this.c.register(TYPES.TokenService, {
@@ -584,6 +590,7 @@ export class Container {
           c.resolve(TYPES.calculateDeadLineService),
           c.resolve(TYPES.RuleRepository),
           c.resolve(TYPES.SectionRepository),
+          c.resolve(TYPES.generateId),
           c.resolve(TYPES.UnitWork),
         ),
     });

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import {
   IListModel,
   IListModelState,
+  IRuleModel,
   ISectionModelState,
   ITagModel,
   ITaskModel,
@@ -77,6 +78,7 @@ interface IWorkspaceState {
   getTaskFilter: (filterId: string) => ITaskModel[];
   getTaskById: (taskId: string) => ITaskModel | undefined;
   updateTask: (taskId: string, patch: Partial<ITaskModel>) => void;
+  updateRule:(taskId:string,patch:Partial<IRuleModel>)=>void;
   updateTaskStatus: (taskId: string, status: IStatus) => void;
   getTaskWithSection: (sectionId: string) => ITaskModel[];
   getTaskQuantityWithList: (listId: string) => number;
@@ -642,10 +644,34 @@ updateTask: (taskId, patch) =>
   set((state) => {
     const currentTask = state.taskIndex[taskId];
     if (!currentTask) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`[workspace-store] updateTask: taskId "${taskId}" chưa tồn tại`);
+      if (!patch || Object.keys(patch).length === 0) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `[workspace-store] updateTask: taskId "${taskId}" chưa tồn tại và patch rỗng`
+          );
+        }
+        return state;
       }
-      return state;
+      const newTask = { ...patch, id: taskId } as ITaskModel;
+      const nextTaskIndex = { ...state.taskIndex, [taskId]: newTask };
+      const sectionId = newTask.section;
+      const section = sectionId ? state.sectionIndex[sectionId] : undefined;
+      if (!section) {
+        return state;
+      }
+
+      return {
+        taskIndex: nextTaskIndex,
+        sectionIndex: {
+          ...state.sectionIndex,
+          [sectionId!]: {
+            ...section,
+            tasks: section.tasks.includes(taskId)
+              ? section.tasks
+              : [...section.tasks, taskId],
+          },
+        },
+      };
     }
 
     const hasChange = Object.keys(patch).some((key) => {
@@ -695,6 +721,31 @@ updateTask: (taskId, patch) =>
       sectionIndex: nextSectionIndex,
     };
   }),
+    updateRule:(taskId:string,patch:Partial<IRuleModel>)=>{
+  set((state) => {
+    if(!taskId){
+      return state
+    }
+    const tasks = state.taskIndex
+    const task = tasks[taskId]
+
+    if(!task){
+      return state
+    }
+
+    return {
+      taskIndex:{
+        ...tasks,
+        [taskId]:{
+          ...task,
+          rule: {
+            ...task.rule,
+            ...patch,
+          },
+        }
+      }
+    };
+  })},
   setTask: (taskId: string, task: ITaskModel) =>
     set((state) => ({
       taskIndex: {

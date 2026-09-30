@@ -43,7 +43,6 @@ export class MoveToSectionUsecase implements IUsecase<void> {
         targetSectionId = undefined;
         sectionPath=""
       }
-      
     }
 
     if (!targetSectionId) {
@@ -81,8 +80,7 @@ export class MoveToSectionUsecase implements IUsecase<void> {
         session,
       );
       if (currentSection) {
-
-        await this.SectionRepository.pullTaskFromSection({
+      await this.SectionRepository.pullTaskFromSection({
           id: currentSection.id.toString(),
           tasks: [taskId],
           session,

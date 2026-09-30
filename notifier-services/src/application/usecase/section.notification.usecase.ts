@@ -8,7 +8,7 @@ export class SectionCreateNotificationUsecase implements IUsecase<void> {
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<Event[]>(
+   await this.consumer.sub<Event[]>(
       "section.exchange",
       "section-queue-create",
       ["section.create"],
@@ -31,7 +31,7 @@ export class SectionUpdateNotificationUsecase implements IUsecase<void> {
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<Event[]>(
+   await this.consumer.sub<Event[]>(
       "section.exchange",
       "section-queue-update",
       ["section.update"],
@@ -54,7 +54,7 @@ export class SectionChangePositionNotificationUsecase implements IUsecase<void> 
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<Event[]>(
+   await this.consumer.sub<Event[]>(
       "section.exchange",
       "section-queue-change-position",
       ["section.change.position"],
@@ -77,7 +77,7 @@ export class SectionRemoveNotificationUsecase implements IUsecase<void> {
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<Event[]>(
+   await this.consumer.sub<Event[]>(
       "section.exchange",
       "section-queue-delete",
       ["section.delete"],

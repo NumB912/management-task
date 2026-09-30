@@ -11,6 +11,7 @@ import { todayKeys } from './useToday.hook';
 import { inboxKeys } from './useInbox.hook';
 import { IListModel, ITaskModel } from '../../model';
 import { useShallow } from 'zustand/react/shallow';
+import { IStatus } from '../../model/type/type';
 
 export const useCreateTask = (listId: string) => {
   return useMutation({
@@ -21,7 +22,7 @@ export const useCreateTask = (listId: string) => {
 export const useCreateTaskWithSection = (listId: string, sectionId: string) => {
   return useMutation({
     mutationFn: (data: ICreateTaskWithSectionDTO) =>
-      taskApi.createTaskWithSection(data, listId, sectionId),
+      taskApi.createTaskWithSection(data, data.list??listId, data.section??sectionId),
   });
 };
 
@@ -56,7 +57,11 @@ export const useRemoveTask = (listId?: string) => {
 
 export const useUpdateTaskStatus = () => {
   return useMutation({
-    mutationFn: ({ data, taskId }: { taskId: string; data:Pick<ITaskModel,"status"> }) =>
+    mutationFn: ({ data, taskId }: { taskId: string; data:{
+      id:string,
+      record:Record<string, Date>,
+      status:IStatus
+    } }) =>
       taskApi.updateStatus(taskId, data),
  });
 };

@@ -58,20 +58,13 @@ export class DeleteTaskUsecase implements IUsecase<ITaskWithId | null> {
         const users = members
           .map((member) => member.user)
           .filter((user) => user != userId);
-        await this.publisher.pub(
-          "Task.exchange",
-          "Task.delete",
-          "direct",
-          users.map((user) => {
-            return {
-              data:{
-                   id: id
-              },
-              user: user,
-              event: "task-delete",
-            };
-          }),
-        );
+        await this.publisher.pub("Task.exchange", "Task.delete", "direct", {
+          data: {
+            id: id,
+          },
+          userIds: users,
+          event: "task-delete",
+        });
       }
 
       await this.unitWork.commitTransaction();

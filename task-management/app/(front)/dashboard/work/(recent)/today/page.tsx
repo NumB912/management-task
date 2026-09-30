@@ -16,7 +16,7 @@ const Page = () => {
   const { inbox, listIndex } = useWorkspaceStore();
   const getOverdueTasks = useWorkspaceStore((state) => state.getOverdueTasks);
   const getTodayInfo = useWorkspaceStore((state) => state.getTodayInfo);
-  const addTaskHandle = useAddTask(inbox??"")
+  const addTaskHandle = useAddTask(inbox??"",listIndex[inbox!]?.sections[0]??"")
   const [section, setSection] = useState<{ id: string }>();
   const taskOverDue = getOverdueTasks();
   const taskToday = getTodayInfo();

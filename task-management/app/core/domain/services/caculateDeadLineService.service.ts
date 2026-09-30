@@ -1,17 +1,23 @@
-import {IRule } from "../entities";
+import { IRule } from "../entities";
 
 export interface ICaculateDeadLine {
   calculateDeadlineWeek(
     deadLineCurrent: Date,
     every: number,
     days: number[],
-  ): Date|undefined;
-  calculateDeadLineSpecificDay(specificdays: Date[]): Date|undefined;
+    end?: Date,
+  ): Date | null;
+  calculateDeadLineSpecificDay(specificdays: Date[], end?: Date): Date | null;
   calculateDeadLineMonth(
     deadLineCurrent: Date,
     every: number,
     dates: number[],
-  ): Date|undefined;
-  calculateDeadlineDay(deadlineCurrent: Date, every: number): Date|undefined;
-  getModeCaculateDeadLine(rule:IRule):Date|undefined
+    end?: Date,
+  ): Date | null;
+  calculateDeadlineDay(
+    deadlineCurrent: Date,
+    every: number,
+    end?: Date,
+  ): Date | null;
+  getModeCaculateDeadLine(rule: IRule, start: Date): Date | null;
 }

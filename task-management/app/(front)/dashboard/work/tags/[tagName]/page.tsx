@@ -31,7 +31,7 @@ interface TagColumnProps {
 
 function TagColumn({ listId, listName, sectionId, taskIds, tagName }: Readonly<TagColumnProps>) {
   const [isAdding, setIsAdding] = useState(false);
-  const handleAddTask = useAddTask(listId)
+  const handleAddTask = useAddTask(listId,sectionId??"")
   return (  
     <SectionCard
       count={taskIds.length}

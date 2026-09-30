@@ -17,7 +17,7 @@ export function useAddTask(listId: string,sectionId:string) {
       addTask({ ...task, id: tempId }); 
       try {
         const data = await mutateAsync({
-          section:sectionId,
+          section:task.section,
           list: task.list,
           name: task.name,
           description: task.description,
@@ -30,7 +30,6 @@ export function useAddTask(listId: string,sectionId:string) {
             timer: task.rule.timer,
           },
         });
-        console.log(data)
         const realId = data.id.toString();
         changeIdTask(tempId, realId);
         return realId;

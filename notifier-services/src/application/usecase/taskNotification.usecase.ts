@@ -20,7 +20,7 @@ export class TaskCreateNotificationUsecase implements IUsecase<void> {
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<EventTask>(
+   await this.consumer.sub<EventTask>(
       "Task.exchange",
       "Task-queue-create",
       ["Task.create"],
@@ -42,7 +42,7 @@ export class TaskUpdateStatusNotificationUsecase implements IUsecase<void> {
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<EventTask>(
+   await this.consumer.sub<EventTask>(
       "Task.exchange",
       "Task-queue-update-status",
       ["Task.update.status"],
@@ -64,10 +64,32 @@ export class TaskUpdateNotificationUsecase implements IUsecase<void> {
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<EventTask>(
+   await this.consumer.sub<EventTask>(
       "Task.exchange",
       "Task-queue-update",
       ["Task.update"],
+      "direct",
+      async (event) => {
+        event.userIds.forEach((userId) => {
+          this.realtimeGateway.pushToUser(userId, event.event, {
+            data: event.data,
+          });
+        });
+      },
+    );
+  }
+}
+
+export class RuleUpdateNotificationUsecase implements IUsecase<void> {
+  constructor(
+    private readonly consumer: IConsumer,
+    private readonly realtimeGateway: IRealtimeGateway,
+  ) {}
+  async execute(): Promise<void> {
+   await this.consumer.sub<EventTask>(
+      "Rule.exchange",
+      "Rule-queue-update",
+      ["Rule.update"],
       "direct",
       async (event) => {
         event.userIds.forEach((userId) => {
@@ -109,16 +131,15 @@ export class TaskRemoveNotificationUsecase implements IUsecase<void> {
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<Event[]>(
+   await this.consumer.sub<EventTask>(
       "Task.exchange",
       "Task-queue-delete",
       ["Task.delete"],
       "direct",
-      async (events) => {
-        events.forEach((event) => {
-          this.realtimeGateway.pushToUser(event.user, event.event, {
+      async (event) => {
+        event.userIds.forEach((userId) => {
+          this.realtimeGateway.pushToUser(userId, event.event, {
             data: event.data,
-            id: event.id,
           });
         });
       },

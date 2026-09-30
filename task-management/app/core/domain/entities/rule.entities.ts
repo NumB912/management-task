@@ -1,11 +1,13 @@
 export interface IRepeat {
-  mode: string,
+  mode: IModeRepeat,
   every?: number,
   dates?: number[],
   days?: number[],
   specificDays?: Date[]
   until?:Date|null
 }
+
+export type IModeRepeat = "week" | "day"| "none"|"month"|"specificday"
 
 export interface IRule {
   id: string;

@@ -5,18 +5,29 @@ export class SSERealtimeGateway implements IRealtimeGateway{
   private readonly instanceId = Math.random().toString(36).slice(2, 8);
   private readonly clients=new Map<string,Set<Response>>()
 
-  register(userId:string,res:Response):void{
-   const user = this.clients.get(userId)
-    console.log(`[Gateway ${this.instanceId}] đăng ký với userId=${userId}`);
-    if(!user){
-      this.clients.set(userId,new Set())
+
+  register(userId: string, res: Response): void {
+    const key = String(userId);
+    let userClients = this.clients.get(key);
+    if (!userClients) {
+      userClients = new Set();
+      this.clients.set(key, userClients);
     }
-    user?.add(res)
-  };
-  unregister(userId:string,res:Response):void{
-    const user = this.clients.get(userId)
-    if(!user) return
-    user.delete(res)
+    userClients.add(res);
+    console.log(
+      `[Gateway ${this.instanceId}] đăng ký userId=${key}, tổng kết nối=${userClients.size}`,
+    );
+  }
+
+  unregister(userId: string, res: Response): void {
+    const key = String(userId);
+    const userClients = this.clients.get(key);
+    if (!userClients) return;
+    userClients.delete(res);
+    if (userClients.size === 0) this.clients.delete(key);
+    console.log(
+      `[Gateway ${this.instanceId}] hủy userId=${key}, còn lại=${userClients.size}`,
+    );
   }
   pushToUser<T>(userId: string, event: string, payload: T): void {
     const userClients = this.clients.get(userId);

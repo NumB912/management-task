@@ -6,7 +6,7 @@ export type RepeatMode = "week" | "day" | "none" | "month" | "specificday";
 export type RulePriority = 1 | 2 | 3 | 4;
 
 export interface IRepeatSubdocument {
-  mode: string;
+  mode: RepeatMode;
   every?: number;
   dates?: number[];
   days?: number[];

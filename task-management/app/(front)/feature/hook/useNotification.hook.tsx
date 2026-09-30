@@ -23,8 +23,8 @@ const useNotifications = (apiUrl: string) => {
   const { mutate: updateRead } = useReadNotification();
   const addTask = useWorkspaceStore((state) => state.addTask);
   const updateTask = useWorkspaceStore((state)=>state.updateTask)
+  const updateRule = useWorkspaceStore((state)=>state.updateRule)
   const removeTask = useWorkspaceStore((state)=>state.removeTask)
-  const moveTask = useWorkspaceStore((state)=>state.moveTaskIntoSection)
   const addSection = useWorkspaceStore((state)=>state.addSection)
   const removeSection = useWorkspaceStore((state)=>state.removeSection)
   const updateSection = useWorkspaceStore((state)=>state.setSectionIndex)
@@ -105,6 +105,7 @@ const useNotifications = (apiUrl: string) => {
         return [payload as unknown as INotificationModel, ...prev];
       });
     });
+    
     es.addEventListener("task-create", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
       console.log(payload.data);
@@ -147,6 +148,13 @@ const useNotifications = (apiUrl: string) => {
       changePositionSection(payload.data.startId,payload.data.endId)
     });
 
+        es.addEventListener("rule-update", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data)
+      updateRule(payload.data.task,{
+        ...payload.data
+      })
+    });
 
     es.onerror = (err) => {
       console.log(err);

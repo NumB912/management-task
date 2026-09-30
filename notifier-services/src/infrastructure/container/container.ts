@@ -6,6 +6,7 @@ import {
   SectionUpdateNotificationUsecase,
 } from "@application/usecase/section.notification.usecase.js";
 import {
+  RuleUpdateNotificationUsecase,
   TaskCreateNotificationUsecase,
   TaskRemoveNotificationUsecase,
   TaskUpdateNotificationUsecase,
@@ -48,12 +49,19 @@ export async function buildContainer() {
     consumer,
     realtimeGateway,
   );
+
+    const ruleUpdate = new RuleUpdateNotificationUsecase(
+    consumer,
+    realtimeGateway,
+  );
+
   return {
     realtimeGateway,
     notifierUsecase,
     taskCreate,
     taskRemove,
     taskUpdate,
+    ruleUpdate,
     sectionCreate,
     sectionRemove,
     sectionUpdate,

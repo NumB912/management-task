@@ -41,7 +41,7 @@ export const listApi = {
       toId: string
     ): Promise<boolean> => {
 
-      const res = await axiosInstance.patch(`/lists/${listId}`, { fromId,toId });
+      const res = await axiosInstance.patch(`/lists/${listId}/sortSection`, { fromId,toId });
       return res.data;
     },
 };
