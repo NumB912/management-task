@@ -1,10 +1,11 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import CalendarComponent from "../calendar/calendar.component";
 import { ITaskModel } from "../../model";
 import { Button } from "@/components/ui/button";
+import ObjectID from "bson-objectid";
 import {
   ArrowRight,
   Calendar,
@@ -51,7 +52,6 @@ import {
   PRIORITY_BORDER,
   PRIORITY_COLORS,
 } from "../../model/mod/priorityConfig";
-import { formatISO } from "date-fns";
 
 export interface TaskProp {
   taskId: string;
@@ -99,7 +99,6 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
 
   const {
     addTaskStore,
-    changeIdTask,
     moveTaskIntoSection,
     removeTaskStore,
     task,
@@ -108,7 +107,6 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
     updateRule,
     updateStatusApi,
     updateTask,
-    isTemp,
   } = useTaskHook(taskId);
   const listGet = useWorkspaceStore((state) => state.getListWithName);
   const lists = useMemo(() => listGet(""), [listGet]);
@@ -118,7 +116,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
   );
   type Pending = {
     status: ITaskModel["status"];
-    record: Record<string, Date>;
+    record: Record<string, { date: Date; rule: string }>;
     snapshot: { status: ITaskModel["status"]; rule: ITaskModel["rule"] };
   };
   const pendings = useRef<Record<string, Pending>>({});
@@ -129,7 +127,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
 
   const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
     const prev = task;
-    if (!prev || isTemp(id)) return;
+    if (!prev ) return;
     const { section, ...rest } = data;
     const isMoving = !!section && section !== prev.section;
     const restKeys = Object.keys(rest) as (keyof ITaskModel)[];
@@ -156,7 +154,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
 
   const handleUpdateRule = (id: string, data: Partial<IRuleModel>) => {
     const prev = task;
-    if (!prev || isTemp(id)) return;
+    if (!prev ) return;
     updateTaskStore(id, { rule: { ...prev.rule, ...data } });
     updateRule(
       { taskId: id, data },
@@ -190,18 +188,6 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
           status: p.status,
         },
       },
-      {
-        onSuccess: (data) => {
-          Object.entries(data).forEach((value)=>{
-            changeIdTask(value[0],value[1])
-          })
-        },
-        onError: () => {
-          // p.records.forEach((r) => r.tempId && removeTaskStore(r.tempId));
-          updateTaskStore(id, p.snapshot);
-          toast.error("Không thể cập nhật trạng thái");
-        },
-      },
     );
   };
 
@@ -209,6 +195,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
     id: string,
     status: IStatus,
     tempId: string | undefined,
+    rule: string | undefined,
     snapshot: Pending["snapshot"],
     nextDate?: Date,
   ) => {
@@ -216,45 +203,50 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
       flush(id);
     }
     const p = (pendings.current[id] ??= { status, record: {}, snapshot });
-    if (tempId && nextDate) p.record[tempId] = new Date(nextDate);
+    if (tempId && nextDate)
+      p.record[tempId] = { date: new Date(nextDate), rule: rule ?? "" };
 
     clearTimeout(timers.current[id]);
-    timers.current[id] = setTimeout(() => flush(id), 500);
+    timers.current[id] = setTimeout(() => flush(id), 200);
   };
-const canRecur = (task: ITaskModel, nextDate: Date | null): nextDate is Date => {
-  if (!nextDate || !task.rule.start_date) return false;
-  const until = task.rule.repeat.until && new Date(task.rule.repeat.until);
-  return !until || nextDate.getTime() <= until.getTime();
-};
+  const canRecur = (
+    task: ITaskModel,
+    nextDate: Date | null,
+  ): nextDate is Date => {
+    if (!nextDate || !task.rule.start_date) return false;
+    const until = task.rule.repeat.until && new Date(task.rule.repeat.until);
+    return !until || nextDate?.getTime() <= until?.getTime();
+  };
   const handleUpdateStatusTask = (id: string, status: IStatus) => {
     const current = task;
-    if (!current || isTemp(id)) return;
+    if (!current ) return;
     const snapshot = { status: current.status, rule: current.rule };
-    const nextDate = getNextOccurrence(current);
-    const tempId = `temp-task-${crypto.randomUUID()}`;
-    if (nextDate && tempId && current.rule.start_date && canRecur(current,nextDate)) {
+    const { next, isEnded } = getNextOccurrence(current);
+    const tempId = new ObjectID().toHexString();
+    const rule = new ObjectID().toHexString();
+    if (next && tempId && current.rule.start_date && canRecur(current, next)) {
       addTaskStore({
         ...current,
         id: tempId,
         status,
-        rule: { ...current.rule, repeat: { mode: "none" } },
+        rule: { ...current.rule, id: rule, repeat: { mode: "none" } },
       });
       updateTaskStore(id, {
         status: "pending",
-        rule: { ...current.rule, start_date: nextDate },
+        rule: { ...current.rule, start_date: next },
       });
-      schedule(id, status, tempId, snapshot, current?.rule?.start_date!);
+      schedule(id, status, tempId, rule, snapshot, current?.rule?.start_date!);
+    } else if (isEnded && status === "done") {
+      updateTaskStore(id, { status });
+      schedule(id, status, tempId, rule, snapshot, current?.rule?.start_date!);
     } else {
       updateTaskStore(id, { status });
-      schedule(id, status, undefined, snapshot);
+      schedule(id, status, undefined, undefined, snapshot);
     }
   };
 
   const handleDeleteTask = (id: string) => {
-    if (isTemp(id)) return;
-
     removeTaskStore(id);
-
     deleteTask(id, {
       onError: () => toast.error("Không thể xoá task"),
     });

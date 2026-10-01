@@ -35,14 +35,15 @@ export async function POST(
     id:string
   }
   const body = await req.json();
-  const { name } = body;
+  const { name,id } = body;
   const resolvedParams = await params;
   const { listId } = resolvedParams;
   const getByID = await (await GetContainer())
     .resolve<CreateSectionUsecase>(TYPES.CreateSectionUsecase)
     .execute({
       data: {
-        name: name
+        name: name,
+        id:id
       },
       user_id:user.id,
       list_id: listId

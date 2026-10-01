@@ -1,19 +1,34 @@
-import { IRepeat } from "@/app/core/domain";
+
 import dayjs from "dayjs";
 import { ITaskModel } from "../model";
 
 
-export const getNextOccurrence = (task: ITaskModel): Date | null => {
+export const getNextOccurrence = (task: ITaskModel):{
+  next: Date | null;
+  isEnded: boolean;
+}=> {
   const { rule } = task;
-  if (!rule?.start_date || rule.repeat.mode === "none") return null;
+  if (!rule?.start_date || rule.repeat.mode === "none") return {
+    isEnded: true,
+    next: null
+  };
 
   const next = calculateNextDate(rule?.repeat, rule.start_date);
-  if (!next) return null;
-  if (rule.end_date && new Date(next) > new Date(rule.end_date)) return null;
-  return next;
+  if (!next) return {
+    isEnded: true,
+    next: null
+  };
+  if (rule.repeat.until && new Date(next) >= new Date(rule.repeat.until)) return {
+    next: next,
+    isEnded: true,
+  };
+  return {
+    next:next,
+    isEnded: rule.repeat.until ? new Date(next) >= new Date(rule.repeat.until) : false,
+  };
 };
 
-export const calculateNextDate = (repeat: IRepeat, fromDate: Date): Date | null => {
+export const calculateNextDate = (repeat: NonNullable<ITaskModel["rule"]>["repeat"], fromDate: Date): Date | null => {
   const base = dayjs(fromDate);
   const every = repeat.every ?? 1;
 

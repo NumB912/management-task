@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useCreateTaskWithSection } from "@/app/(front)/feature/hook/useTaskMutation.hook";
 import { ITaskModel } from "@/app/(front)/model";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import ObjectID from "bson-objectid";
 
 export function useAddTask(listId: string,sectionId:string) {
   const addTask = useWorkspaceStore((s) => s.addTask);
@@ -13,10 +14,11 @@ export function useAddTask(listId: string,sectionId:string) {
 
   return useCallback(
     async (task: ITaskModel) => {
-      const tempId = `temp-task-${crypto.randomUUID()}`;
-      addTask({ ...task, id: tempId }); 
+      const id = new ObjectID().toString();
+      addTask({ ...task, id: id }); 
       try {
-        const data = await mutateAsync({
+        await mutateAsync({
+          id: id,
           section:task.section,
           list: task.list,
           name: task.name,
@@ -30,11 +32,9 @@ export function useAddTask(listId: string,sectionId:string) {
             timer: task.rule.timer,
           },
         });
-        const realId = data.id.toString();
-        changeIdTask(tempId, realId);
-        return realId;
+        return id;
       } catch {
-        removeTask(tempId)
+        removeTask(id)
         toast.error("Không thể tạo task");
         return null;
       }

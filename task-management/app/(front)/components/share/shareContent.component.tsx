@@ -59,9 +59,9 @@ const STATUS_LABEL: Record<IStatusMember, string> = {
 
 export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
   const listIndex = useWorkspaceStore(useShallow((state) => state.listIndex));
-  const {user} = useUserState()
-  const list = useMemo(() => listIndex[listId], [listId]);
-  const lists = useMemo(() => Object.values(listIndex), [listId]);
+  const { user } = useUserState();
+  const list = useMemo(() => listIndex[listId], [listIndex, listId]);
+  const lists = useMemo(() => Object.values(listIndex), [listIndex]);
   const [members, setMembers] = useState<IMemberModel[]>(list.members ?? []);
   const [input, setInput] = useState("");
   const [staged, setStaged] = useState<string[]>([]);
@@ -72,10 +72,19 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
   const isOwner = true;
   const query = input.trim().toLowerCase();
   const isInviting = query.length > 0 || staged.length > 0;
-  const memberEmails = useMemo(
-    () => new Set(members?.map((m) => m.email?.toLowerCase())),
-    [members],
-  );
+
+  // Trạng thái của từng thành viên trong list hiện tại
+  const memberStatusByEmail = useMemo(() => {
+    const map = new Map<string, IStatusMember>();
+    members?.forEach((m) => {
+      if (m.email) map.set(m.email.toLowerCase(), m.status);
+    });
+    return map;
+  }, [members]);
+
+  // Chỉ chặn mời lại người ĐÃ chấp nhận. pending / deny vẫn được mời lại.
+  const isAccepted = (email: string) =>
+    memberStatusByEmail.get(email.toLowerCase()) === "accept";
 
   const suggestions = useMemo(() => {
     const seen = new Set<string>();
@@ -87,8 +96,8 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
       for (const member of l.members) {
         const email = member.email?.toLowerCase();
         if (!email) continue;
-        if (member.status !== "accept") continue;
-        if (memberEmails.has(email)) continue;
+        if (memberStatusByEmail.get(email) === "accept") continue;
+        if (member.status == "pending") continue;
         if (staged.includes(email)) continue;
         if (seen.has(email)) continue;
         const matchQuery =
@@ -104,13 +113,15 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     }
 
     return result;
-  }, [lists, listId, memberEmails, staged, query]);
+  }, [lists, listId, memberStatusByEmail, staged, query]);
 
   const canAddTyped = EMAIL_REGEX.test(query);
 
+  // Thêm người mới, hoặc thay thế lời mời cũ (pending/deny) bằng lời mời mới
   const addContactNow = (contact: Contact) => {
+    const email = contact.email.toLowerCase();
     setMembers((prev) => [
-      ...prev,
+      ...prev.filter((m) => m.email?.toLowerCase() !== email),
       {
         id: crypto.randomUUID(),
         name: contact.name,
@@ -165,7 +176,7 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
         firstError ||= `Email không hợp lệ: ${email}`;
         continue;
       }
-      if (memberEmails.has(email)) {
+      if (isAccepted(email)) {
         firstError ||= `${email} đã là thành viên`;
         continue;
       }
@@ -192,19 +203,30 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     if (
       canAddTyped &&
       !emailsToInvite.includes(query) &&
-      !memberEmails.has(query)
+      !isAccepted(query)
     ) {
       emailsToInvite.push(query);
     }
     if (emailsToInvite.length === 0) return;
 
+    const previousMembers = members;
+
+    // Những người đã có (pending/deny) -> đặt lại thành pending (lời mời mới thay lời cũ)
+    setMembers((prev) =>
+      prev.map((m) =>
+        emailsToInvite.includes(m.email?.toLowerCase()) &&
+        m.status !== "accept"
+          ? { ...m, status: "pending" as IStatusMember }
+          : m,
+      ),
+    );
+
     Invite(
       { email: emailsToInvite, listId },
       {
-        onSuccess(data, variables, onMutateResult, context) {},
-
-        onError(error, variables, onMutateResult, context) {
-          console.log(error);
+        onError(error) {
+          setMembers(previousMembers);
+          toast.error(error.message ?? "Không thể gửi lời mời");
         },
       },
     );
@@ -214,7 +236,9 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
   };
 
   const pendingCount =
-    staged.length + (canAddTyped && !staged.includes(query) ? 1 : 0);
+    staged.length +
+    (canAddTyped && !staged.includes(query) && !isAccepted(query) ? 1 : 0);
+
   const handleRoleChange = (email: string, role: IRoleMember) => {
     const previous = members;
     setMembers((prev) =>
@@ -224,11 +248,8 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     updateMember(
       { email, listId, role },
       {
-        onError: (error:Error) => {
-
-          
-          console.log(error.message)
-
+        onError: (error: Error) => {
+          console.log(error.message);
           setMembers(previous);
           toast.error("Không thể đổi quyền, vui lòng thử lại");
         },
@@ -258,40 +279,40 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 px-4">
-             {
-            user?.id==list.user&&( 
-      <div className="space-y-1.5">
-     <div className="relative">
-          <Input
-            type="email"
-            className={cn("rounded-sm! p-4! pr-11!")}
-            placeholder="Nhập email để thêm người dùng"
-            value={input}
-            disabled={user?.id!=list.user}
-            onChange={(e) => {
-              setInput(e.target.value);
-              setError("");
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                submitInput();
-              }
-            }}
-          />
-          <button
-            type="button"
-            aria-label="Thêm người dùng"
-            onClick={submitInput}
-            disabled={query.length === 0}
-            className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-          >
-            <UserPlus className="size-4" />
-          </button>
+      {user?.id == list.user && (
+        <div className="space-y-1.5">
+          <div className="relative">
+            <Input
+              type="email"
+              className={cn("rounded-sm! p-4! pr-11!")}
+              placeholder="Nhập email để thêm người dùng"
+              value={input}
+              disabled={user?.id != list.user}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submitInput();
+                }
+              }}
+            />
+            <button
+              type="button"
+              aria-label="Thêm người dùng"
+              onClick={submitInput}
+              disabled={query.length === 0}
+              className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+            >
+              <UserPlus className="size-4" />
+            </button>
+          </div>
+
+          {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
-        
-            {error && <p className="text-xs text-destructive">{error}</p>}
-       </div>  )}
+      )}
 
       {isInviting ? (
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
@@ -343,7 +364,7 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
 
           {canAddTyped &&
             !staged.includes(query) &&
-            !memberEmails.has(query) &&
+            !isAccepted(query) &&
             !suggestions.some((c) => c.email === query) && (
               <button
                 type="button"

@@ -86,4 +86,17 @@ export const MemberApi = {
       throw error;
     }
   },
+
+  exitMember: async (listId: string) => {
+    try {
+      const res = await axiosInstance.delete(`/lists/${listId}/members/exit`);
+      return res.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        const body = error.response.data;
+        throw new ApiError(body, error.response.status);
+      }
+      throw error;
+    }
+  },
 };

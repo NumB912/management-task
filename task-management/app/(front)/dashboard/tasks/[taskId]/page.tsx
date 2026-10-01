@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ import { TaskCheckbox } from "@/app/(front)/components/task/taskCard";
 import { getNextOccurrence } from "@/app/(front)/utils/caculateNextDay";
 import Link from "next/link";
 import ColorPicker from "@/app/(front)/components/color/colorPicker.component";
+import ObjectID from "bson-objectid";
 
 interface PageProps {
   params: Promise<{
@@ -49,29 +50,39 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
   const router = useRouter();
   const {
     addTaskStore,
-    changeIdTask,
     moveTaskIntoSection,
-    removeTaskStore,
     task,
     updateRule,
     updateStatusApi,
-    isTemp,
     updateTask,
     updateTaskStore,
   } = useTaskHook(taskId);
+  console.log("task", task);
   const listIndex = useWorkspaceStore((state) => state.listIndex);
   const sectionIndex = useWorkspaceStore((state) => state.sectionIndex);
   const list = useMemo(() => {
     if (!task) return undefined;
     return listIndex[task.list];
   }, [listIndex, task]);
+  
   const section = useMemo(() => {
     if (!task || !list) return undefined;
     return sectionIndex[task.section];
   }, [task]);
+  type Pending = {
+    status: ITaskModel["status"];
+    record: Record<string, {
+      readonly date: Date;
+      readonly rule: string;
+    }>;
+    snapshot: { status: ITaskModel["status"]; rule: ITaskModel["rule"] };
+  };
+  const pendings = useRef<Record<string, Pending>>({});
+  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
   const [name, setName] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [color, setColor] = useState<string>(task.rule.color!);
+  const [color, setColor] = useState<string>(task?.rule?.color!);
   const [status, setStatus] = useState<IStatus>("pending");
   const [openTags, setOpenTags] = useState(false);
   const [openPriority, setOpenPriority] = useState(false);
@@ -84,10 +95,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
     taskId,
     task?.name,
     task?.status,
-    task?.rule?.priority,
-    task?.rule?.tags,
-    task.list,
-    task.section,
+    task.rule,
     list,
     section,
   ]);
@@ -168,6 +176,81 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
       clearTimeout(timeout);
     };
   }, [name, task?.name]);
+
+
+  const flush = (id: string) => {
+    clearTimeout(timers.current[id]);
+    delete timers.current[id];
+    const p = pendings.current[id];
+    if (!p) return;
+    delete pendings.current[id];
+    updateStatusApi(
+      {
+        taskId: id,
+        data: {
+          id: id,
+          record: p.record,
+          status: p.status,
+        },
+      },
+    );
+  };
+
+  const schedule = (
+    id: string,
+    status: IStatus,
+    tempId: string | undefined,
+    rule: string | undefined,
+    snapshot: Pending["snapshot"],
+    nextDate?: Date,
+  ) => {
+    if (pendings.current[id] && pendings.current[id].status !== status) {
+      flush(id);
+    }
+    const p = (pendings.current[id] ??= { status, record: {}, snapshot });
+    if (tempId && nextDate)
+      p.record[tempId] = { date: new Date(nextDate), rule: rule ?? "" };
+
+    clearTimeout(timers.current[id]);
+    timers.current[id] = setTimeout(() => flush(id), 500);
+  };
+  const canRecur = (
+    task: ITaskModel,
+    nextDate: Date | null,
+  ): nextDate is Date => {
+    if (!nextDate || !task.rule.start_date) return false;
+    const until = task.rule.repeat.until && new Date(task.rule.repeat.until);
+    return !until || nextDate?.getTime() <= until?.getTime();
+  };
+  const handleUpdateStatusTask = (id: string, status: IStatus) => {
+    const current = task;
+    if (!current) return;
+    const snapshot = { status: current.status, rule: current.rule };
+    const { next, isEnded } = getNextOccurrence(current);
+    const tempId = new ObjectID().toHexString();
+    const rule = new ObjectID().toHexString();
+    if (next && tempId && current.rule.start_date && canRecur(current, next)) {
+      addTaskStore({
+        ...current,
+        id: tempId,
+        status,
+        rule: { ...current.rule, id: rule, repeat: { mode: "none" } },
+      });
+      updateTaskStore(id, {
+        status: "pending",
+        rule: { ...current.rule, start_date: next },
+      });
+      schedule(id, status, tempId, rule, snapshot, current?.rule?.start_date!);
+    } else if (isEnded && status === "done") {
+      updateTaskStore(id, { status });
+      schedule(id, status, tempId, rule, snapshot, current?.rule?.start_date!);
+    } else {
+      updateTaskStore(id, { status });
+      schedule(id, status, undefined, undefined, snapshot);
+    }
+  };
+
+
   useEffect(() => {
     if (!color) return;
     const handle = setTimeout(() => {
@@ -203,7 +286,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
   const handleUpdateRule = (id: string, data: Partial<IRuleModel>) => {
     const prev = task;
     const { id: ruleId, ...rest } = data;
-    if (!prev || isTemp(id)) return;
+    if (!prev) return;
     updateTaskStore(id, { rule: { ...prev.rule, ...data } });
     updateRule(
       {
@@ -223,7 +306,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
   };
   const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
     const prev = task;
-    if (!prev || isTemp(id)) return;
+    if (!prev) return;
     const { section, ...rest } = data;
     const isMoving = !!section && section !== prev.section;
     const restKeys = Object.keys(rest) as (keyof ITaskModel)[];
@@ -242,41 +325,6 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
             );
           }
           toast.error("Không thể cập nhật task");
-        },
-      },
-    );
-  };
-
-  const handleUpdateStatusTask = (id: string, status: IStatus) => {
-    const prev = task;
-    if (!prev || isTemp(id)) return;
-    const nextDate = getNextOccurrence(prev);
-    const tempId = `temp-task-${crypto.randomUUID()}`;
-    if (nextDate && tempId) {
-      addTaskStore({
-        ...prev,
-        id: tempId,
-        status,
-        rule: { ...prev.rule, repeat: { mode: "none" } },
-      });
-      updateTaskStore(id, {
-        status: "pending",
-        rule: { ...prev.rule, start_date: nextDate },
-      });
-    } else {
-      updateTaskStore(id, { status });
-    }
-
-    updateStatusApi(
-      { taskId: id, data: { status } },
-      {
-        onSuccess(data, variables, onMutateResult, context) {
-          changeIdTask(tempId, data.id);
-        },
-        onError: () => {
-          if (tempId) removeTaskStore(tempId);
-          updateTaskStore(id, { status: prev.status, rule: prev.rule });
-          toast.error("Không thể cập nhật trạng thái");
         },
       },
     );

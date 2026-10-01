@@ -86,7 +86,7 @@ const HourGrid = ({ tasks, type = "Day", days, onHandle }: HourGridProp) => {
       date,
       tasks: tasks.filter(
         (t) =>
-          t.rule?.start_date && isSameDay(new Date(t.rule.start_date), date),
+          t.rule?.start_date && isSameDay(new Date(t.rule.start_date), date) || (t.rule?.end_date && t.rule.start_date && new Date(t.rule.end_date).getTime() >= date.getTime() && new Date(t.rule.start_date).getTime() <= date.getTime()),
       ),
     }));
   }, [tasks, type, days]);

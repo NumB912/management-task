@@ -9,6 +9,7 @@ import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { formatDateVi } from "@/app/(front)/utils/getDayOfMonth.utils";
+import { useShallow } from "zustand/react/shallow";
 
 const MAX_VISIBLE = 2;
 
@@ -19,7 +20,7 @@ interface DayViewProps {
 
 function DayView({ currentDate, onCreateTask }: Readonly<DayViewProps>) {
   const [expanded, setExpanded] = useState(false);
-  const taskIndex = useWorkspaceStore((s) => s.taskIndex);
+  const taskIndex = useWorkspaceStore(useShallow((s) => s.taskIndex));
   const route = useRouter();
   const dayTime = startOfDay(currentDate).getTime();
   const day = useMemo(() => new Date(dayTime), [dayTime]);
@@ -27,8 +28,13 @@ function DayView({ currentDate, onCreateTask }: Readonly<DayViewProps>) {
     () =>
       Object.values(taskIndex).filter((task) => {
         const raw = task.rule?.start_date;
-        if (!raw || task.status != "pending") return false;
+        const rawEnd = task.rule?.end_date;
+        if (!raw) return false;
 
+        if(rawEnd && new Date(rawEnd).getTime() >= day.getTime() && new Date(raw).getTime() <= day.getTime()){
+          return true;
+        }
+        
         const d = new Date(raw);
         return !Number.isNaN(d.getTime()) && isSameDay(d, day);
       }),

@@ -41,7 +41,7 @@ export const TaskList = memo(({ tasks,className="" }: TaskSectionProp) => {
   );
 
   const completedIds = useMemo(
-    () => taskData.filter((t) => t.status !== "pending").map((t) => t.id),
+    () => taskData.filter((t) => t.status !== "pending").map((t) => t.id).reverse(),
     [taskData]
   );
 

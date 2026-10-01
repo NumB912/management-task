@@ -14,7 +14,7 @@ export const tagApi = {
   },
 
   
-  create: async (data: Pick<ITagModel,"name">): Promise<ITagModel> => {
+  create: async (data: Pick<ITagModel,"name"|"id">): Promise<ITagModel> => {
     const res = await axiosInstance.post<{tag:ITagModel}>('/tags', data);
     return res.data.tag;
   },

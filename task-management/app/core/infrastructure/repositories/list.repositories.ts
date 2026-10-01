@@ -135,7 +135,7 @@ export class ListRepository
                 foreignField: "_id",
                 localField: "user",
                 as: "userData",
-                pipeline: [{ $project: { _id: 1, name: 1, email: 1 } }],
+                pipeline: [{ $project: { _id: 1, name: 1, email: 1,role:1 } }],
               },
             },
             { $set: { user: { $arrayElemAt: ["$userData", 0] } } },

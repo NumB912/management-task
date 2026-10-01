@@ -17,7 +17,10 @@ import { ITagModel } from "../../model";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "../ui/label";
 import { useWorkspaceStore } from "../../states/workspace.state";
-import { useUpdateTagOnlyMe, useUpdateTagWithShare } from "../../feature/hook/useTagMutation.hook";
+import {
+  useUpdateTagOnlyMe,
+  useUpdateTagWithShare,
+} from "../../feature/hook/useTagMutation.hook";
 interface EditTagDialogProps {
   tag: ITagModel | null;
   onClose: () => void;
@@ -30,13 +33,15 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
   const [openEdit, setOpenEdit] = useState<boolean>(false);
   const { hasTag } = useWorkspaceStore();
   const [error, setError] = useState<string>("");
-  const { mutate: updateOnlyMe, isPending: isPendingOnlyMe } = useUpdateTagOnlyMe();
-  const { mutate: updateWithShare, isPending: isPendingShare } = useUpdateTagWithShare();
-  const editTagWithShare = useWorkspaceStore((state)=>state.editTagWithShare)
-  const editTagOnlyMe = useWorkspaceStore((state)=>state.editTagWithOnly)
+  const { mutate: updateOnlyMe, isPending: isPendingOnlyMe } =
+    useUpdateTagOnlyMe();
+  const { mutate: updateWithShare, isPending: isPendingShare } =
+    useUpdateTagWithShare();
+  const editTagWithShare = useWorkspaceStore((state) => state.editTagWithShare);
+  const editTagOnlyMe = useWorkspaceStore((state) => state.editTagWithOnly);
   const isPending = isPendingOnlyMe || isPendingShare;
 
- const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!tag) return;
     const trimmed = name.trim();
@@ -51,27 +56,27 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
       return;
     }
 
-      if (!tag) return;
+    if (!tag) return;
     if (isEditShareTag) {
-      editTagWithShare(tag.name,{
-        name:trimmed
-      })
-      
+      editTagWithShare(tag.name, {
+        name: trimmed,
+      });
       updateWithShare({
         id: tag.id,
-        name: trimmed
+        name: trimmed,
       });
+
+      onClose();
     } else {
-      editTagOnlyMe(tag.name,{
-        name:trimmed
-      })
+      editTagOnlyMe(tag.name, {
+        name: trimmed,
+      });
       updateOnlyMe({
         id: tag.id,
-        name: trimmed
+        name: trimmed,
       });
+      onClose();
     }
-
-    onClose()
     setOpenEdit(false);
     setConfirm(true);
   };
@@ -80,14 +85,13 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
     if (tag) {
       setName(tag.name);
 
-      setIsEditShareTag(tag?.isShareTag??false);
+      setIsEditShareTag(tag?.isShareTag ?? false);
       setOpenEdit(true);
     } else {
       setOpenEdit(false);
       setConfirm(false);
     }
   }, [tag]);
-
 
   const handleCloseAll = () => {
     setOpenEdit(false);
@@ -126,7 +130,7 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
                   className={cn(
                     "rounded! px-3! py-5!",
                     error &&
-                    "border-destructive! focus-visible:ring-destructive!",
+                      "border-destructive! focus-visible:ring-destructive!",
                   )}
                 />
                 {error && <p className="text-sm text-destructive">{error}</p>}
@@ -172,9 +176,7 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
               <Checkbox
                 id="edit-with-share"
                 checked={isEditShareTag}
-                onCheckedChange={(checked) =>
-                  setIsEditShareTag(!!checked)
-                }
+                onCheckedChange={(checked) => setIsEditShareTag(!!checked)}
               />
               <Label htmlFor="edit-with-share">
                 <span className="font-medium">
@@ -196,11 +198,7 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
             >
               Quay lại
             </Button>
-            <Button
-              type="submit"
-              disabled={isPending}
-              className="rounded-sm!"
-            >
+            <Button type="submit" disabled={isPending} className="rounded-sm!">
               {isPending ? "Đang cập nhật..." : "Xác nhận"}
             </Button>
           </DialogFooter>

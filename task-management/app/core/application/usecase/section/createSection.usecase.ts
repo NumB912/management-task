@@ -15,7 +15,7 @@ export class CreateSectionUsecase implements IUsecase<ISectionWithId | null> {
     createSectionDTO: {
       user_id: string,
       list_id: string,
-      data: Pick<ISectionWithId, "name">,
+      data: Pick<ISectionWithId, "name"|"id">,
     }
   ): Promise<ISectionWithId | null> {
 
@@ -33,6 +33,7 @@ export class CreateSectionUsecase implements IUsecase<ISectionWithId | null> {
       const createdSection = await this.sectionRepository.create(
         {
           name: data.name,
+          id: data.id,
           list: list_id,
           path: `/list-${list_id}`,
           order: Date.now(),

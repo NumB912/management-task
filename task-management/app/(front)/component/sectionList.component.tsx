@@ -8,6 +8,7 @@ import { CheckCircle } from "lucide-react";
 import { useCreateSection, useRemoveSection } from "../feature/hook/useSectionMutation.hook";
 import { ISectionModelState } from "../model";
 import { useWorkspaceStore } from "../states/workspace.state";
+import ObjectID from "bson-objectid";
 
 const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string[]; listId: string }) => {
   const [sections, setSections] = useState<string[]>(sectionsData ?? []);
@@ -86,7 +87,7 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
             toast.error("Không thể xóa thành phần này, vui lòng thử lại");
           },
         });
-      }, 2000);
+      },1000);
 
       setSections((prev) => prev.filter((section) => section !== sectionId));
       toast.success("Xóa thành công", {
@@ -119,7 +120,7 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
   );
 
   const addSection =useCallback((section: Pick<ISectionModelState, "name">)=> {
-    const sectionIdTemp = `temp-id-${new Date()}`
+    const sectionIdTemp = new ObjectID().toString()
     const sectionTemp:ISectionModelState = {
       id:sectionIdTemp,
       list:listId,
@@ -129,15 +130,16 @@ const SectionList = React.memo(({listId,sections:sectionsData}:{sections: string
     const snapShotSection = sections
     setSections(prev=>[...prev,sectionTemp.id])
     addSectionState(listId,sectionTemp)
-    mutateAddSection(section, {
+    mutateAddSection({
+      id:sectionIdTemp,
+      name:section.name
+    }, {
       onError: () => {
         toast.error("Thêm thành phần thất bại, vui lòng thử lại")
         setSections(snapShotSection)
         removeSectionStore(sectionIdTemp);
       },
       onSuccess(data, variables, onMutateResult, context) {
-        changeIdSection(sectionIdTemp,data.id)
-        setSections((prev)=>[...prev.filter(sectionId=>sectionId!==sectionIdTemp),data.id])
         toast.success("Thêm thành phần thành công")
       },
     })

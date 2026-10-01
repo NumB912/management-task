@@ -87,8 +87,9 @@ interface IWorkspaceState {
   moveTaskIntoSection: (taskId: string, newSectionId: string) => void;
   addSection: (listId: string, newSection: Pick<ISectionModelState,"name"|"id">) => void;
   editList:(listId:string,newName:string)=>void;
+  addList:(list:Pick<IListModelState, "isShareList" | "name" | "user" | "id" | "sections"|"members">)=>void;
   removeSection: (sectionId: string) => void;
-  addTask: (task: ITaskModel) => void;
+  addTask: (task:ITaskModel) => void;
   addTag:(tag:ITagModel)=>void;
   editTagWithShare:(name:string,tag:Pick<ITagModel,"name">)=>void;
   editTagWithOnly:(name:string,tag:Pick<ITagModel,"name">)=>void;
@@ -313,6 +314,18 @@ editList(listId, newName) {
 
     return length
   },
+addList(list) {
+  if (!list?.id) return;
+
+  set((state) => {
+    return {
+      listIndex: {
+        ...state.listIndex,
+        [list.id]: list,
+      },
+    };
+  });
+},
   moveTaskIntoSection: (taskId, newSectionId) =>
     set((state) => {
       const task = state.taskIndex[taskId];

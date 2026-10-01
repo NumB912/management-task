@@ -82,6 +82,10 @@ export const routes: Route[] = [
     chain: [await verifyToken()],
   },
   {
+    matcher: "/api/lists/:listId/members/exit",
+    chain: [await verifyToken()],
+  },
+  {
     matcher: "/api/lists/:listId/members/:email",
     chain: [await verifyToken(), await checkOwner()],
   },

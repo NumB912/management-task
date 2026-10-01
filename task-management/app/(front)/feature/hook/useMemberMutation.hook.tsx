@@ -18,6 +18,10 @@ interface RemoveMemberParams {
   email:string
 }
 
+interface ExitMemberParams{
+  listId:string
+}
+
 interface UpdateMemberParams {
   listId: string;
   email: string;
@@ -66,6 +70,19 @@ export const useRemoveMember = () => {
   });
 };
 
+export const useExitMember = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<boolean, ApiError,ExitMemberParams>({
+    mutationFn: ({ listId }: ExitMemberParams) =>
+      MemberApi.exitMember(listId),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notification"] });
+      queryClient.invalidateQueries({ queryKey: ["lists"] });
+    },
+  });
+};
 
 export const useUpdateMember = ()=>{
   const queryClient = useQueryClient();

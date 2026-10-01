@@ -96,12 +96,13 @@ import { GetAllListSectionUsecase } from "../../application/usecase/list/getList
 import { GetTodayUsecase } from "../../application/usecase/task/today.usecase";
 import { GetUpcomingUsecase } from "../../application/usecase/task/upComming.usecase";
 import { GetPromodoUsecase } from "../../application/usecase/promodo/getPromodo.usecase";
-import { RealtimeNotifier } from "../../application/usecase/notification/notification.usecase";
 import { NotificationRepository } from "../repositories/notification.repositories";
 import { GetNotificationsUsecase } from "../../application/usecase/notification/getNotification.usecase";
 import { NotificationMapper } from "../repositories/mapper/notification.mapper";
 import { ReadedNotificationUsecase } from "../../application/usecase/notification/readNotification.usecase";
 import { GenerateIdService } from "../service/generateId.service";
+import { ExitMemberUsecase } from "../../application/usecase/member/exit.usecase";
+import { RealtimeNotifier } from "../../application/usecase/notification/notification.usecase";
 
 export class Container {
   private static instancePromise: Promise<DependencyContainer> | null = null;
@@ -178,6 +179,14 @@ export class Container {
           c.resolve(TYPES.ListRepository),
         ),
     });
+        this.c.register(TYPES.exitFromList, {
+      useFactory: (c) =>
+        new ExitMemberUsecase(
+          c.resolve(TYPES.MemberRepository),
+          c.resolve(TYPES.ListRepository),
+          c.resolve(TYPES.UnitWork)
+        ),
+    });
     this.c.register(TYPES.CheckPermissionSectionUsecase, {
       useFactory: (c) =>
         new CheckPermissionSectionUsecase(
@@ -232,6 +241,9 @@ export class Container {
           c.resolve(TYPES.ListRepository),
           c.resolve(TYPES.notificationRepository),
           c.resolve(TYPES.SynsMemberTagUsecase),
+          c.resolve(TYPES.UserRepository),
+          c.resolve(TYPES.Publisher),
+          c.resolve(TYPES.RealTimeNotifier),
           c.resolve(TYPES.UnitWork),
         ),
     });
@@ -590,8 +602,10 @@ export class Container {
           c.resolve(TYPES.calculateDeadLineService),
           c.resolve(TYPES.RuleRepository),
           c.resolve(TYPES.SectionRepository),
-          c.resolve(TYPES.generateId),
-          c.resolve(TYPES.UnitWork),
+          c.resolve(TYPES.MemberRepository),
+          c.resolve(TYPES.ListRepository),
+          c.resolve(TYPES.Publisher),
+          c.resolve(TYPES.UnitWork)
         ),
     });
   }

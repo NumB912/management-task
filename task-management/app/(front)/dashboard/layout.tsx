@@ -14,7 +14,7 @@ const layout = ({
   modal: React.ReactNode;
 }) => {
   const hydrate = useWorkspaceStore((s) => s.hydrate);
-  const { data, isSuccess } = useWorkspace();
+  const { data, isSuccess,isLoading } = useWorkspace();
   useEffect(() => {
     if (isSuccess && data) {
       hydrate({
@@ -28,6 +28,17 @@ const layout = ({
       });
     }
   }, [isSuccess, data, hydrate]);
+
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isSuccess) {
+    return null;
+  }
+
+
 
   return (
     <SidebarProvider className="overflow-hidden">

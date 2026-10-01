@@ -10,6 +10,8 @@ export const TYPES = {
   RealTimeNotifier:Symbol.for("RealTimeNotifier"),
 
 
+
+  exitFromList:Symbol.for("exitFromList"),
   readNotification:Symbol.for("readNotification"),
   getNotification:Symbol.for("NotificationUsecase"),
   createPromodoUsecase:Symbol.for("createPromodoUsecase"),

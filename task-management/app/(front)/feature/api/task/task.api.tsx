@@ -55,10 +55,14 @@ export const taskApi = {
 
 updateStatus: async (id: string, data:{
   id:string,
-  record:Record<string,Date>,
+  record:Record<string,{
+    date:Date,
+    rule:string
+  }>,
   status:IStatus
 } ): Promise<ITaskModel> => {
   const res = await axiosInstance.patch(`/tasks/${id}/status`, data)
-  return res.data.data
+  console.log(res)
+  return res.data.result
 }
 };

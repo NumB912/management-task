@@ -5,7 +5,8 @@ import { TYPES } from "@/app/core/infrastructure/container/type.container";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
-  const body = await req.json()
+  try{
+      const body = await req.json()
   const data = body
   const resolvedParams = await params;
   const { taskId } = resolvedParams;
@@ -15,11 +16,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ta
     id: string
   }
 
-  const UpdateTaskStatusUsecase = await (await GetContainer())
+  await (await GetContainer())
     .resolve<UpdateStatusUsecase>(TYPES.updateTaskStatusUsecase)
     .execute({ data: data, taskId: taskId,userId:user.id });
   return NextResponse.json(
-    { message: "Thành công", data: UpdateTaskStatusUsecase },
+    { message: "Thành công" },
     { status: 200 },
   );
+  }catch(err){
+    console.log(err)
+    return NextResponse.json(
+      { message: "Lỗi server" },
+      { status: 500 },
+    );
+  }
 }

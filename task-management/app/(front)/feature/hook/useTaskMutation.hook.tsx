@@ -59,7 +59,10 @@ export const useUpdateTaskStatus = () => {
   return useMutation({
     mutationFn: ({ data, taskId }: { taskId: string; data:{
       id:string,
-      record:Record<string, Date>,
+      record:Record<string, {
+        date:Date,
+        rule:string
+      }>,
       status:IStatus
     } }) =>
       taskApi.updateStatus(taskId, data),

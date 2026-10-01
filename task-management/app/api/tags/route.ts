@@ -24,11 +24,12 @@ export async function POST(req: NextRequest) {
     role: "user" | "admin",
     id: string
   }
-  const { name } = body
+  const { name,id } = body
   const createTag = await (await GetContainer())
     .resolve<CreateTagUsecase>(TYPES.CreateTagUsecase)
     .execute({
       name: name,
+      id: id,
       userId: user?.id
     });
 

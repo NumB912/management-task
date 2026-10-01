@@ -26,6 +26,7 @@ import {
   Folder,
   Inbox,
   List,
+  LogOutIcon,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -68,15 +69,20 @@ import { EditFilterDialog } from "../../components/filters/editFilter.filters";
 import { IFilterModel } from "../../model/filter.model";
 import { DeleteFilterDialog } from "../../components/filters/deleteFilter";
 import NotificationBell from "../../components/notifier/notificationBell";
-const layout = ({
-  children,
-
-}: {
-  children: React.ReactNode;
-}) => {
+import { de } from "date-fns/locale";
+import useUserState from "../../states/user/user.state";
+import { IRoleMember } from "../../model/member.model";
+import useExitMemberHook from "../../feature/hook/useExitMember.hook";
+const layout = ({ children }: { children: React.ReactNode }) => {
   const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
-  const {getTodayTaskCount,getNextDayCount,getInboxCount,filterIndex,tagIndex} = useWorkspaceStore()
-
+  const {
+    getTodayTaskCount,
+    getNextDayCount,
+    getInboxCount,
+    filterIndex,
+    tagIndex,
+  } = useWorkspaceStore();
+  const { user } = useUserState();
   const pathName = usePathname();
   const [openList, setOpenList] = useState<boolean>(true);
   const [openFilter, setOpenFilter] = useState<boolean>(true);
@@ -98,9 +104,14 @@ const layout = ({
   const [openAddFilter, setOpenAddFilter] = useState<boolean>(false);
   const [openAddTag, setOpenAddTag] = useState<boolean>(false);
   const [openAddList, setOpenAddList] = useState<boolean>(false);
-  const getTaskWithFilter = useWorkspaceStore((state)=>state.getTaskFilter)
-  const getTaskQuantityWithList = useWorkspaceStore((state)=>state.getTaskQuantityWithList)
-  const getTaskQuantityWithTag = useWorkspaceStore((state)=>state.getTaskQuantityWithTag)
+  const {handleExitMember,isPending} = useExitMemberHook()
+  const getTaskWithFilter = useWorkspaceStore((state) => state.getTaskFilter);
+  const getTaskQuantityWithList = useWorkspaceStore(
+    (state) => state.getTaskQuantityWithList,
+  );
+  const getTaskQuantityWithTag = useWorkspaceStore(
+    (state) => state.getTaskQuantityWithTag,
+  );
   const tabs = [
     {
       title: "Hôm nay",
@@ -201,20 +212,17 @@ const layout = ({
                 {listEntries.map(([listId, info]) => {
                   const isActive =
                     pathName === `/dashboard/work/lists/${listId}`;
-
+                  const role =
+                    info.members.find((member) => {
+                      return member.user.id == user?.id;
+                    })?.role ?? "read only";
                   const listActions = [
                     {
                       icon: <Edit size={16} />,
                       label: "Chỉnh sửa",
                       onSelect: () =>
                         setEditingList({ id: listId, name: info.name }),
-                    },
-                    {
-                      icon: <Trash2 size={16} />,
-                      label: "Xóa",
-                      destructive: true,
-                      onSelect: () =>
-                        setDeletingList({ id: listId, name: info.name }),
+                      role: ["owner"] as IRoleMember[], 
                     },
                     {
                       icon: <Share2 size={16} />,
@@ -222,6 +230,24 @@ const layout = ({
                       onSelect: () => {
                         open(listId);
                       },
+                      role: ["owner", "can edit", "viewer"] as IRoleMember[],
+                    },
+                             {
+                      icon: <Trash2 size={16} />,
+                      label: "Xóa",
+                      destructive: true,
+                      onSelect: () =>
+                      setDeletingList({ id: listId, name: info.name }),
+                      role: ["owner"] as IRoleMember[],
+                    },
+                    {
+                      icon: <LogOutIcon size={16} />,
+                      label: "Rời khỏi",
+                      onSelect: () => {
+                        handleExitMember(listId)
+                      },
+                      destructive: true,
+                      role: ["can edit", "viewer"] as IRoleMember[],
                     },
                   ];
                   if (info.name.toLocaleLowerCase() == "inbox") {
@@ -261,7 +287,7 @@ const layout = ({
 
                             <span className="flex items-center gap-2 relative">
                               <span className="group-hover/list-item:hidden flex-1 absolute right-1 text-sm text-neutral-600">
-                                {getTaskQuantityWithList(listId)??0}
+                                {getTaskQuantityWithList(listId) ?? 0}
                               </span>
                               <DropdownMenu>
                                 <DropdownMenuTrigger
@@ -282,6 +308,7 @@ const layout = ({
                                 >
                                   <SharedMenuItems
                                     as="dropdown"
+                                    role={role}
                                     actions={listActions}
                                   />
                                 </DropdownMenuContent>
@@ -292,7 +319,11 @@ const layout = ({
                       </ContextMenuTrigger>
 
                       <ContextMenuContent>
-                        <SharedMenuItems as="context" actions={listActions} />
+                        <SharedMenuItems
+                          as="context"
+                          actions={listActions}
+                          role={role}
+                        />
                       </ContextMenuContent>
                     </ContextMenu>
                   );
@@ -340,36 +371,38 @@ const layout = ({
                     </p>
                   </div>
                 )}
-                {(Object.values(filterIndex) ?? [])?.map((filter:IFilterModel) => (
-                  <EntityRow
-                    key={filter.id}
-                    link={`/dashboard/work/filters/${filter.id}`}
-                    icon={<Filter data-icon="inline-start" size={16} />}
-                    name={filter.name}
-                    count={getTaskWithFilter(filter.id).length}
-                    actionGroups={[
-                      [
-                        {
-                          label: "Chỉnh sửa",
-                          icon: <Pencil size={14} />,
-                          onClick: () => {
-                            setEditFilter(filter);
+                {(Object.values(filterIndex) ?? [])?.map(
+                  (filter: IFilterModel) => (
+                    <EntityRow
+                      key={filter.id}
+                      link={`/dashboard/work/filters/${filter.id}`}
+                      icon={<Filter data-icon="inline-start" size={16} />}
+                      name={filter.name}
+                      count={getTaskWithFilter(filter.id).length}
+                      actionGroups={[
+                        [
+                          {
+                            label: "Chỉnh sửa",
+                            icon: <Pencil size={14} />,
+                            onClick: () => {
+                              setEditFilter(filter);
+                            },
                           },
-                        },
-                      ],
-                      [
-                        {
-                          label: "Xóa",
-                          icon: <Trash size={14} />,
-                          onClick: () => {
-                            setdeleteFilter(filter);
+                        ],
+                        [
+                          {
+                            label: "Xóa",
+                            icon: <Trash size={14} />,
+                            onClick: () => {
+                              setdeleteFilter(filter);
+                            },
+                            variant: "destructive",
                           },
-                          variant: "destructive",
-                        },
-                      ],
-                    ]}
-                  />
-                ))}
+                        ],
+                      ]}
+                    />
+                  ),
+                )}
               </CollapsibleContent>
             </Collapsible>
 
@@ -448,8 +481,11 @@ const layout = ({
                     />
                   ))}
 
-                {(Object.values(tagIndex).filter((tag: ITagModel) => tag.isShareTag) ?? [])
-                  .length !== 0 && (
+                {(
+                  Object.values(tagIndex).filter(
+                    (tag: ITagModel) => tag.isShareTag,
+                  ) ?? []
+                ).length !== 0 && (
                   <Collapsible
                     open={openShareTag}
                     onOpenChange={setOpenShareTag}
@@ -474,7 +510,7 @@ const layout = ({
                       </SidebarGroupLabel>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      {(Object.values(tagIndex)?? [])
+                      {(Object.values(tagIndex) ?? [])
                         .filter((tag: ITagModel) => tag.isShareTag)
                         .map((tag: ITagModel) => (
                           <EntityRow

@@ -18,6 +18,7 @@ import { useWorkspaceStore } from "../../states/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import { tagApi } from "../../feature/api/tags/tag.api";
 import { randomUUID } from "crypto";
+import ObjectID from "bson-objectid";
 
 interface addTagsDialogProps {
   open:boolean;
@@ -33,6 +34,7 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
     )
   );
   const addTag = useWorkspaceStore((s)=>s.addTag)
+  const remove = useWorkspaceStore((s)=>s.removetagIndex)
   const changeTagId = useWorkspaceStore((s)=>s.changeIdTag)
   useEffect(() => {
     if (open) {
@@ -41,8 +43,8 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
   }, [open]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (newName: string) => {
-      return await tagApi.create({ name: newName });
+    mutationFn: async (data: { name: string; id: string }) => {
+      return await tagApi.create(data);
     },
     onSuccess: () => {
       toast.success("Đã thêm thẻ");
@@ -75,15 +77,21 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
       setError(validationError);
       return;
     }
-
+    const newTagId = new ObjectID().toHexString();
     addTag({
       name:trimmed,
-      id:`temp-tag-${crypto.randomUUID()}`,
+      id:newTagId,
     })
-    mutate(trimmed,{
+    mutate({
+      name: trimmed,
+      id: newTagId
+    },{
       onSuccess(data, variables, onMutateResult, context) {
         changeTagId(data.id,trimmed)
       },
+      onError(error, variables, onMutateResult, context) {
+        remove(newTagId)
+      }
     });
 
     onClose()

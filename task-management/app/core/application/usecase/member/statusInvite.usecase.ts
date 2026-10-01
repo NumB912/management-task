@@ -4,9 +4,11 @@ import {
   IUnitWork,
   IListRepository,
   IListWithId,
+  IPublisher,
+  IUserRepository,
 } from "@/app/core/domain";
+import { IRealtimeNotifier } from "@/app/core/domain/message";
 import {
-  IMember,
   IMemberWithId,
   IStatusMember,
 } from "@/app/core/domain/entities/member.entities";
@@ -29,6 +31,9 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
     private readonly listRepository: IListRepository,
     private readonly notificationRepository: INotificationRepository,
     private readonly syncMemberTag: SyncMemberTagsUseCase,
+    private readonly userRepository: IUserRepository,
+    private readonly publisher: IPublisher, // gửi DỮ LIỆU để đồng bộ client / data sync
+    private readonly realtimeNotifier: IRealtimeNotifier, // gửi THÔNG BÁO (lưu DB + real-time) / notifications
     private readonly unitWork: IUnitWork,
   ) {}
 
@@ -38,6 +43,7 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
       const session = await this.unitWork.getSession();
       this.validateInput(data);
       const { email, userId, status, listId } = data;
+
       const list = await this.listRepository.findById(listId, session);
       const member = await this.memberRepository.findOne(
         {
@@ -47,6 +53,7 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
         },
         session,
       );
+
       if (status == "deny" && (!member || !list)) {
         await this.notificationRepository.updateNotificationInviteMemberStatus(
           {
@@ -56,11 +63,12 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
           },
           session,
         );
-        return true
+        await this.unitWork.commitTransaction();
+        return true;
       }
 
       if (!list) {
-        throw new AppError("NOT_FOUND", "Không tồn tại danh sách", 404);
+        throw new AppError("NOT_FOUND", "Không tồn tại danh sách", 404);
       }
 
       this.validateMember({ member, userId });
@@ -75,6 +83,7 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
 
       const updated = await this.memberRepository.updateBy(
         {
+          list: listId,
           email: email,
         },
         { status, updated_at: new Date(), expired_at: undefined },
@@ -89,8 +98,14 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
         },
         session,
       );
-
       await this.unitWork.commitTransaction();
+      void this.notifyMemberDecision({
+        status,
+        listId,
+        userId,
+        member: member!,
+      });
+
       return updated;
     } catch (error: any) {
       console.log(error);
@@ -100,6 +115,81 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
         error.message ?? "Lỗi khi cập nhật trạng thái lời mời",
         error.status ?? 500,
       );
+    }
+  }
+
+  private async notifyMemberDecision(params: {
+    status: IStatusMember;
+    listId: string;
+    userId: string;
+    member: any; 
+  }): Promise<void> {
+    const { status, listId, userId, member } = params;
+
+    try {
+      const [list, user] = await Promise.all([
+        this.listRepository.findById(listId),
+        this.userRepository.findById(userId),
+      ]);
+      if (!list || !user) return;
+
+      const members = await this.memberRepository.findManyByIds(
+        list.members ?? [],
+      );
+      const actorId = String(userId);
+
+      const recipients = new Set(
+        members
+          .filter((m) => m.status === "accept") 
+          .map((m) => String(m.user)),
+      );
+      if ((list as any).user) recipients.add(String((list as any).user));
+      recipients.delete(actorId);
+
+      if (recipients.size === 0) return;
+
+      const plain = member?.toObject?.() ?? member;
+
+      const userIds = [...recipients];
+      const actor = {
+        id: actorId,
+        name: user.name,
+        avatar: user.avatar,
+      };
+      const results = await Promise.allSettled([
+        Promise.resolve(
+          this.publisher.pub("memberExchange", `${status}.member`, "direct", {
+            userIds,
+            event: `${status}-member`,
+            data: {
+              member: {
+                ...plain,
+                status,
+                user: { ...actor, email: user.email },
+              },
+              listName: list.name,
+              listId: String(listId),
+            },
+          }),
+        ),
+        this.realtimeNotifier.push(userIds, `${status}-member-notification`, {
+          listId: String(listId),
+          listName: list.name,
+          user: actor,
+          status,
+        }),
+      ]);
+
+      results.forEach((r, i) => {
+        if (r.status === "rejected") {
+          console.error(
+            `[${status}-member] ${i === 0 ? "publish data" : "notification"} failed`,
+            r.reason,
+          );
+        }
+      });
+    } catch (err) {
+      console.error(`[${status}-member] notify failed`, err);
     }
   }
 

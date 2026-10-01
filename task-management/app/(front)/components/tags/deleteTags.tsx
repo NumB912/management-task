@@ -14,6 +14,7 @@ import { ITagModel } from "../../model";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "../ui/label";
 import { useRemoveTagOnlyMe, useRemoveTagWithShare } from "../../feature/hook/useTagMutation.hook";
+import { useWorkspaceStore } from "../../states/workspace.state";
 
 interface DeleteTagDialogProps {
   tag: ITagModel | null;
@@ -24,17 +25,28 @@ export function DeleteTagDialog({ tag, onClose }: Readonly<DeleteTagDialogProps>
   const [isShareDeleteTag, setIsShareDeleteTag] = useState<boolean>(false);
   const { mutate: removeOnlyMe, isPending: isPendingOnlyMe } = useRemoveTagOnlyMe();
   const { mutate: removeWithShare, isPending: isPendingShare } = useRemoveTagWithShare();
-
+  const removeTag = useWorkspaceStore((state) => state.removetagIndex);
+  const addTag = useWorkspaceStore((state) => state.addTag);
   const isPending = isPendingOnlyMe || isPendingShare;
 
   const handleRemoveTag = () => {
     if (!tag) return;
+    const prevTag = tag;
+    removeTag(tag.id);
     if (isShareDeleteTag) {
-      removeWithShare(tag.id);
+      removeWithShare(tag.id,{
+        onError(error, variables, onMutateResult, context) {
+          addTag(prevTag);
+        },
+      });
     } else {
-      removeOnlyMe(tag.id);
+      removeOnlyMe(tag.id,{
+        onError(error, variables, onMutateResult, context) {
+          addTag(prevTag);
+        },
+      });
     }
-
+    
     onClose()
 
   };

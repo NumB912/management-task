@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ApiError } from "../../lib/axios";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { ISectionModelState, ITaskModel } from "../../model";
+import { IStatus } from "../../model/type/type";
 
 interface RealtimePayload {
   [key: string]: any;
@@ -100,6 +101,87 @@ const useNotifications = (apiUrl: string) => {
     es.addEventListener("invite-member", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
       console.log(payload);
+      setNotification((prev) => {
+        if (prev.some((n) => n.id === payload.id)) return prev;
+        return [payload as unknown as INotificationModel, ...prev];
+      });
+    });
+
+es.addEventListener("task-update-status", (event: MessageEvent) => {
+  try {
+    const payload: RealtimePayload = JSON.parse(event.data);
+    const { record, task: base } = payload.data as unknown as {
+      record: Record<string, { date: string; rule: string }>;
+      task: ITaskModel;
+      status?: IStatus;
+    };
+
+    const { taskIndex } = useWorkspaceStore.getState();
+    const status = (payload.data as any).status ?? "completed"; 
+
+    if(payload.data.type=="single"){
+      updateTask(payload.data.id,{
+        status:status
+      })
+    }
+
+    if (payload.data.type === "recurring") {
+          for (const [tempId, pair] of Object.entries(record ?? {})) {
+      if (taskIndex[tempId]) continue;
+
+      addTask({
+        ...base,
+        id: tempId, 
+        status,
+        done_at: new Date(),
+        rule: {
+          ...base.rule,
+          id: pair.rule,
+          task: tempId,
+          repeat: { mode: "none" },
+          start_date: new Date(pair.date),
+        },
+      });
+    }
+
+    updateTask(base.id, {
+      status: base.status,
+      done_at: base.done_at,
+      rule: {
+        ...base.rule,
+      },
+
+    });
+    }
+
+  } catch (err) {
+    console.error("[SSE] task-update-status parse failed", err);
+  }
+});
+
+    es.addEventListener("accept-member", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+    });
+
+     es.addEventListener("accept-member-notification", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+      setNotification((prev) => {
+        if (prev.some((n) => n.id === payload.id)) return prev;
+        return [payload as unknown as INotificationModel, ...prev];
+      });
+    });
+
+        
+    es.addEventListener("deny-member", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+    });
+    
+    es.addEventListener("deny-member-notification", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
       setNotification((prev) => {
         if (prev.some((n) => n.id === payload.id)) return prev;
         return [payload as unknown as INotificationModel, ...prev];

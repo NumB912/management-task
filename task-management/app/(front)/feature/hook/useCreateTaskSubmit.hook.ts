@@ -2,6 +2,7 @@ import { toast } from "sonner"; // đổi lại nếu bạn dùng lib toast khá
 import { ITaskModel } from "../../model";
 import { ICreateTaskDTO } from "../../model/DTO/task.DTO";
 import { useCreateTask, useCreateTaskWithSection } from "./useTaskMutation.hook";
+import ObjectID from "bson-objectid";
 
 const ACTIVE_TAG_REGEX = /#([^\s]*)$/;
 const ACTIVE_priority = /P([1-4])\s$/;
@@ -44,8 +45,8 @@ const buildTask = (): ITaskModel | null => {
 
   const cleanName = getCleanTaskName(el);
   if (cleanName.length === 0) return null;
-  const TempIdTask = `temp-task-${Date.now()}`
- const TempIdRule = `temp-rule-${Date.now()}`
+  const TempIdTask = new ObjectID().toString();
+ const TempIdRule = new ObjectID().toString();
   return {
     id:TempIdTask,
     name: cleanName,
