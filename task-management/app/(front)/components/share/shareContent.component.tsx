@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, Edit2, Eye, Trash2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { useWorkspaceStore } from "../../states/workspace.state";
-import { useShallow } from "zustand/react/shallow";
 import {
   IMemberModel,
   IRoleMember,
@@ -29,6 +28,7 @@ import {
   useUpdateMember,
 } from "../../feature/hook/useMemberMutation.hook";
 import useUserState from "../../states/user/user.state";
+import { useShallow } from "zustand/react/shallow";
 
 interface ShareContentProps {
   listId: string;
@@ -41,8 +41,8 @@ interface Contact {
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-function initialsOf(text: string) {
-  return text[0]?.toUpperCase() ?? "?";
+function initialsOf(text?: string) {
+  return text?.[0]?.toUpperCase() ?? "?";
 }
 
 const ROLE_LABEL: Record<IRoleMember, string> = {
@@ -58,22 +58,26 @@ const STATUS_LABEL: Record<IStatusMember, string> = {
 };
 
 export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
-  const listIndex = useWorkspaceStore(useShallow((state) => state.listIndex));
   const { user } = useUserState();
-  const list = useMemo(() => listIndex[listId], [listIndex, listId]);
-  const lists = useMemo(() => Object.values(listIndex), [listIndex]);
-  const [members, setMembers] = useState<IMemberModel[]>(list.members ?? []);
+  const list = useWorkspaceStore(useShallow((state) => state.listIndex[listId]))
+  const listIndex = useWorkspaceStore((state) => state.listIndex);
+  const updateRole = useWorkspaceStore((state) => state.setUpdateRoleMember);
+  const addMemberStore = useWorkspaceStore((state) => state.addMember);
+  const removeMemberStore = useWorkspaceStore((state) => state.removeMember);
+
   const [input, setInput] = useState("");
   const [staged, setStaged] = useState<string[]>([]);
   const [error, setError] = useState("");
+
   const { mutate: updateMember } = useUpdateMember();
   const { mutate: Invite } = useInvite();
   const { mutate: removeMember } = useRemoveMember();
-  const isOwner = true;
+
+  const members = list?.members;
+  const isListOwner = !!list && user?.id === list.user;
   const query = input.trim().toLowerCase();
   const isInviting = query.length > 0 || staged.length > 0;
 
-  // Trạng thái của từng thành viên trong list hiện tại
   const memberStatusByEmail = useMemo(() => {
     const map = new Map<string, IStatusMember>();
     members?.forEach((m) => {
@@ -82,7 +86,6 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     return map;
   }, [members]);
 
-  // Chỉ chặn mời lại người ĐÃ chấp nhận. pending / deny vẫn được mời lại.
   const isAccepted = (email: string) =>
     memberStatusByEmail.get(email.toLowerCase()) === "accept";
 
@@ -90,21 +93,21 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     const seen = new Set<string>();
     const result: IMemberModel[] = [];
 
-    for (const l of lists) {
+    for (const l of Object.values(listIndex)) {
       if (l.id === listId) continue;
 
-      for (const member of l.members) {
+      for (const member of l.members ?? []) {
         const email = member.email?.toLowerCase();
         if (!email) continue;
         if (memberStatusByEmail.get(email) === "accept") continue;
-        if (member.status == "pending") continue;
+        if (member.status === "pending") continue;
         if (staged.includes(email)) continue;
         if (seen.has(email)) continue;
+
         const matchQuery =
           query.length > 0 &&
           (email.includes(query) ||
-            member.user.name.toLowerCase().includes(query));
-
+            member.user?.name?.toLowerCase().includes(query));
         if (!matchQuery) continue;
 
         seen.add(email);
@@ -113,52 +116,66 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     }
 
     return result;
-  }, [lists, listId, memberStatusByEmail, staged, query]);
+  }, [listIndex, listId, memberStatusByEmail, staged, query]);
 
   const canAddTyped = EMAIL_REGEX.test(query);
 
-  // Thêm người mới, hoặc thay thế lời mời cũ (pending/deny) bằng lời mời mới
-  const addContactNow = (contact: Contact) => {
-    const email = contact.email.toLowerCase();
-    setMembers((prev) => [
-      ...prev.filter((m) => m.email?.toLowerCase() !== email),
-      {
-        id: crypto.randomUUID(),
-        name: contact.name,
-        email: contact.email,
-        avatar: contact.avatar,
-        list: listId,
-        user: {
-          id: crypto.randomUUID(),
-          name: contact.name,
-          avatar: contact.avatar,
-        },
-        role: "can edit",
-        status: "pending",
-      },
-    ]);
+  const buildPendingMember = (contact: Contact): IMemberModel => ({
+    id: crypto.randomUUID(),
+    email: contact.email.toLowerCase(),
+    list: listId,
+    user: {
+      id: crypto.randomUUID(),
+      name: contact.name,
+      avatar: contact.avatar,
+    },
+    role: "can edit",
+    status: "pending",
+  });
+  const rollbackInvite = (email: string, previous?: IMemberModel) => {
+    if (previous) addMemberStore({ listId, member: previous });
+    else removeMemberStore({ listId, email });
   };
 
-  const handleInviteContact = (contact: Contact) => {
-    const previousMembers = members;
-    addContactNow(contact);
-    setInput("");
+  const inviteEmails = (
+    contacts: Contact[],
+    options?: { onDone?: () => void },
+  ) => {
+    if (!list || contacts.length === 0) return;
+    const previousByEmail = new Map<string, IMemberModel | undefined>();
+    contacts.forEach((c) => {
+      const email = c.email.toLowerCase();
+      previousByEmail.set(
+        email,
+        list.members.find((m) => m.email?.toLowerCase() === email),
+      );
+      addMemberStore({ listId, member: buildPendingMember(c) });
+    });
 
     Invite(
-      {
-        email: [contact.email],
-        listId,
-      },
+      { email: contacts.map((c) => c.email), listId },
       {
         onError(error) {
-          setMembers(previousMembers);
-          toast.error(error.message ?? "Không thể mời người dùng này");
+          previousByEmail.forEach((previous, email) =>
+            rollbackInvite(email, previous),
+          );
+          toast.error(error.message ?? "Không thể gửi lời mời");
         },
         onSuccess() {
-          toast.success(`Đã mời ${contact.email}`);
+          toast.success(
+            contacts.length === 1
+              ? `Đã mời ${contacts[0].email}`
+              : `Đã mời ${contacts.length} người`,
+          );
+          options?.onDone?.();
         },
       },
     );
+  };
+
+  const handleInviteContact = (contact: Contact) => {
+    setInput("");
+    inviteEmails([contact]);
   };
 
   const submitInput = () => {
@@ -200,38 +217,13 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
 
   const sendInvites = () => {
     const emailsToInvite = [...staged];
-    if (
-      canAddTyped &&
-      !emailsToInvite.includes(query) &&
-      !isAccepted(query)
-    ) {
+    if (canAddTyped && !emailsToInvite.includes(query) && !isAccepted(query)) {
       emailsToInvite.push(query);
     }
     if (emailsToInvite.length === 0) return;
 
-    const previousMembers = members;
 
-    // Những người đã có (pending/deny) -> đặt lại thành pending (lời mời mới thay lời cũ)
-    setMembers((prev) =>
-      prev.map((m) =>
-        emailsToInvite.includes(m.email?.toLowerCase()) &&
-        m.status !== "accept"
-          ? { ...m, status: "pending" as IStatusMember }
-          : m,
-      ),
-    );
-
-    Invite(
-      { email: emailsToInvite, listId },
-      {
-        onError(error) {
-          setMembers(previousMembers);
-          toast.error(error.message ?? "Không thể gửi lời mời");
-        },
-      },
-    );
-
-    toast.success(`Đã mời ${emailsToInvite.length} người`);
+    inviteEmails(emailsToInvite.map((email) => ({ email, name: email })));
     resetInvite();
   };
 
@@ -240,17 +232,18 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     (canAddTyped && !staged.includes(query) && !isAccepted(query) ? 1 : 0);
 
   const handleRoleChange = (email: string, role: IRoleMember) => {
-    const previous = members;
-    setMembers((prev) =>
-      prev.map((m) => (m.email === email ? { ...m, role } : m)),
-    );
+    const previousRole = list?.members.find(
+      (m) => m.email?.toLowerCase() === email.toLowerCase(),
+    )?.role;
+    if (!previousRole || previousRole === role) return;
+
+    updateRole({ email, listId, role });
 
     updateMember(
       { email, listId, role },
       {
-        onError: (error: Error) => {
-          console.log(error.message);
-          setMembers(previous);
+        onError: () => {
+          updateRole({ email, listId, role: previousRole }); // hoàn tác
           toast.error("Không thể đổi quyền, vui lòng thử lại");
         },
       },
@@ -258,8 +251,11 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
   };
 
   const handleRemoveMember = (email: string, status: IStatusMember) => {
-    const previous = members;
-    setMembers((prev) => prev.filter((m) => m.email !== email));
+    const removed = list?.members.find(
+      (m) => m.email?.toLowerCase() === email.toLowerCase(),
+    );
+
+    removeMemberStore({ listId, email });
 
     removeMember(
       { listId, email },
@@ -270,16 +266,19 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
           );
         },
         onError: () => {
-          setMembers(previous);
+          if (removed) addMemberStore({ listId, member: removed }); // hoàn tác
           toast.error("Có lỗi xảy ra, vui lòng thử lại");
         },
       },
     );
   };
 
+  // List bị xóa (realtime) hoặc chưa có trong store
+  if (!list) return null;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 px-4">
-      {user?.id == list.user && (
+      {isListOwner && (
         <div className="space-y-1.5">
           <div className="relative">
             <Input
@@ -287,7 +286,6 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
               className={cn("rounded-sm! p-4! pr-11!")}
               placeholder="Nhập email để thêm người dùng"
               value={input}
-              disabled={user?.id != list.user}
               onChange={(e) => {
                 setInput(e.target.value);
                 setError("");
@@ -327,14 +325,13 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
                     key={c.id}
                     type="button"
                     variant={"ghost"}
-                    onClick={() => {
+                    onClick={() =>
                       handleInviteContact({
                         email: c.email,
                         name: c.user.name,
                         avatar: c.user.avatar,
-                      });
-                      setInput("");
-                    }}
+                      })
+                    }
                     className="flex w-full h-fit items-center gap-3 p-2! text-left hover:bg-muted/50"
                   >
                     <>
@@ -365,7 +362,7 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
           {canAddTyped &&
             !staged.includes(query) &&
             !isAccepted(query) &&
-            !suggestions.some((c) => c.email === query) && (
+            !suggestions.some((c) => c.email.toLowerCase() === query) && (
               <button
                 type="button"
                 onClick={submitInput}
@@ -413,19 +410,19 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
         <>
           <div>
             <span className="text-sm font-medium text-neutral-400">
-              Thành viên ({members.length})
+              Thành viên ({list.members.length})
             </span>
             <div className="max-h-60 divide-y overflow-y-auto">
-              {members.map((m) => (
+              {list.members.map((m) => (
                 <div key={m.id} className="flex items-center gap-3 py-2.5">
                   <Avatar className="size-9">
-                    <AvatarImage src={m.user.avatar} alt={m.user.name} />
-                    <AvatarFallback>{initialsOf(m.user.name)}</AvatarFallback>
+                    <AvatarImage src={m.user?.avatar} alt={m.user?.name} />
+                    <AvatarFallback>{initialsOf(m.user?.name)}</AvatarFallback>
                   </Avatar>
 
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
-                      {m.user.name}
+                      {m.user?.name}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
                       {m.status !== "accept" && `${STATUS_LABEL[m.status]} · `}
@@ -433,7 +430,7 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
                     </p>
                   </div>
 
-                  {isOwner && m.role !== "owner" && user?.id === list.user ? (
+                  {m.role !== "owner" && isListOwner ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger className="flex h-8 w-fit shrink-0 items-center justify-end gap-1 rounded-sm px-2 text-xs text-muted-foreground outline-0 hover:bg-muted data-[state=open]:bg-muted">
                         {ROLE_LABEL[m.role]}
@@ -479,7 +476,7 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
             </div>
           </div>
 
-          {members.length <= 1 && (
+          {list.members.length <= 1 && (
             <div className="flex w-full flex-1 items-center justify-center">
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <div className="flex size-16 items-center justify-center rounded-full bg-muted">

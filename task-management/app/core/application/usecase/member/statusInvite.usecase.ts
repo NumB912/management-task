@@ -15,12 +15,21 @@ import {
 import { IMemberRepository } from "@/app/core/domain/repositories/IMember.repository";
 import { SyncMemberTagsUseCase } from "../tag/SynsMemberTag.usecase";
 import { INotificationRepository } from "@/app/core/domain/repositories/INotification.repository";
+import { IMemberModel } from "@/app/(front)/model/member.model";
 
 interface IStatusMemberInviteInput {
   email: string;
   userId: string;
   status: IStatusMember;
   listId: string;
+}
+
+interface PublishContext {
+  userIds: string[];
+  member: Record<string, unknown>;
+  actor: { id: string; name?: string; avatar?: string };
+  email?: string;
+  list: IListWithId;
 }
 
 const VALID_STATUSES: Set<IStatusMember> = new Set(["accept", "deny"]);
@@ -32,8 +41,8 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
     private readonly notificationRepository: INotificationRepository,
     private readonly syncMemberTag: SyncMemberTagsUseCase,
     private readonly userRepository: IUserRepository,
-    private readonly publisher: IPublisher, // gửi DỮ LIỆU để đồng bộ client / data sync
-    private readonly realtimeNotifier: IRealtimeNotifier, // gửi THÔNG BÁO (lưu DB + real-time) / notifications
+    private readonly publisher: IPublisher,
+    private readonly realtimeNotifier: IRealtimeNotifier,
     private readonly unitWork: IUnitWork,
   ) {}
 
@@ -99,7 +108,7 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
         session,
       );
       await this.unitWork.commitTransaction();
-      void this.notifyMemberDecision({
+      await this.notifyMemberDecision({
         status,
         listId,
         userId,
@@ -122,7 +131,7 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
     status: IStatusMember;
     listId: string;
     userId: string;
-    member: any; 
+    member: any;
   }): Promise<void> {
     const { status, listId, userId, member } = params;
 
@@ -139,11 +148,9 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
       const actorId = String(userId);
 
       const recipients = new Set(
-        members
-          .filter((m) => m.status === "accept") 
-          .map((m) => String(m.user)),
+        members.filter((m) => m.status === "accept").map((m) => String(m.user)),
       );
-      if ((list as any).user) recipients.add(String((list as any).user));
+      if (list.user) recipients.add(list.user);
       recipients.delete(actorId);
 
       if (recipients.size === 0) return;
@@ -156,21 +163,21 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
         name: user.name,
         avatar: user.avatar,
       };
+      const payload = this.buildBasePublish(status, {
+        userIds: [...new Set([...userIds])],
+        member: plain,
+        actor,
+        email: user.email,
+        list,
+      });
+
+    console.log("[notify] status =", status, "routingKey =", `${status}.member`);
       const results = await Promise.allSettled([
-        Promise.resolve(
-          this.publisher.pub("memberExchange", `${status}.member`, "direct", {
-            userIds,
-            event: `${status}-member`,
-            data: {
-              member: {
-                ...plain,
-                status,
-                user: { ...actor, email: user.email },
-              },
-              listName: list.name,
-              listId: String(listId),
-            },
-          }),
+        this.publisher.pub(
+          "memberExchange",
+          `${status}.member`,
+          "direct",
+          payload,
         ),
         this.realtimeNotifier.push(userIds, `${status}-member-notification`, {
           listId: String(listId),
@@ -201,6 +208,23 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
     if (!VALID_STATUSES.has(status)) {
       throw new AppError("BAD_REQUEST", "Trạng thái không hợp lệ", 400);
     }
+  }
+
+  private buildBasePublish(status: IStatusMember, ctx: PublishContext) {
+    const { userIds, member, actor, email, list } = ctx;
+    return {
+      userIds,
+      event: `${status}-member`,
+      data: {
+        member: {
+          ...member,
+          status,
+          user: { ...actor, email },
+        },
+        listName: list.name,
+        listId: String(list.id),
+      },
+    };
   }
 
   private validateMember(DTO: {

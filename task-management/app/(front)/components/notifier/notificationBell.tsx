@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Button } from "../ui/button";
-import { Bell, Check, X, UserPlus } from "lucide-react";
+import { Bell, Check, X, UserPlus, Trash2, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "../ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
@@ -24,12 +24,14 @@ interface NotificationBellProps {
 const INVITE_EVENT = "invite-member";
 const MEMBER_ACCEPT_EVENT = "accept-member-notification";
 const MEMBER_DENY_EVENT = "deny-member-notification";
+const LIST_DELETE = "list-delete-notification";
+const LIST_UPDATE = "list-update-notification";
+const NAVIGABLE_EVENTS = [MEMBER_ACCEPT_EVENT, LIST_UPDATE];
 
 type NotificationData = Record<string, unknown> & {
   user?: { id?: string; name?: string; avatar?: string };
 };
 
-// Chỉ dùng màu theo theme của dự án
 const EVENT_META: Record<
   string,
   { icon: React.ElementType; badgeClass: string }
@@ -37,6 +39,8 @@ const EVENT_META: Record<
   [INVITE_EVENT]: { icon: UserPlus, badgeClass: "bg-primary" },
   [MEMBER_ACCEPT_EVENT]: { icon: Check, badgeClass: "bg-primary" },
   [MEMBER_DENY_EVENT]: { icon: X, badgeClass: "bg-destructive" },
+  [LIST_UPDATE]: { icon: Pencil, badgeClass: "bg-primary" },
+  [LIST_DELETE]: { icon: Trash2, badgeClass: "bg-destructive" },
 };
 
 function getActor(data: NotificationData) {
@@ -56,6 +60,7 @@ function getInitials(name: string) {
 function formatMessage(event: string, data: NotificationData): string {
   const { name } = getActor(data);
   const listName = (data.listName as string | undefined) ?? "";
+  const oldListName = (data.oldListName as string | undefined) ?? "";
 
   switch (event) {
     case INVITE_EVENT:
@@ -64,6 +69,12 @@ function formatMessage(event: string, data: NotificationData): string {
       return `${name} đã chấp nhận lời mời vào "${listName}"`;
     case MEMBER_DENY_EVENT:
       return `${name} đã từ chối lời mời vào "${listName}"`;
+    case LIST_UPDATE:
+      return oldListName && oldListName !== listName
+        ? `${name} đã đổi tên danh sách "${oldListName}" thành "${listName}"`
+        : `${name} đã cập nhật danh sách "${listName}"`;
+    case LIST_DELETE:
+      return `${name} đã xóa danh sách "${listName}"`;
     default:
       return "Bạn có thông báo mới";
   }
@@ -107,7 +118,7 @@ export default function NotificationBell({ apiUrl }: NotificationBellProps) {
   }, [open]);
 
   const handleItemClick = (n: INotificationModel) => {
-    if (n.event !== MEMBER_ACCEPT_EVENT) return;
+    if (!NAVIGABLE_EVENTS.includes(n.event)) return;
     const listId = (n.data as { listId?: string })?.listId;
     if (!listId) return;
     setOpen(false);
@@ -181,7 +192,7 @@ export default function NotificationBell({ apiUrl }: NotificationBellProps) {
           ) : (
             filteredNotification.map((n) => {
               const isInvite = n.event === INVITE_EVENT;
-              const isAccept = n.event === MEMBER_ACCEPT_EVENT;
+              const isClickable = NAVIGABLE_EVENTS.includes(n.event);
               const inviteData = n.data
                 ? (n.data as {
                     id: string;
@@ -198,7 +209,7 @@ export default function NotificationBell({ apiUrl }: NotificationBellProps) {
                 <div key={n.id}>
                   <div
                     className={`flex gap-3 px-4 py-3 ${
-                      isAccept ? "cursor-pointer hover:bg-accent/40" : ""
+                      isClickable ? "cursor-pointer hover:bg-accent/40" : ""
                     }`}
                     onClick={() => handleItemClick(n)}
                   >

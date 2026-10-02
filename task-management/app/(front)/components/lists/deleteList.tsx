@@ -1,7 +1,5 @@
 "use client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { listApi } from "../../feature/api/list/list.api";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -24,9 +22,9 @@ export function DeleteListDialog({ list, onClose }: Readonly<DeleteListDialogPro
   const removeListIndex = useWorkspaceStore((state)=>state.removelistIndex)
 
 const handleDelete = () => {
-
   if(!list) return
   removeListIndex(list.id)
+  onClose();
   mutate(list.id, {
     onSuccess: () => {
       toast.info("Xóa thành công");
@@ -35,7 +33,6 @@ const handleDelete = () => {
       toast.error("Xóa thất bại, thử lại sau");
     },
   });
-        onClose();
 };
 
   return (

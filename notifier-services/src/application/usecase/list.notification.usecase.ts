@@ -1,6 +1,7 @@
 import type IConsumer from "@domain/message/consumer.message.js";
 import type IUsecase from "@domain/usecase/usecase.entities.js";
 import type IRealtimeGateway from "@domain/gateway/realtime.domain.js";
+import type { EventTask } from "./taskNotification.usecase.js";
 interface Event {
   event: string;
   id: string;
@@ -9,22 +10,21 @@ interface Event {
   is_read?: boolean;
 }
 
-export class ListCreateNotificationUsecase implements IUsecase<void> {
+export class listUpdateNotificationUsecase implements IUsecase<void> {
   constructor(
     private readonly consumer: IConsumer,
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<Event[]>(
-      "List.exchange",
-      "List-queue",
-      ["List.create"],
+    this.consumer.sub<EventTask>(
+      "list.exchange",
+      "list-queue",
+      ["list.update"],
       "direct",
       async (event) => {
-        event.map((data) => {
-          this.realtimeGateway.pushToUser(data.user, data.event, {
-            data:data.data,
-            id:data.id,
+        event.userIds.map((userId) => {
+          this.realtimeGateway.pushToUser(userId, event.event, {
+            data:event.data,
           });
         });
       },
@@ -32,45 +32,21 @@ export class ListCreateNotificationUsecase implements IUsecase<void> {
   }
 }
 
-export class ListUpdateNotificationUsecase implements IUsecase<void> {
+export class listRemoveNotificationUsecase implements IUsecase<void> {
   constructor(
     private readonly consumer: IConsumer,
     private readonly realtimeGateway: IRealtimeGateway,
   ) {}
   async execute(): Promise<void> {
-    this.consumer.sub<Event[]>(
-      "List.exchange",
-      "List-queue",
-      ["List.update"],
+    this.consumer.sub<EventTask>(
+      "list.exchange",
+      "list-queue",
+      ["list.delete"],
       "direct",
       async (event) => {
-        event.map((data) => {
-          this.realtimeGateway.pushToUser(data.user, data.event, {
-            data:data.data,
-            id:data.id,
-          });
-        });
-      },
-    );
-  }
-}
-
-export class ListRemoveNotificationUsecase implements IUsecase<void> {
-  constructor(
-    private readonly consumer: IConsumer,
-    private readonly realtimeGateway: IRealtimeGateway,
-  ) {}
-  async execute(): Promise<void> {
-    this.consumer.sub<Event[]>(
-      "List.exchange",
-      "List-queue",
-      ["List.delete"],
-      "direct",
-      async (event) => {
-        event.map((data) => {
-          this.realtimeGateway.pushToUser(data.user, data.event, {
-            data:data.data,
-            id:data.id,
+        event.userIds.map((userId) => {
+          this.realtimeGateway.pushToUser(userId, event.event, {
+            data:event.data,
           });
         });
       },

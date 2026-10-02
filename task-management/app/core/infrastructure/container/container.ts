@@ -179,12 +179,15 @@ export class Container {
           c.resolve(TYPES.ListRepository),
         ),
     });
-        this.c.register(TYPES.exitFromList, {
+    this.c.register(TYPES.exitFromList, {
       useFactory: (c) =>
         new ExitMemberUsecase(
           c.resolve(TYPES.MemberRepository),
           c.resolve(TYPES.ListRepository),
-          c.resolve(TYPES.UnitWork)
+                 c.resolve(TYPES.UserRepository),
+          c.resolve(TYPES.Publisher),
+                 c.resolve(TYPES.RealTimeNotifier),
+          c.resolve(TYPES.UnitWork),
         ),
     });
     this.c.register(TYPES.CheckPermissionSectionUsecase, {
@@ -222,8 +225,11 @@ export class Container {
     this.c.register(TYPES.DeleteMemberUsecase, {
       useFactory: (c) =>
         new DeleteMemberUsecase(
-          c.resolve(TYPES.MemberRepository),
+             c.resolve(TYPES.MemberRepository),
           c.resolve(TYPES.ListRepository),
+                 c.resolve(TYPES.UserRepository),
+          c.resolve(TYPES.Publisher),
+                 c.resolve(TYPES.RealTimeNotifier),
           c.resolve(TYPES.UnitWork),
         ),
     });
@@ -231,6 +237,8 @@ export class Container {
       useFactory: (c) =>
         new ChangeRoleUsecase(
           c.resolve(TYPES.MemberRepository),
+          c.resolve(TYPES.ListRepository),
+          c.resolve(TYPES.Publisher),
           c.resolve(TYPES.UnitWork),
         ),
     });
@@ -268,6 +276,10 @@ export class Container {
       useFactory: (c) =>
         new UpdateListUsecase(
           c.resolve(TYPES.ListRepository),
+          c.resolve(TYPES.MemberRepository),
+          c.resolve(TYPES.UserRepository),
+          c.resolve(TYPES.RealTimeNotifier),
+          c.resolve(TYPES.Publisher),
           c.resolve(TYPES.UnitWork),
         ),
     });
@@ -279,6 +291,9 @@ export class Container {
           c.resolve(TYPES.TaskRepository),
           c.resolve(TYPES.RuleRepository),
           c.resolve(TYPES.MemberRepository),
+          c.resolve(TYPES.UserRepository),
+          c.resolve(TYPES.RealTimeNotifier),
+          c.resolve(TYPES.Publisher),
           c.resolve(TYPES.UnitWork),
         ),
     });
@@ -292,8 +307,8 @@ export class Container {
       useFactory: (c) =>
         new SortSectionUsecase(
           c.resolve(TYPES.ListRepository),
-           c.resolve(TYPES.MemberRepository),
-           c.resolve(TYPES.Publisher),
+          c.resolve(TYPES.MemberRepository),
+          c.resolve(TYPES.Publisher),
           c.resolve(TYPES.UnitWork),
         ),
     });
@@ -340,8 +355,8 @@ export class Container {
           c.resolve(TYPES.TaskRepository),
           c.resolve(TYPES.RuleRepository),
           c.resolve(TYPES.ListRepository),
-           c.resolve(TYPES.MemberRepository),
-           c.resolve(TYPES.Publisher),
+          c.resolve(TYPES.MemberRepository),
+          c.resolve(TYPES.Publisher),
           c.resolve(TYPES.UnitWork),
         ),
     });
@@ -579,7 +594,7 @@ export class Container {
     this.c.register(TYPES.calculateDeadLineService, {
       useFactory: () => new CaculateDeadLine(),
     });
-        this.c.register(TYPES.generateId, {
+    this.c.register(TYPES.generateId, {
       useFactory: () => new GenerateIdService(),
     });
     this.c.register(TYPES.HashService, { useFactory: () => new HashService() });
@@ -605,7 +620,7 @@ export class Container {
           c.resolve(TYPES.MemberRepository),
           c.resolve(TYPES.ListRepository),
           c.resolve(TYPES.Publisher),
-          c.resolve(TYPES.UnitWork)
+          c.resolve(TYPES.UnitWork),
         ),
     });
   }

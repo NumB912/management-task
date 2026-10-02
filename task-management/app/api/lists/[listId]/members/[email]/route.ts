@@ -69,6 +69,7 @@ export async function PATCH(
         listId: listId,
         email: email,
         role: role,
+        userId:user.id
       });
 
     return NextResponse.json(

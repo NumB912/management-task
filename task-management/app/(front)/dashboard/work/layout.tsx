@@ -75,6 +75,7 @@ import { IRoleMember } from "../../model/member.model";
 import useExitMemberHook from "../../feature/hook/useExitMember.hook";
 const layout = ({ children }: { children: React.ReactNode }) => {
   const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
+
   const {
     getTodayTaskCount,
     getNextDayCount,
@@ -105,6 +106,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
   const [openAddTag, setOpenAddTag] = useState<boolean>(false);
   const [openAddList, setOpenAddList] = useState<boolean>(false);
   const {handleExitMember,isPending} = useExitMemberHook()
+  const route = useRouter()
   const getTaskWithFilter = useWorkspaceStore((state) => state.getTaskFilter);
   const getTaskQuantityWithList = useWorkspaceStore(
     (state) => state.getTaskQuantityWithList,
@@ -112,6 +114,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
   const getTaskQuantityWithTag = useWorkspaceStore(
     (state) => state.getTaskQuantityWithTag,
   );
+
   const tabs = [
     {
       title: "Hôm nay",
@@ -230,7 +233,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                       onSelect: () => {
                         open(listId);
                       },
-                      role: ["owner", "can edit", "viewer"] as IRoleMember[],
+                      role: ["owner", "can edit", "read only"] as IRoleMember[],
                     },
                              {
                       icon: <Trash2 size={16} />,
@@ -247,12 +250,21 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                         handleExitMember(listId)
                       },
                       destructive: true,
-                      role: ["can edit", "viewer"] as IRoleMember[],
+                      role: ["can edit", "read only"] as IRoleMember[],
                     },
                   ];
                   if (info.name.toLocaleLowerCase() == "inbox") {
                     return;
                   }
+
+                    const handleNavigate = (e: React.MouseEvent<HTMLElement>) => {
+  const target = e.target as HTMLElement;
+  if (!e.currentTarget.contains(target)) return;
+  if (target.closest("[data-menu-trigger]")) return;
+
+  route.push(`/dashboard/work/lists/${listId}`);
+};
+
                   return (
                     <ContextMenu key={listId}>
                       <ContextMenuTrigger asChild>
@@ -265,9 +277,12 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                               ? "bg-white/80! text-primary!"
                               : "hover:bg-primary/10! hover:text-black",
                           )}
+                          onClick={handleNavigate}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
                         >
-                          <Link
-                            href={`/dashboard/work/lists/${listId}`}
+                          <div
+                           
                             className="flex justify-between items-center group/list-item w-full p-2!"
                           >
                             <span className="flex items-center gap-2 pl-1">
@@ -314,7 +329,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </span>
-                          </Link>
+                          </div>
                         </Button>
                       </ContextMenuTrigger>
 

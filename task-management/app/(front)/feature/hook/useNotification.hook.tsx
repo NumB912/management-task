@@ -8,6 +8,9 @@ import { ApiError } from "../../lib/axios";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { ISectionModelState, ITaskModel } from "../../model";
 import { IStatus } from "../../model/type/type";
+import { useList } from "./useListQuery.hook";
+import { useQuery } from "@tanstack/react-query";
+import { listApi } from "../api/list/list.api";
 
 interface RealtimePayload {
   [key: string]: any;
@@ -26,13 +29,34 @@ const useNotifications = (apiUrl: string) => {
   const updateTask = useWorkspaceStore((state)=>state.updateTask)
   const updateRule = useWorkspaceStore((state)=>state.updateRule)
   const removeTask = useWorkspaceStore((state)=>state.removeTask)
+  const updateStatusMember = useWorkspaceStore((state)=>state.updateStatusMember)
   const addSection = useWorkspaceStore((state)=>state.addSection)
+  const addList = useWorkspaceStore((state)=>state.addList)
+  const removeList = useWorkspaceStore((state)=>state.removelistIndex)
+  const updateList = useWorkspaceStore((state)=>state.updateListIndex)
+  const removeMember = useWorkspaceStore((state)=>state.removeMember)
   const removeSection = useWorkspaceStore((state)=>state.removeSection)
   const updateSection = useWorkspaceStore((state)=>state.setSectionIndex)
   const changePositionSection = useWorkspaceStore((state)=>state.moveSection)
+  const updateRole = useWorkspaceStore((state)=>state.setUpdateRoleMember)
+  const [acceptedListId, setAcceptedListId] = useState("");
+  const { data:list, isError } = useList(acceptedListId);
   useEffect(() => {
     if (data) setNotification(data);
   }, [data]);
+
+useEffect(() => {
+  if (!acceptedListId || !list) return;
+  addList(list)
+  setAcceptedListId("");
+}, [list, acceptedListId, addList]);
+
+useEffect(() => {
+  if (!isError) return;
+  toast.error("Không tải được danh sách, vui lòng thử lại");
+  setAcceptedListId("");
+}, [isError]);
+
   const filterUnReadNotification = useMemo(
     () => notification.filter((n) => !n.is_read),
     [notification],
@@ -62,6 +86,10 @@ const useNotifications = (apiUrl: string) => {
     acceptOrDeny(
       { listId, status },
       {
+
+        onSuccess(data, variables, onMutateResult, context){
+            if(status=="accept") setAcceptedListId(listId)
+        },
         onError(error: Error) {
           setNotification(previousNotification);
           if (!(error instanceof ApiError)) {
@@ -107,7 +135,7 @@ const useNotifications = (apiUrl: string) => {
       });
     });
 
-es.addEventListener("task-update-status", (event: MessageEvent) => {
+  es.addEventListener("task-update-status", (event: MessageEvent) => {
   try {
     const payload: RealtimePayload = JSON.parse(event.data);
     const { record, task: base } = payload.data as unknown as {
@@ -159,9 +187,52 @@ es.addEventListener("task-update-status", (event: MessageEvent) => {
   }
 });
 
-    es.addEventListener("accept-member", (event) => {
+    es.addEventListener("list-delete-notification",(event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
       console.log(payload.data);
+      setNotification((prev) => {
+        if (prev.some((n) => n.id === payload.id)) return prev;
+        return [payload as unknown as INotificationModel, ...prev];
+      });
+    })
+
+    es.addEventListener("list-delete",(event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data)
+      removeList(payload.data.id)
+    })
+
+    es.addEventListener("list-update",(event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+      updateList(payload.data.id,{
+        name:payload.data.name
+      })
+    })
+
+       es.addEventListener("list-update-notification",(event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+       setNotification((prev) => {
+        if (prev.some((n) => n.id === payload.id)) return prev;
+        return [payload as unknown as INotificationModel, ...prev];
+      });
+    })
+
+        es.addEventListener("accept-member", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+      updateStatusMember(payload.data.listId,payload.data.member)
+    });
+
+    es.addEventListener("change.role.member", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+      updateRole({
+        email:payload.data.email,
+        listId:payload.data.listId,
+        role:payload.data.role
+      })
     });
 
      es.addEventListener("accept-member-notification", (event) => {
@@ -173,13 +244,40 @@ es.addEventListener("task-update-status", (event: MessageEvent) => {
       });
     });
 
+        es.addEventListener("list-delete-notification",(event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+      setNotification((prev) => {
+        if (prev.some((n) => n.id === payload.id)) return prev;
+        return [payload as unknown as INotificationModel, ...prev];
+      });
+    })
+
+    es.addEventListener("exit-member-notification",(event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+      setNotification((prev) => {
+        if (prev.some((n) => n.id === payload.id)) return prev;
+        return [payload as unknown as INotificationModel, ...prev];
+      });
+    })
+
         
     es.addEventListener("deny-member", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
       console.log(payload.data);
+      updateStatusMember(payload.data.listId,payload.data.member)
     });
     
     es.addEventListener("deny-member-notification", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data);
+      setNotification((prev) => {
+        if (prev.some((n) => n.id === payload.id)) return prev;
+        return [payload as unknown as INotificationModel, ...prev];
+      });
+    });
+    es.addEventListener("remove-member-notification", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
       console.log(payload.data);
       setNotification((prev) => {
@@ -218,6 +316,7 @@ es.addEventListener("task-update-status", (event: MessageEvent) => {
       removeSection(payload.data.id)
     });
 
+
     es.addEventListener("section-update", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
       console.log(payload)
@@ -236,6 +335,32 @@ es.addEventListener("task-update-status", (event: MessageEvent) => {
       updateRule(payload.data.task,{
         ...payload.data
       })
+    });
+
+    es.addEventListener("exit-member", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data)
+      removeMember({
+        listId:payload.data.listId,
+        email:payload.data.email
+      })
+    });
+
+      es.addEventListener("remove-member", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data)
+      removeMember({
+        listId:payload.data.listId,
+        email:payload.data.email
+      })
+    });
+
+          es.addEventListener("remove-own-member", (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);
+      console.log(payload.data)
+      removeList(
+        payload.data.listId,
+      )
     });
 
     es.onerror = (err) => {

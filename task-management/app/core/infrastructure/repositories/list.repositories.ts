@@ -153,34 +153,77 @@ export class ListRepository
     };
   }
 
-  async findByIdPopulate(id: string): Promise<IList | null> {
-    const list = (await this.db.List.findOne({
-      _id: id,
-      deleted_at: null,
-    }).populate([
-      {
-        path: "sections",
-        match: {
-          deleted_at: null,
-        },
-        populate: [
+async findByIdPopulate(
+  id: string,
+  session?: ClientSession,
+): Promise<IList | null> {
+  if (!Types.ObjectId.isValid(id)) return null;
+
+  const [list] = await this.db.List.aggregate([
+    { $match: { _id: new Types.ObjectId(id) } },
+    { $limit: 1 },
+
+    { $addFields: { sectionIds: "$sections", memberIds: "$members" } },
+    {
+      $lookup: {
+        from: "sections",
+        let: { ids: "$sectionIds" },
+        pipeline: [
+          { $match: { $expr: { $in: ["$_id", "$$ids"] } } },
+          { $addFields: { order: { $indexOfArray: ["$$ids", "$_id"] } } },
+          { $sort: { order: 1 } },
           {
-            path: "tasks",
-            match: {
-              deleted_at: null,
+            $lookup: {
+              from: "tasks",
+              foreignField: "section",
+              localField: "_id",
+              as: "tasks",
+              pipeline: [
+                {
+                  $lookup: {
+                    from: "rules",
+                    foreignField: "task",
+                    localField: "_id",
+                    as: "rules",
+                  },
+                },
+                { $set: { rule: { $arrayElemAt: ["$rules", 0] } } },
+                { $unset: "rules" },
+              ],
             },
-            populate: [
-              {
-                path: "rule",
-              },
-            ],
           },
         ],
+        as: "sections",
       },
-    ])) as unknown as IListPopulateDocument;
-    return list ? this.ListMapper.toDomainPopulate(list) : null;
-  }
+    },
+    {
+      $lookup: {
+        from: "members",
+        let: { ids: "$memberIds" },
+        pipeline: [
+          { $match: { $expr: { $in: ["$_id", "$$ids"] } } },
+          {
+            $lookup: {
+              from: "users",
+              foreignField: "_id",
+              localField: "user",
+              as: "userData",
+              pipeline: [
+                { $project: { _id: 1, name: 1, email: 1, avatar: 1, role: 1 } },
+              ],
+            },
+          },
+          { $set: { user: { $arrayElemAt: ["$userData", 0] } } },
+          { $unset: "userData" },
+        ],
+        as: "members",
+      },
+    },
+    { $unset: ["sectionIds", "memberIds"] },
+  ]).session(session ?? null);
 
+  return list ? this.ListMapper.toDomainPopulate(list) : null;
+}
   async findListByUser(userId: string): Promise<Partial<IList>[]> {
     const docs = await this.db.List.aggregate([
       {

@@ -45,7 +45,11 @@ interface IWorkspaceState {
       Pick<IListModel, "isShareList" | "name" | "user" | "id" | "sections"|"members">
     >,
   ) => void;
+  setUpdateRoleMember:(DTO:{email:string,listId:string,role:IRoleMember})=>void;
+  addMember:(DTO:{listId:string,member:IMemberModel})=>void;
+  removeMember:(DTO:{listId:string,email:string})=>void;
   removelistIndex: (listId: string) => void;
+  updateListIndex:(listId:string,data:Pick<IListModel,"name">)=>void,
   settagIndex: (tagId: string, info: Partial<ITagModel>) => void;
   setSectionIndex: (
     sectionId: string,
@@ -87,9 +91,10 @@ interface IWorkspaceState {
   moveTaskIntoSection: (taskId: string, newSectionId: string) => void;
   addSection: (listId: string, newSection: Pick<ISectionModelState,"name"|"id">) => void;
   editList:(listId:string,newName:string)=>void;
-  addList:(list:Pick<IListModelState, "isShareList" | "name" | "user" | "id" | "sections"|"members">)=>void;
+  addList:(list:IListModel)=>void;
   removeSection: (sectionId: string) => void;
   addTask: (task:ITaskModel) => void;
+  updateStatusMember:(listId:string,member:IMemberModel)=>void;
   addTag:(tag:ITagModel)=>void;
   editTagWithShare:(name:string,tag:Pick<ITagModel,"name">)=>void;
   editTagWithOnly:(name:string,tag:Pick<ITagModel,"name">)=>void;
@@ -101,6 +106,7 @@ interface IWorkspaceState {
 }
 
 import { endOfDay, isToday, startOfDay } from "date-fns";
+import { IMemberModel, IRoleMember } from "../model/member.model";
 
 const toArray = <T>(v: T | T[] | null | undefined): T[] =>
   v == null ? [] : Array.isArray(v) ? v : [v];
@@ -199,6 +205,111 @@ editList(listId, newName) {
     }
   })
 },
+updateStatusMember(listId, member) {
+  set((state) => {
+    let list = state.listIndex[listId];
+    if (!list) return state;
+
+    const target = member.email?.toLowerCase();
+    if (!target) return state;
+
+    const existing = list.members.find(
+      (m) => m.email?.toLowerCase() === target,
+    );
+    if (existing?.status === "accept") return state;
+
+    if(!list.isShareList){
+      list = {
+        ...list,
+        isShareList:true
+      }
+    }
+
+    const members = existing
+      ? list.members.map((m) =>
+          m.email?.toLowerCase() === target ? member : m,
+        )
+      : [...list.members, member];
+
+    return {
+      listIndex: {
+        ...state.listIndex,
+        [listId]: { ...list, members },
+      },
+    };
+  });
+},
+addMember(DTO) {
+  set((state) => {
+    const { listId, member } = DTO;
+    if (!listId || !member) return state;
+
+    const list = state.listIndex[listId];
+    if (!list) return state;
+
+    const target = member.email?.toLowerCase();
+    if (!target) return state;
+
+    const existing = list.members.find(
+      (m) => m.email?.toLowerCase() === target,
+    );
+
+    if (existing?.status === "accept") return state;
+
+    const members = existing
+      ? list.members.map((m) =>
+          m.email?.toLowerCase() === target ? member : m,
+        )
+      : [...list.members, member];
+
+    return {
+      listIndex: {
+        ...state.listIndex,
+        [listId]: { ...list, members },
+      },
+    };
+  });
+},
+removeMember(DTO) {
+  set((state) => {
+    const { listId, email } = DTO;
+    if (!listId || !email) return state;
+
+    const list = state.listIndex[listId];
+    if (!list) return state;
+
+    const target = email.toLowerCase();
+    const members = list.members.filter(
+      (member) => member.email?.toLowerCase() !== target,
+    );
+
+    if (members.length === list.members.length) return state;
+
+    return {
+      listIndex: {
+        ...state.listIndex,
+        [listId]: { ...list, members },
+      },
+    };
+  });
+},
+updateListIndex(listId, data) {
+  set((state) => {
+    const list = state.listIndex[listId];
+    if (!list) return state;
+    if (data.name === undefined || data.name === list.name) return state;
+
+    return {
+      listIndex: {
+        ...state.listIndex,
+        [listId]: {
+          ...list,
+          name: data.name,
+        },
+      },
+    };
+  });
+},
   getTaskFilter(filterId: string): ITaskModel[] {
     const { taskIndex, filterIndex } = get();
     const filter = filterIndex[filterId];
@@ -254,6 +365,34 @@ editList(listId, newName) {
       const { [listId]: _, ...rest } = state.listIndex;
       return { listIndex: rest };
     }),
+
+setUpdateRoleMember(DTO) {
+  set((state) => {
+    const { email, listId, role } = DTO;
+    const list = state.listIndex[listId];
+    if (!list) return state;
+
+    const target = email.toLowerCase();
+    const exists = list.members.some(
+      (member) => member.email?.toLowerCase() === target,
+    );
+    if (!exists) return state;
+
+    return {
+      listIndex: {
+        ...state.listIndex,
+        [listId]: {
+          ...list,
+          members: list.members.map((member) =>
+            member.email?.toLowerCase() === target
+              ? { ...member, role }
+              : member,
+          ),
+        },
+      },
+    };
+  });
+},
   moveSection: (startId, changeId) => {
     set((state) => {
       const list = state.listIndex[state.sectionIndex[startId].list];
@@ -318,11 +457,32 @@ addList(list) {
   if (!list?.id) return;
 
   set((state) => {
+    const sections = list.sections ?? [];
+    const tasks = sections.flatMap((section) => section.tasks ?? []);
+    const sectionEntries = Object.fromEntries(
+      sections.map((section) => [
+        section.id,
+        { ...section, tasks: (section.tasks ?? []).map((task) => task.id) },
+      ]),
+    );
+
+    // Task: lưu đầy đủ theo id
+    const taskEntries = Object.fromEntries(tasks.map((task) => [task.id, task]));
+
     return {
       listIndex: {
         ...state.listIndex,
-        [list.id]: list,
+        [list.id]: {
+          id: list.id,
+          members: list.members,
+          name: list.name,
+          sections: sections.map((section) => section.id),
+          user: list.user,
+          isShareList: true,
+        },
       },
+      sectionIndex: { ...state.sectionIndex, ...sectionEntries },
+      taskIndex: { ...state.taskIndex, ...taskEntries },
     };
   });
 },
