@@ -4,7 +4,7 @@ import { IBaseDocument } from "./base.document";
 
 import {  ITaskDocumentPopulate } from "./task.document";
 
-export interface ISectionDocument extends IBaseDocument {
+export interface IISectionDocument extends IBaseDocument {
   name: string;
   list: Types.ObjectId;
   tasks: Types.ObjectId[];
@@ -12,6 +12,6 @@ export interface ISectionDocument extends IBaseDocument {
   order: number;
 }
 
-export interface ISectionPopulateDocument extends Omit<ISectionDocument,"tasks">{
+export interface ISectionPopulateDocument extends Omit<IISectionDocument,"tasks">{
   tasks:ITaskDocumentPopulate[];
 }

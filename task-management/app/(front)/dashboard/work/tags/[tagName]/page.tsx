@@ -66,7 +66,7 @@ const Page = ({ params }: { params: Promise<{ tagName: string }> }) => {
   const tag = useWorkspaceStore((s) => s.tagIndex[tagName]);
   const displayName = tag?.name ?? tagName;
   useEffect(() => {
-    setTitle(displayName);
+    setTitle(`Thẻ ${displayName}`);
   }, [displayName, setTitle]);
 
   const groups = useMemo<TagGroup[]>(() => {

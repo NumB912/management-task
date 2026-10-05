@@ -1,15 +1,15 @@
 import { ISection, ISectionWithId } from "@/app/core/domain/entities/section.entities";
-import { ISectionDocument, ISectionPopulateDocument, ITaskDocumentPopulate } from "../database/interface";
+import { IISectionDocument, ISectionPopulateDocument, ITaskDocumentPopulate } from "../database/interface";
 import { Types } from "mongoose";
 import { TaskMapper } from "./task.mapper";
 import { IMapper } from "@/app/core/domain/mapper/Imapper.mapper";
 
-export class SectionMapper implements IMapper<ISectionDocument, ISectionWithId, ISectionPopulateDocument, ISection> {
+export class SectionMapper implements IMapper<IISectionDocument, ISectionWithId, ISectionPopulateDocument, ISection> {
   constructor(
     private readonly taskMapper: TaskMapper,
   ) { }
 
-  toDomain(doc: ISectionDocument): ISectionWithId {
+  toDomain(doc: IISectionDocument): ISectionWithId {
     return {
       id: doc._id.toString(),
       name: doc.name,
@@ -23,7 +23,7 @@ export class SectionMapper implements IMapper<ISectionDocument, ISectionWithId, 
     };
   }
 
-  toDomainPartial(doc: Partial<ISectionDocument>): Partial<ISectionWithId> {
+  toDomainPartial(doc: Partial<IISectionDocument>): Partial<ISectionWithId> {
     const partial: Partial<ISectionWithId> = {};
     if (doc._id) partial.id = doc._id.toString();
     if (doc.name) partial.name = doc.name;
@@ -65,7 +65,7 @@ export class SectionMapper implements IMapper<ISectionDocument, ISectionWithId, 
     return partial;
   }
 
-  toDomainList(docs: ISectionDocument[]): ISectionWithId[] {
+  toDomainList(docs: IISectionDocument[]): ISectionWithId[] {
     return docs.map(doc => this.toDomain(doc));
   }
 
@@ -73,7 +73,7 @@ export class SectionMapper implements IMapper<ISectionDocument, ISectionWithId, 
     return docs.map(doc => this.toDomainPopulate(doc));
   }
 
-  toPersistence(entity: ISectionWithId): ISectionDocument {
+  toPersistence(entity: ISectionWithId): IISectionDocument {
     return {
       _id: new Types.ObjectId(entity.id),
       name: entity.name,
@@ -84,11 +84,11 @@ export class SectionMapper implements IMapper<ISectionDocument, ISectionWithId, 
       created_at: entity.created_at,
       updated_at: entity.updated_at ?? null,
       deleted_at: entity.deleted_at ?? null,
-    } as ISectionDocument;
+    } as IISectionDocument;
   }
 
-  toPersistencePartial(entity: Partial<ISectionWithId>): Partial<ISectionDocument> {
-    const update: Partial<ISectionDocument> = {};
+  toPersistencePartial(entity: Partial<ISectionWithId>): Partial<IISectionDocument> {
+    const update: Partial<IISectionDocument> = {};
     if (entity.id) update._id = new Types.ObjectId(entity.id);
     if (entity.name) update.name = entity.name;
     if (entity.list) update.list = new Types.ObjectId(entity.list);

@@ -6,7 +6,7 @@ export interface IFilterModel{
     user:string,
     tags:string[],
     description?:string
-    priority?:Ipriority,
+    priority:Ipriority|null,
     start_date?:Date|null,
     end_date?:Date|null,
     specials:ISpecials,

@@ -1,35 +1,35 @@
 
 
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { IFilterRepository } from "../../domain";
 import { BaseRepository } from "./base.repositories";
-import { IFilterDocument } from "./database/interface";
+import { IIFilterDocument } from "./database/interface";
 import {  IFilterWithId } from "../../domain/entities/filter.entities";
 import { FilterMapper } from "./mapper/filter.mapper";
 import { DatabaseModels } from "./database/clientSchema.database";
 import { ClientSession } from "mongoose";
-@injectable()
+@Injectable()
 export class FilterRepository
-  extends BaseRepository<IFilterDocument,IFilterWithId>
+  extends BaseRepository<IIFilterDocument,IFilterWithId>
   implements IFilterRepository
 {
-  protected toDomain(doc: IFilterDocument): IFilterWithId {
+  protected toDomain(doc: IIFilterDocument): IFilterWithId {
     return this.filterMapper.toDomain(doc)
   }
-  protected toDomainPartial(doc: Partial<IFilterDocument>): Partial<IFilterWithId> {
+  protected toDomainPartial(doc: Partial<IIFilterDocument>): Partial<IFilterWithId> {
     return this.filterMapper.toDomainPartial(doc)
   }
-  protected toPresistence(doc: IFilterWithId): Partial<IFilterDocument> {
+  protected toPresistence(doc: IFilterWithId): Partial<IIFilterDocument> {
     return this.filterMapper.toPersistence(doc)
   }
-  protected toPresistencePartial(doc: Partial<IFilterWithId>): Partial<IFilterDocument> {
+  protected toPresistencePartial(doc: Partial<IFilterWithId>): Partial<IIFilterDocument> {
     return this.filterMapper.toPersistencePartial(doc)
   }
   constructor(
-    @inject(TYPES.DatabaseType)
+    @Inject(TYPES.DatabaseType)
     private readonly db: DatabaseModels,
-    @inject(TYPES.FilterMapper) 
+    @Inject(TYPES.FilterMapper) 
     private readonly filterMapper:FilterMapper
   ) {
     super(db.Filter);

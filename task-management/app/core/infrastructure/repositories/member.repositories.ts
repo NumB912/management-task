@@ -1,4 +1,4 @@
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { IMemberRepository } from "../../domain/repositories/IMember.repository";
 import { ClientSession, Types } from "mongoose";
@@ -7,7 +7,7 @@ import { BaseRepository } from "./base.repositories";
 import { MemberMapper } from "./mapper/member.mapper";
 import { IMemberWithId } from "../../domain/entities/member.entities";
 import { DatabaseModels } from "./database/clientSchema.database";
-@injectable()
+@Injectable()
 export class MemberRepository
   extends BaseRepository<IMemberDocument, IMemberWithId, string>
   implements IMemberRepository
@@ -31,8 +31,8 @@ export class MemberRepository
     return this.MemberMapper.toPersistencePartial(doc);
   }
   constructor(
-    @inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
-    @inject(TYPES.MemberMapper) private readonly MemberMapper: MemberMapper,
+    @Inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
+    @Inject(TYPES.MemberMapper) private readonly MemberMapper: MemberMapper,
   ) {
     super(db.Member);
   }

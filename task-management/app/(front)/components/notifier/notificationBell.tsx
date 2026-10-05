@@ -16,6 +16,7 @@ import { Separator } from "../ui/separator";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { INotificationModel } from "../../model/notification.model";
+import { getInitials } from "../../utils/actor.utils";
 
 interface NotificationBellProps {
   apiUrl: string;
@@ -26,7 +27,19 @@ const MEMBER_ACCEPT_EVENT = "accept-member-notification";
 const MEMBER_DENY_EVENT = "deny-member-notification";
 const LIST_DELETE = "list-delete-notification";
 const LIST_UPDATE = "list-update-notification";
+const REMOVE_MEMBER_NOTIFICATION = "remove-member-notification"
+const EXIT_MEMBER_NOTIFICATION = "exit-member-notification"
 const NAVIGABLE_EVENTS = [MEMBER_ACCEPT_EVENT, LIST_UPDATE];
+
+function getActor(data: NotificationData) {
+  return {
+    name:
+      data.user?.name ??
+      (data.ownerName as string | undefined) ??
+      "Một người dùng",
+    avatar: data.user?.avatar,
+  };
+}
 
 type NotificationData = Record<string, unknown> & {
   user?: { id?: string; name?: string; avatar?: string };
@@ -41,27 +54,15 @@ const EVENT_META: Record<
   [MEMBER_DENY_EVENT]: { icon: X, badgeClass: "bg-destructive" },
   [LIST_UPDATE]: { icon: Pencil, badgeClass: "bg-primary" },
   [LIST_DELETE]: { icon: Trash2, badgeClass: "bg-destructive" },
+  [EXIT_MEMBER_NOTIFICATION]:{ icon: Trash2, badgeClass: "bg-destructive" },
+  [REMOVE_MEMBER_NOTIFICATION]: { icon: Trash2, badgeClass: "bg-destructive" }
 };
-
-function getActor(data: NotificationData) {
-  return {
-    name:
-      data.user?.name ??
-      (data.ownerName as string | undefined) ??
-      "Một người dùng",
-    avatar: data.user?.avatar,
-  };
-}
-
-function getInitials(name: string) {
-  return name.trim().slice(0, 2).toUpperCase() || "?";
-}
 
 function formatMessage(event: string, data: NotificationData): string {
   const { name } = getActor(data);
   const listName = (data.listName as string | undefined) ?? "";
   const oldListName = (data.oldListName as string | undefined) ?? "";
-
+  const removeMember = (data.removedMember as { email?: string } | undefined)?.email ?? ""
   switch (event) {
     case INVITE_EVENT:
       return `${name} đã mời bạn vào "${listName}"`;
@@ -75,6 +76,10 @@ function formatMessage(event: string, data: NotificationData): string {
         : `${name} đã cập nhật danh sách "${listName}"`;
     case LIST_DELETE:
       return `${name} đã xóa danh sách "${listName}"`;
+    case REMOVE_MEMBER_NOTIFICATION:
+      return `${name} đã xóa người dùng "${removeMember??""}" ra khỏi danh sách "${listName}"`;
+    case EXIT_MEMBER_NOTIFICATION:
+      return `${name} đã rời khỏi danh sách "${listName}"`
     default:
       return "Bạn có thông báo mới";
   }

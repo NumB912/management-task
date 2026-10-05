@@ -5,7 +5,7 @@ import {
   ITask,
   ITaskRepository,
 } from "@/app/core/domain";
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { ClientSession, Types } from "mongoose";
 import { TaskMapper } from "./mapper/task.mapper";
@@ -13,7 +13,7 @@ import { ITaskDocument, ITaskDocumentPopulate } from "./database/interface";
 import { ITaskPartial, ITaskWithId } from "../../domain/entities/task.entites";
 import { BaseRepository } from "./base.repositories";
 import { DatabaseModels } from "./database/clientSchema.database";
-@injectable()
+@Injectable()
 export class TaskRepository
   extends BaseRepository<ITaskDocument, ITaskWithId>
   implements ITaskRepository
@@ -34,8 +34,8 @@ export class TaskRepository
   }
 
   constructor(
-    @inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
-    @inject(TYPES.TaskMapper) private readonly TaskMapper: TaskMapper,
+    @Inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
+    @Inject(TYPES.TaskMapper) private readonly TaskMapper: TaskMapper,
   ) {
     super(db.Task);
   }

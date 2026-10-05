@@ -4,6 +4,7 @@ import { TYPES } from "./type.container";
 import RedisCache from "../cache/redis.cache";
 import RabbitMQ from "../event/rabbit.event";
 import Publisher from "../event/publisher.event";
+import PublisherFile from "../event/publisherFile.event";
 import Consumer from "../event/consumer.event";
 import OTPService from "../service/otp.service";
 import {
@@ -66,7 +67,7 @@ import { GetAllTagsUsecase } from "../../application/usecase/tag/getAllTag.useca
 import { UpdateTagUsecase } from "../../application/usecase/tag/updateTagWithShare.usecase";
 import { SyncMemberTagsUseCase } from "../../application/usecase/tag/SynsMemberTag.usecase";
 import { CaculateDeadLine } from "../../application/service/CaculateDeadLineDay.service";
-import HashService from "../service/hash.service";
+import CredentialsService from "../service/hash.service";
 import TokenService from "../service/token.service";
 import { UpdateStatusUsecase } from "../../application/usecase/task/updateStatusTask.usecase";
 import { RegisterEmailUsecase } from "../../application/usecase/user/register.usecase";
@@ -103,6 +104,8 @@ import { ReadedNotificationUsecase } from "../../application/usecase/notificatio
 import { GenerateIdService } from "../service/generateId.service";
 import { ExitMemberUsecase } from "../../application/usecase/member/exit.usecase";
 import { RealtimeNotifier } from "../../application/usecase/notification/notification.usecase";
+import { LogoutUseCase } from "../../application/usecase/user/logout.usecase";
+import { PutProfileUsecase } from "../../application/usecase/user/profileupdate.usecase";
 
 export class Container {
   private static instancePromise: Promise<DependencyContainer> | null = null;
@@ -597,7 +600,7 @@ export class Container {
     this.c.register(TYPES.generateId, {
       useFactory: () => new GenerateIdService(),
     });
-    this.c.register(TYPES.HashService, { useFactory: () => new HashService() });
+    this.c.register(TYPES.CredentialsService, { useFactory: () => new CredentialsService() });
     this.c.register(TYPES.TokenService, {
       useFactory: () => new TokenService(),
     });
@@ -642,15 +645,22 @@ export class Container {
         new RegisterEmailUsecase(
           c.resolve(TYPES.UserRepository),
           c.resolve(TYPES.InitListUsecase),
-          c.resolve(TYPES.HashService),
+          c.resolve(TYPES.CredentialsService),
           c.resolve(TYPES.UnitWork),
+        ),
+    });
+     this.c.register(TYPES.logoutUsecase, {
+      useFactory: (c) =>
+        new LogoutUseCase(
+          c.resolve(TYPES.TokenService),
+          c.resolve(TYPES.Cache),
         ),
     });
     this.c.register(TYPES.LoginWithEmailUseCase, {
       useFactory: (c) =>
         new LoginWithEmailUseCase(
           c.resolve(TYPES.UserRepository),
-          c.resolve(TYPES.HashService),
+          c.resolve(TYPES.CredentialsService),
           c.resolve(TYPES.TokenService),
           c.resolve(TYPES.Cache),
         ),
@@ -660,7 +670,7 @@ export class Container {
         new ChangePasswordUsecase(
           c.resolve(TYPES.UserRepository),
           c.resolve(TYPES.TokenService),
-          c.resolve(TYPES.HashService),
+          c.resolve(TYPES.CredentialsService),
           c.resolve(TYPES.Cache),
         ),
     });
@@ -703,6 +713,10 @@ export class Container {
     this.c.register(TYPES.GetProfileUsecase, {
       useFactory: (c) => new GetProfileUsecase(c.resolve(TYPES.UserRepository)),
     });
+
+    this.c.register(TYPES.putProfileUsecase,{
+      useFactory: (c) => new PutProfileUsecase(c.resolve(TYPES.UserRepository),c.resolve(TYPES.UnitWork)),
+    })
   }
 
   private registerNotifier(): void {
@@ -756,11 +770,13 @@ export class Container {
 
   private async registerMessageQueue(): Promise<void> {
     const publisher = await Publisher.create();
+    const publisherFile = await PublisherFile.create();
     const consumer = await Consumer.create();
     this.c.register<RabbitMQ>(TYPES.MessageQueue, {
       useFactory: () => RabbitMQ.getInstance(),
     });
     this.c.register(TYPES.Publisher, { useFactory: () => publisher });
+    this.c.register(TYPES.PublisherFile, { useFactory: () => publisherFile });
     this.c.register(TYPES.Consumer, { useFactory: () => consumer });
   }
 

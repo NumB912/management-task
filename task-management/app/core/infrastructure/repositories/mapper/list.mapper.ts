@@ -1,5 +1,5 @@
 import { IList } from "@/app/core/domain";
-import { IListDocument, IListPopulateDocument, IMemberPopulateDocument, ISectionPopulateDocument } from "../database/interface";
+import { IListDocument, IIListPopulateDocument, IMemberPopulateDocument, ISectionPopulateDocument } from "../database/interface";
 import { Types } from "mongoose";
 import { IListWithId } from "@/app/core/domain/entities/list.entities";
 import { IMapper } from "@/app/core/domain/mapper/Imapper.mapper";
@@ -7,7 +7,7 @@ import { SectionMapper } from "./section.mapper";
 import { MemberMapper } from "./member.mapper";
 
 
-export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopulateDocument, IList> {
+export class ListMapper implements IMapper<IListDocument, IListWithId, IIListPopulateDocument, IList> {
   constructor(
     private readonly memberMapper: MemberMapper,
     private readonly sectionMapper: SectionMapper,
@@ -59,7 +59,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     return partial;
   }
 
-  toDomainPopulate(doc: IListPopulateDocument): IList {
+  toDomainPopulate(doc: IIListPopulateDocument): IList {
     return {
       id: doc._id.toString(),
       name: doc.name,
@@ -82,7 +82,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     };
   }
 
-  toDomainPartialPopulate(doc: Partial<IListPopulateDocument>): Partial<IList> {
+  toDomainPartialPopulate(doc: Partial<IIListPopulateDocument>): Partial<IList> {
     const partial: Partial<IList> = {};
     if (doc._id) partial.id = doc._id.toString();
     if (doc.name) partial.name = doc.name;
@@ -109,7 +109,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     return docs.map(doc => this.toDomain(doc));
   }
 
-  toDomainPopulateList(docs: IListPopulateDocument[]): IList[] {
+  toDomainPopulateList(docs: IIListPopulateDocument[]): IList[] {
     return docs.map(doc => this.toDomainPopulate(doc));
   }
 
@@ -156,7 +156,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     return update;
   }
 
-  toPersistencePopulate(list: IList): Partial<IListPopulateDocument> {
+  toPersistencePopulate(list: IList): Partial<IIListPopulateDocument> {
     return {
       _id: new Types.ObjectId(list.id),
       name: list.name,
@@ -179,8 +179,8 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     };
   }
 
-  toPersistencePartialPopulate(list: Partial<IList>): Partial<IListPopulateDocument> {
-    const update: Partial<IListPopulateDocument> = {};
+  toPersistencePartialPopulate(list: Partial<IList>): Partial<IIListPopulateDocument> {
+    const update: Partial<IIListPopulateDocument> = {};
     if (list.name) update.name = list.name;
     if (list.path) update.path = list.path;
     if (list.order) update.order = list.order;

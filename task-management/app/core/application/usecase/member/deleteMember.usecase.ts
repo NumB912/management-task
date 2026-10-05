@@ -130,9 +130,8 @@ export class DeleteMemberUsecase implements IUsecase<void> {
       }
 
       if(notificationIds.length > 0){
-        console.log("hello")
         tasks.push(Promise.resolve(
-            this.realtimeNotifier.push(recipientIds, REMOVE_MEMBER_NOTIFICATION, {
+            this.realtimeNotifier.push(notificationIds, REMOVE_MEMBER_NOTIFICATION, {
               listId,
               listName,
               user: actor,                                  

@@ -1,0 +1,8 @@
+import { IUser, IUserWithouPassword } from "../entities/user.entity.js"
+import { IRepository } from "./IRepository.js"
+
+export interface IUserRepository extends IRepository<IUser,string>{
+    searchByEmail(email:string): Promise<Partial<IUserWithouPassword>[]> 
+    searchByEmailWithout(email:string,ids:string[]): Promise<Partial<IUserWithouPassword>[]> 
+    searchByManyEmail(email:string[],session?:unknown):Promise<IUserWithouPassword[]>
+} 

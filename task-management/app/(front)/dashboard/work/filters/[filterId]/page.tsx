@@ -14,7 +14,7 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
   const tasks = useWorkspaceStore(useShallow((state)=>state.getTaskFilter(filterId))) 
   useEffect(() => {
     if (filterIndex[filterId]) {
-      setTitle(filterIndex[filterId].name)
+      setTitle(`Bộ lọc ${filterIndex[filterId].name}`)
     }
   }, [filterId, setTitle])
 
@@ -43,7 +43,7 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
   }
 
   return (
-    <div className="flex gap-3 py-3 items-start flex-wrap">
+    <div className="flex gap-3 py-2 items-start flex-wrap">
       {tasksByList.map((group) => (
         <SectionCard
           key={group.listId}

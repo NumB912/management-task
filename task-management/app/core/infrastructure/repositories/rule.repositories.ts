@@ -1,5 +1,5 @@
 
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { BaseRepository } from "./base.repositories";
 import { IRuleDocument } from "./database/interface";
@@ -8,7 +8,7 @@ import { IRuleWithId } from "../../domain/entities/rule.entities";
 import { IRuleRepository } from "../../domain";
 import { ClientSession, Types } from "mongoose";
 import { DatabaseModels } from "./database/clientSchema.database";
-@injectable()
+@Injectable()
 export class RuleRepository extends BaseRepository<IRuleDocument, IRuleWithId, string> implements IRuleRepository {
   protected toDomain(doc: IRuleDocument): IRuleWithId {
     return this.RuleMapper.toDomain(doc)
@@ -22,7 +22,7 @@ export class RuleRepository extends BaseRepository<IRuleDocument, IRuleWithId, s
   protected toPresistencePartial(doc: Partial<IRuleWithId>): Partial<IRuleDocument> {
     return this.RuleMapper.toPersistencePartial(doc)
   }
-  constructor(@inject(TYPES.DatabaseType) private readonly db: DatabaseModels, @inject(TYPES.RuleMapper) private readonly RuleMapper: RuleMapper) { super(db.Rule); }
+  constructor(@Inject(TYPES.DatabaseType) private readonly db: DatabaseModels, @Inject(TYPES.RuleMapper) private readonly RuleMapper: RuleMapper) { super(db.Rule); }
   pushTagsIntoRule(ruleId: string, tags: string[], session?: unknown): Promise<void> {
     throw new Error("Method not implemented.");
   }

@@ -1,6 +1,6 @@
 
 
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { BaseRepository } from "./base.repositories";
 import { IPromodo, IPromodoWithId } from "../../domain/entities/promodo.entities";
@@ -9,7 +9,7 @@ import { DatabaseModels } from "./database/clientSchema.database";
 import { IPromodoDocument } from "./database/interface/promodo.document";
 import { IPromodoRepository } from "../../domain/repositories/IPromodo.repository";
 import { Types } from "mongoose";
-@injectable()
+@Injectable()
 export class PromodoRepository
   extends BaseRepository<IPromodoDocument, IPromodoWithId>
   implements IPromodoRepository {
@@ -26,9 +26,9 @@ export class PromodoRepository
     return this.promodoMapper.toPersistencePartial(doc)
   }
   constructor(
-    @inject(TYPES.DatabaseType)
+    @Inject(TYPES.DatabaseType)
     private readonly db: DatabaseModels,
-    @inject(TYPES.PromodoMapper)
+    @Inject(TYPES.PromodoMapper)
     private readonly promodoMapper: PromodoMapper
   ) {
     super(db.Promodo);

@@ -43,68 +43,20 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
+import { PRIORITY_OPTIONS, SPECIALS_OPTIONS, STATUS_OPTIONS } from "./editFilter.filters";
+import ObjectID from "bson-objectid";
+import useUserState from "../../states/user/user.state";
+import { IFilterModel } from "../../model/filter.model";
 
 interface addFilterDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-const PRIORITY_OPTIONS: {
-  value: Ipriority;
-  label: string;
-  className: string;
-}[] = [
-  {
-    value: 1,
-    label: "P1",
-    className: cn(
-      "text-red-600! border-red-300!",
-      "data-[state=on]:bg-red-500! data-[state=on]:text-white!"
-    ),
-  },
-  {
-    value: 2,
-    label: "P2",
-    className: cn(
-      "text-orange-600! border-orange-300!",
-      "data-[state=on]:bg-orange-500! data-[state=on]:text-white!"
-    ),
-  },
-  {
-    value: 3,
-    label: "P3",
-    className: cn(
-      "text-blue-600! border-blue-300!",
-      "data-[state=on]:bg-blue-500! data-[state=on]:text-white!"
-    ),
-  },
-  {
-    value: 4,
-    label: "P4",
-    className: cn(
-      "text-muted-foreground border-border",
-      "data-[state=on]:bg-muted-foreground! data-[state=on]:text-white!"
-    ),
-  },
-];
-
-const SPECIALS_OPTIONS: { value: ISpecials; label: string }[] = [
-  { value: "none", label: "Không" },
-  { value: "overdue", label: "Quá hạn" },
-  { value: "today", label: "Hôm nay" },
-  { value: "next 7 days", label: "7 ngày tới" },
-];
-
-const STATUS_OPTIONS: { value: IStatus; label: string }[] = [
-  { value: "pending", label: "Đang chờ" },
-  { value: "done", label: "Hoàn thành" },
-  { value: "won't do", label: "Sẽ không làm" },
-];
-
 export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps>) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<Ipriority | undefined>(undefined);
+  const [priority, setPriority] = useState<Ipriority | null>(null);
   const [specials, setSpecials] = useState<ISpecials>("none");
   const [status, setStatus] = useState<IStatus>("pending");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -113,7 +65,8 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
   const [dateError, setDateError] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
-
+  const addFilter = useWorkspaceStore((state)=>state.addFilter)
+  const {user} = useUserState()
   const queryClient = useQueryClient();
   const {tagIndex} = useWorkspaceStore();
 
@@ -133,7 +86,7 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
   }, [open]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: any) => filterApi.create(payload),
+    mutationFn: (payload: IFilterModel) => filterApi.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspace"] });
       toast.success("Đã thêm filter");
@@ -178,7 +131,7 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
   const resetForm = () => {
     setName("");
     setDescription("");
-    setPriority(undefined);
+    setPriority(null);
     setSpecials("none");
     setStatus("pending");
     setStartDate(undefined);
@@ -211,16 +164,29 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
       return;
     }
     if (dateError) return;
-
-    mutate({
+    addFilter({
       name: trimmed,
       description: description.trim() || undefined,
-      priority,
+      priority: priority,
       specials,
       status,
       start_date: startDate,
       end_date: endDate,
-      tags: selectedTags??[],
+      tags: selectedTags ?? [],
+      id: new ObjectID().toString(),
+      user:user?.id!
+    })
+    mutate({
+      name: trimmed,
+      description: description.trim() || undefined,
+      priority: priority,
+      specials,
+      status,
+      start_date: startDate,
+      end_date: endDate,
+      tags: selectedTags ?? [],
+      id: new ObjectID().toString(),
+      user:user?.id!
     });
   };
 
@@ -271,26 +237,26 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
             </div>
 
             <div className="min-w-xs flex flex-col gap-5">
-            <div className="grid gap-2">
-               <Label className="font-bold">Độ ưu tiên</Label>
-              <ToggleGroup
-                type="single"
-                value={priority?.toString()}
-                onValueChange={(v) =>
-                  setPriority(v ? (Number(v) as Ipriority) : undefined)
-                }
-              >
-                {PRIORITY_OPTIONS.map((p) => (
-                  <ToggleGroupItem
-                    key={p.value}
-                    value={p.value.toString()}
-                    className={cn("border! rounded!", p.className)}
-                  >
-                    {p.label}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
+                    <div className="grid gap-2">
+                      <Label className="font-bold">Độ ưu tiên</Label>
+                      <ToggleGroup
+                        type="single"
+                        value={priority?.toString() ?? "none"}
+                        onValueChange={(v) =>
+                          setPriority(v !== "none" ? (Number(v) as Ipriority) : null)
+                        }
+                      >
+                        {PRIORITY_OPTIONS.map((p) => (
+                          <ToggleGroupItem
+                            key={p.label}
+                            value={p.value?.toString() ?? "none"}
+                            className={cn("border! rounded!", p.className)}
+                          >
+                            {p.label}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+                    </div>
             <div className="grid gap-2">
               <Label className="font-bold">Thẻ</Label>
               <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>

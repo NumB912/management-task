@@ -1,7 +1,7 @@
 import { Schema } from "mongoose";
-import { IFilterDocument } from "../interface";
+import { IIFilterDocument } from "../interface";
 
-export const FilterSchema = new Schema<IFilterDocument>({
+export const FilterSchema = new Schema<IIFilterDocument>({
   name: { type: String, require: true },
   tags: { type: [{ type: String}],required: true},
   user: { type: Schema.Types.ObjectId, ref: "user" },

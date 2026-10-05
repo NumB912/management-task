@@ -64,7 +64,7 @@ const getSafeTime = (dateVal: any): number | null => {
   return d ? d.getTime() : null;
 };
 
-const PRIORITY_OPTIONS: {
+export const PRIORITY_OPTIONS: {
   value: Ipriority | null;
   label: string;
   className: string;
@@ -111,14 +111,14 @@ const PRIORITY_OPTIONS: {
   },
 ];
 
-const SPECIALS_OPTIONS: { value: ISpecials; label: string }[] = [
+export const SPECIALS_OPTIONS: { value: ISpecials; label: string }[] = [
   { value: "none", label: "Không" },
   { value: "overdue", label: "Quá hạn" },
   { value: "today", label: "Hôm nay" },
   { value: "next 7 days", label: "7 ngày tới" },
 ];
 
-const STATUS_OPTIONS: { value: IStatus; label: string }[] = [
+export const STATUS_OPTIONS: { value: IStatus; label: string }[] = [
   { value: "pending", label: "Đang chờ" },
   { value: "done", label: "Hoàn thành" },
   { value: "won't do", label: "Sẽ không làm" },
@@ -142,6 +142,7 @@ export function EditFilterDialog({
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const queryClient = useQueryClient();
   const tagIndex = useWorkspaceStore(useShallow((s) => s.tagIndex));
+  const updateFilter = useWorkspaceStore((state)=>state.updateFilter)
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
       Object.values(s.filterIndex)
@@ -165,9 +166,15 @@ export function EditFilterDialog({
     }
   }, [open, filter]);
 
+  useEffect(()=>{
+    if(!filter){
+      return;
+    }
+  },[filter])
+
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: any) =>
-      filterApi.update(filter?.id!, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<IFilterModel> }) =>
+      filterApi.update(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workSpaceKeys.index() });
       queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter?.id!) });
@@ -281,7 +288,16 @@ export function EditFilterDialog({
       onClose();
       return;
     }
-    mutate(changed);
+    updateFilter(filter?.id!,changed)
+    onClose()
+    mutate({ id: filter?.id!, payload: changed },{
+      onSuccess(data, variables, onMutateResult, context) {
+        toast.success("Chỉnh sửa thành công")
+      },
+      onError(error, variables, onMutateResult, context) {
+        toast.error("Lỗi trong quá trình chỉnh sửa bộ lộc")
+      },
+    });
   };
 
   const handleClose = () => {

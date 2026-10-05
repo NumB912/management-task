@@ -1,6 +1,6 @@
 
 import { ITagRepository } from "@/app/core/domain";
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { BaseRepository } from "./base.repositories";
 import { TagMapper } from "./mapper/tag.mapper";
@@ -9,7 +9,7 @@ import { ITag, ITagWithId } from "../../domain/entities/tag.entities";
 import { Types, ClientSession } from "mongoose";
 import { TaskMapper } from "./mapper/task.mapper";
 import { DatabaseModels } from "./database/clientSchema.database";
-@injectable()
+@Injectable()
 export class TagRepository extends BaseRepository<ITagDocument, ITagWithId> implements ITagRepository {
   protected toDomain(doc: ITagDocument): ITagWithId {
     return this.TagMapper.toDomain(doc)
@@ -24,7 +24,7 @@ export class TagRepository extends BaseRepository<ITagDocument, ITagWithId> impl
     return this.TagMapper.toPersistencePartial(doc)
   }
 
-  constructor(@inject(TYPES.DatabaseType) private readonly db: DatabaseModels, @inject(TYPES.TagMapper) private readonly TagMapper: TagMapper, @inject(TYPES.TaskMapper) private readonly TaskMapper: TaskMapper) {
+  constructor(@Inject(TYPES.DatabaseType) private readonly db: DatabaseModels, @Inject(TYPES.TagMapper) private readonly TagMapper: TagMapper, @Inject(TYPES.TaskMapper) private readonly TaskMapper: TaskMapper) {
     super(db.Tag);
   }
   async updateByName(DTO: { name: string, userId: string; data: Partial<ITagWithId>; session?: ClientSession; }): Promise<ITagWithId | null> {

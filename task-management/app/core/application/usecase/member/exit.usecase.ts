@@ -38,6 +38,7 @@ export class ExitMemberUsecase implements IUsecase<void> {
     let memberEmail: string;
     let listName: string;
     let recipientIds: string[] = [];
+    let notificationIds:string[] = []
     try {
       await this.unitWork.startTransaction();
       const session = await this.unitWork.getSession();
@@ -65,10 +66,10 @@ export class ExitMemberUsecase implements IUsecase<void> {
       const ids = new Set(
         others.filter((m) => m.status === "accept").map((m) => String(m.user)),
       );
+      notificationIds = [...ids]
       if ((list as any).user) ids.add(String((list as any).user));
       ids.delete(String(userId));
       recipientIds = [...ids];
-
       await this.memberRepository.delete(member.id, session);
       await this.listRepository.pullMembersOutOfList({
         memberIds: [member.id],
@@ -92,6 +93,7 @@ export class ExitMemberUsecase implements IUsecase<void> {
       userId,
       memberEmail: memberEmail!,
       recipientIds,
+      notificationIds:notificationIds
     });
   }
 
@@ -101,8 +103,9 @@ export class ExitMemberUsecase implements IUsecase<void> {
     userId: string;
     memberEmail: string;
     recipientIds: string[];
+    notificationIds:string[];
   }): Promise<void> {
-    const { listId, listName, userId, memberEmail, recipientIds } = params;
+    const { listId,notificationIds, listName, userId, memberEmail, recipientIds } = params;
 
     try {
       const user = await this.userRepository.findById(userId);
@@ -119,14 +122,17 @@ export class ExitMemberUsecase implements IUsecase<void> {
               data: { listId, email: memberEmail },
             }),
           ),
-          Promise.resolve(
+        );
+      }
+
+      if(notificationIds.length > 0){
+        tasks.push(          Promise.resolve(
             this.realtimeNotifier.push(recipientIds, EXIT_MEMBER_NOTIFICATION, {
               listId,
               listName,
               user: actor,
             }),
-          ),
-        );
+          ),)
       }
 
       const results = await Promise.allSettled(tasks);

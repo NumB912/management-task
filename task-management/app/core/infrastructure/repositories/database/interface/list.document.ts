@@ -22,7 +22,7 @@ export interface IListDocument extends IBaseDocument {
 }
 
 
-export interface IListPopulateDocument extends Omit<IListDocument, "sections" | "members"> {
+export interface IIListPopulateDocument extends Omit<IListDocument, "sections" | "members"> {
   sections: ISectionPopulateDocument[]
   members: IMemberPopulateDocument[]
 }

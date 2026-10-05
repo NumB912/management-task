@@ -16,7 +16,7 @@ interface CollapsibleCardProp {
 export const SectionCard = ({ title, count, onPlusClick, children }: CollapsibleCardProp) => {
   return (
     <div className={`${"max-w-xs min-h-0 h-full max-h-xs"}`}>
-        <Card className={cn("ring-0 rounded-0 max-w-xs! gap-2 px-0 min-h-0 h-full")}>
+        <Card className={cn("ring-0 rounded-0 max-w-xs! gap-2 p-2 min-h-0 h-full")}>
             <CardHeader className="font-bold flex items-center text-md gap-1 justify-between z-50 cursor-pointer">
               <span className="flex gap-2 items-center">
                 <span className="flex items-center">{title}</span>
@@ -35,7 +35,7 @@ export const SectionCard = ({ title, count, onPlusClick, children }: Collapsible
             </CardHeader>
             <CardContent
               className={cn(
-                "p-0! gap-0.5 flex flex-col items-center",
+                "gap-0.5 flex flex-col items-center px-0",
     "overflow-x-hidden overflow-y-auto",
     "max-h-[min(50vh,500px)] max-w-[min(40vw,500px)] min-w-65 w-full"
               )}

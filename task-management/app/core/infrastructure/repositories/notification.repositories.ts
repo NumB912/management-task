@@ -1,6 +1,6 @@
 
 
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { BaseRepository } from "./base.repositories";
 import { DatabaseModels } from "./database/clientSchema.database";
@@ -10,7 +10,7 @@ import { INotificationDocument } from "./database/interface/notification.documen
 import { NotificationMapper } from "./mapper/notification.mapper";
 import { IStatusMember } from "@/app/(front)/model/member.model";
 import { ClientSession } from "mongoose";
-@injectable()
+@Injectable()
 export class NotificationRepository
   extends BaseRepository<INotificationDocument, INotification>
   implements INotificationRepository {
@@ -27,9 +27,9 @@ export class NotificationRepository
     return this.NotificationMapper.toPersistencePartial(doc)
   }
   constructor(
-    @inject(TYPES.DatabaseType)
+    @Inject(TYPES.DatabaseType)
     private readonly db: DatabaseModels,
-    @inject(TYPES.NotificationMapper)
+    @Inject(TYPES.NotificationMapper)
     private readonly NotificationMapper: NotificationMapper
   ) {
     super(db.Notification);

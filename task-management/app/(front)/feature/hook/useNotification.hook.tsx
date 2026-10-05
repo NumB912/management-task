@@ -9,8 +9,7 @@ import { useWorkspaceStore } from "../../states/workspace.state";
 import { ISectionModelState, ITaskModel } from "../../model";
 import { IStatus } from "../../model/type/type";
 import { useList } from "./useListQuery.hook";
-import { useQuery } from "@tanstack/react-query";
-import { listApi } from "../api/list/list.api";
+
 
 interface RealtimePayload {
   [key: string]: any;
@@ -128,7 +127,7 @@ useEffect(() => {
 
     es.addEventListener("invite-member", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload);
+      
       setNotification((prev) => {
         if (prev.some((n) => n.id === payload.id)) return prev;
         return [payload as unknown as INotificationModel, ...prev];
@@ -146,7 +145,6 @@ useEffect(() => {
 
     const { taskIndex } = useWorkspaceStore.getState();
     const status = (payload.data as any).status ?? "completed"; 
-
     if(payload.data.type=="single"){
       updateTask(payload.data.id,{
         status:status
@@ -189,7 +187,7 @@ useEffect(() => {
 
     es.addEventListener("list-delete-notification",(event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       setNotification((prev) => {
         if (prev.some((n) => n.id === payload.id)) return prev;
         return [payload as unknown as INotificationModel, ...prev];
@@ -198,13 +196,13 @@ useEffect(() => {
 
     es.addEventListener("list-delete",(event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data)
+      
       removeList(payload.data.id)
     })
 
     es.addEventListener("list-update",(event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       updateList(payload.data.id,{
         name:payload.data.name
       })
@@ -212,7 +210,7 @@ useEffect(() => {
 
        es.addEventListener("list-update-notification",(event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
        setNotification((prev) => {
         if (prev.some((n) => n.id === payload.id)) return prev;
         return [payload as unknown as INotificationModel, ...prev];
@@ -221,13 +219,13 @@ useEffect(() => {
 
         es.addEventListener("accept-member", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       updateStatusMember(payload.data.listId,payload.data.member)
     });
 
     es.addEventListener("change.role.member", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       updateRole({
         email:payload.data.email,
         listId:payload.data.listId,
@@ -237,7 +235,7 @@ useEffect(() => {
 
      es.addEventListener("accept-member-notification", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       setNotification((prev) => {
         if (prev.some((n) => n.id === payload.id)) return prev;
         return [payload as unknown as INotificationModel, ...prev];
@@ -246,7 +244,7 @@ useEffect(() => {
 
         es.addEventListener("list-delete-notification",(event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       setNotification((prev) => {
         if (prev.some((n) => n.id === payload.id)) return prev;
         return [payload as unknown as INotificationModel, ...prev];
@@ -255,7 +253,7 @@ useEffect(() => {
 
     es.addEventListener("exit-member-notification",(event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       setNotification((prev) => {
         if (prev.some((n) => n.id === payload.id)) return prev;
         return [payload as unknown as INotificationModel, ...prev];
@@ -265,13 +263,13 @@ useEffect(() => {
         
     es.addEventListener("deny-member", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       updateStatusMember(payload.data.listId,payload.data.member)
     });
     
     es.addEventListener("deny-member-notification", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       setNotification((prev) => {
         if (prev.some((n) => n.id === payload.id)) return prev;
         return [payload as unknown as INotificationModel, ...prev];
@@ -279,7 +277,7 @@ useEffect(() => {
     });
     es.addEventListener("remove-member-notification", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       setNotification((prev) => {
         if (prev.some((n) => n.id === payload.id)) return prev;
         return [payload as unknown as INotificationModel, ...prev];
@@ -288,13 +286,13 @@ useEffect(() => {
     
     es.addEventListener("task-create", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       addTask(payload.data as unknown as ITaskModel);
     });
 
     es.addEventListener("task-update", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data);
+      ;
       updateTask(payload.data.id,payload.data)
     });
 
@@ -305,33 +303,33 @@ useEffect(() => {
 
     es.addEventListener("section-create", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload)
+      
       addSection(payload.data.listId,payload.data as Pick<ISectionModelState,"name"|"id">)
     });
 
     
     es.addEventListener("section-delete", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload)
+      
       removeSection(payload.data.id)
     });
 
 
     es.addEventListener("section-update", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload)
+      
       updateSection(payload.data.id,payload.data)
     });
 
     es.addEventListener("section-change-position", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload)
+      
       changePositionSection(payload.data.startId,payload.data.endId)
     });
 
         es.addEventListener("rule-update", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data)
+      
       updateRule(payload.data.task,{
         ...payload.data
       })
@@ -339,7 +337,7 @@ useEffect(() => {
 
     es.addEventListener("exit-member", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data)
+      
       removeMember({
         listId:payload.data.listId,
         email:payload.data.email
@@ -348,7 +346,7 @@ useEffect(() => {
 
       es.addEventListener("remove-member", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data)
+      
       removeMember({
         listId:payload.data.listId,
         email:payload.data.email
@@ -357,7 +355,7 @@ useEffect(() => {
 
           es.addEventListener("remove-own-member", (event) => {
       const payload: RealtimePayload = JSON.parse(event.data);
-      console.log(payload.data)
+      
       removeList(
         payload.data.listId,
       )

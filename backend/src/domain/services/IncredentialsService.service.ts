@@ -1,4 +1,4 @@
-export interface IHashService{
+export interface ICredentialsService{
     hash(password: string): Promise<string>
     compare(password: string, hash: string): Promise<boolean>
 }

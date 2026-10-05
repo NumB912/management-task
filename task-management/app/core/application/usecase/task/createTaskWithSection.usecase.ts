@@ -62,6 +62,7 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
           section: section.id,
           path: path,
           list: listId,
+          id:data.id
         },
         session,
       );

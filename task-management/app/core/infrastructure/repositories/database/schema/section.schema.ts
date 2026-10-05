@@ -1,7 +1,7 @@
 import {Schema } from "mongoose";
-import { ISectionDocument } from "../interface";
+import { IISectionDocument } from "../interface";
 
-export const SectionSchema = new Schema<ISectionDocument>({
+export const SectionSchema = new Schema<IISectionDocument>({
   name: { type: String, required: true },
   list: { type: Schema.Types.ObjectId,ref:"list", required: true },
   tasks: {

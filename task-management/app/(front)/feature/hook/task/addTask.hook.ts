@@ -15,6 +15,7 @@ export function useAddTask(listId: string,sectionId:string) {
   return useCallback(
     async (task: ITaskModel) => {
       const id = new ObjectID().toString();
+          const ruleId = new ObjectID().toString();
       addTask({ ...task, id: id }); 
       try {
         await mutateAsync({
@@ -24,6 +25,7 @@ export function useAddTask(listId: string,sectionId:string) {
           name: task.name,
           description: task.description,
           rule: {
+            id:ruleId,
             repeat: task.rule.repeat,
             tags: task.rule.tags,
             end_date: task.rule.end_date,

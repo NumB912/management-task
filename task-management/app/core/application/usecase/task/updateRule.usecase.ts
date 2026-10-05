@@ -10,7 +10,7 @@ import {
 } from "@/app/core/domain";
 import { IUnitWork } from "@/app/core/domain/entities/unitwork.entities";
 import { AddTagsForMemberUsecase } from "../tag";
-import { RepeatBuilder } from "@/app/core/domain/services/repeatBuild.service";
+import { RepeatBuilder } from "@/app/core/domain/services/repeat.service";
 import { IMemberRepository } from "@/app/core/domain/repositories/IMember.repository";
 
 export class UpdateRuleUsecase implements IUsecase<void> {

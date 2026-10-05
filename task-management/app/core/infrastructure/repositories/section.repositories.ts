@@ -1,33 +1,33 @@
 
 import { ISection, ISectionRepository } from "@/app/core/domain";
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { BaseRepository } from "./base.repositories";
 import { ISectionWithId } from "../../domain/entities/section.entities";
-import { ISectionDocument, ISectionPopulateDocument } from "./database/interface";
+import { IISectionDocument, ISectionPopulateDocument } from "./database/interface";
 import { SectionMapper } from "./mapper/section.mapper";
 import { DatabaseModels } from "./database/clientSchema.database";
 import { ClientSession, Types } from "mongoose";
 
-@injectable()
+@Injectable()
 export class SectionRepository
-  extends BaseRepository<ISectionDocument, ISectionWithId, string>
+  extends BaseRepository<IISectionDocument, ISectionWithId, string>
   implements ISectionRepository {
-  protected toDomain(doc: ISectionDocument): ISectionWithId {
+  protected toDomain(doc: IISectionDocument): ISectionWithId {
     return this.SectionMapper.toDomain(doc)
   }
-  protected toDomainPartial(doc: Partial<ISectionDocument>): Partial<ISectionWithId> {
+  protected toDomainPartial(doc: Partial<IISectionDocument>): Partial<ISectionWithId> {
     return this.SectionMapper.toDomainPartial(doc)
   }
-  protected toPresistence(doc: Partial<ISectionWithId>): Partial<ISectionDocument> {
+  protected toPresistence(doc: Partial<ISectionWithId>): Partial<IISectionDocument> {
     return this.SectionMapper.toPersistencePartial(doc)
   }
-  protected toPresistencePartial(doc: Partial<ISectionWithId>): Partial<ISectionDocument> {
+  protected toPresistencePartial(doc: Partial<ISectionWithId>): Partial<IISectionDocument> {
     return this.SectionMapper.toPersistencePartial(doc)
   }
 
 
-  constructor(@inject(TYPES.DatabaseType) private readonly db: DatabaseModels, @inject(TYPES.SectionMapper) private readonly SectionMapper: SectionMapper) {
+  constructor(@Inject(TYPES.DatabaseType) private readonly db: DatabaseModels, @Inject(TYPES.SectionMapper) private readonly SectionMapper: SectionMapper) {
     super(db.Section);
   }
 

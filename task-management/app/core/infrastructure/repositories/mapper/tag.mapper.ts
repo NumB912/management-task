@@ -3,12 +3,12 @@ import { UserMapper } from "./user.mapper";
 import { ITagDocument, ITagPopulateDocument } from "../database/interface";
 import { Types } from "mongoose";
 import { ITagWithId } from "@/app/core/domain/entities/tag.entities";
-import { inject } from "tsyringe";
+import { Inject } from "tsyringe";
 import { TYPES } from "../../container/type.container";
 import { IMapper } from "@/app/core/domain/mapper/Imapper.mapper";
 
 export class TagMapper implements IMapper<ITagDocument, ITagWithId, ITagPopulateDocument, ITag> {
-  constructor(@inject(TYPES.UserMapper) private readonly userMapper: UserMapper) { }
+  constructor(@Inject(TYPES.UserMapper) private readonly userMapper: UserMapper) { }
 
   toDomain(doc: ITagDocument): ITagWithId {
     return {

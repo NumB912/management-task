@@ -1,11 +1,11 @@
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { IListRepository } from "@/app/core/domain";
 import { IList } from "@/app/core/domain/entities";
 import { BaseRepository } from "./base.repositories";
 import {
   IListDocument,
-  IListPopulateDocument,
+  IIListPopulateDocument,
   IMemberDocument,
 } from "./database/interface";
 import { ListMapper } from "./mapper/list.mapper";
@@ -15,7 +15,7 @@ import { DatabaseModels } from "./database/clientSchema.database";
 import { DashboardListsResult } from "../../DTO/list/list.DTO";
 import { Rubik_Doodle_Shadow } from "next/font/google";
 
-@injectable()
+@Injectable()
 export class ListRepository
   extends BaseRepository<IListDocument, IListWithId, string>
   implements IListRepository
@@ -36,8 +36,8 @@ export class ListRepository
   }
 
   constructor(
-    @inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
-    @inject(TYPES.ListMapper) private readonly ListMapper: ListMapper,
+    @Inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
+    @Inject(TYPES.ListMapper) private readonly ListMapper: ListMapper,
   ) {
     super(db.List);
   }
@@ -625,7 +625,7 @@ async findByIdPopulate(
           ],
         },
       ],
-    })) as unknown as IListPopulateDocument;
+    })) as unknown as IIListPopulateDocument;
 
     if (!doc) {
       return null;

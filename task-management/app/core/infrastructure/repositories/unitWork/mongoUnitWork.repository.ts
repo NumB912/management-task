@@ -1,7 +1,7 @@
 import { IUnitWork } from "@/app/core/domain/entities/unitwork.entities";
 import mongoose, { ClientSession } from "mongoose";
-import { injectable } from "tsyringe";
-@injectable()
+import { Injectable } from "tsyringe";
+@Injectable()
 export class UnitWorkMongo implements IUnitWork {
   private session!: ClientSession;
   async commitTransaction(): Promise<void> {

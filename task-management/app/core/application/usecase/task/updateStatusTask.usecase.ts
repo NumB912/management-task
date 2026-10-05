@@ -13,7 +13,7 @@ import {
 } from "@/app/core/domain";
 import { IUnitWork } from "@/app/core/domain/entities/unitwork.entities";
 import { IMemberRepository } from "@/app/core/domain/repositories/IMember.repository";
-import { GenerateId } from "@/app/core/domain/services/generateId.service";
+import { GenerateId } from "@/app/core/domain/services/generateID.service";
 import { use } from "react";
 
 interface IUpdateStatusDTO {

@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { IBaseDocument } from "./base.document";
 export type priority = 1 | 2 | 3 | 4;
-export interface IFilterDocument extends IBaseDocument {
+export interface IIFilterDocument extends IBaseDocument {
   name: string;
   user: Types.ObjectId;
   start_date?:Date|null,
@@ -13,6 +13,6 @@ export interface IFilterDocument extends IBaseDocument {
   status:"done"|"pending"|"none"|"won't do"
 }
 
-export interface IFilterDocumentPopulated extends IFilterDocument {
+export interface IIFilterDocumentPopulated extends IIFilterDocument {
 
 }

@@ -73,6 +73,7 @@ import { de } from "date-fns/locale";
 import useUserState from "../../states/user/user.state";
 import { IRoleMember } from "../../model/member.model";
 import useExitMemberHook from "../../feature/hook/useExitMember.hook";
+import { useProfile } from "../../states/profile.state";
 const layout = ({ children }: { children: React.ReactNode }) => {
   const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
 
@@ -105,8 +106,8 @@ const layout = ({ children }: { children: React.ReactNode }) => {
   const [openAddFilter, setOpenAddFilter] = useState<boolean>(false);
   const [openAddTag, setOpenAddTag] = useState<boolean>(false);
   const [openAddList, setOpenAddList] = useState<boolean>(false);
-  const {handleExitMember,isPending} = useExitMemberHook()
-  const route = useRouter()
+  const { handleExitMember, isPending } = useExitMemberHook();
+  const route = useRouter();
   const getTaskWithFilter = useWorkspaceStore((state) => state.getTaskFilter);
   const getTaskQuantityWithList = useWorkspaceStore(
     (state) => state.getTaskQuantityWithList,
@@ -225,7 +226,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                       label: "Chỉnh sửa",
                       onSelect: () =>
                         setEditingList({ id: listId, name: info.name }),
-                      role: ["owner"] as IRoleMember[], 
+                      role: ["owner"] as IRoleMember[],
                     },
                     {
                       icon: <Share2 size={16} />,
@@ -235,19 +236,19 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                       },
                       role: ["owner", "can edit", "read only"] as IRoleMember[],
                     },
-                             {
+                    {
                       icon: <Trash2 size={16} />,
                       label: "Xóa",
                       destructive: true,
                       onSelect: () =>
-                      setDeletingList({ id: listId, name: info.name }),
+                        setDeletingList({ id: listId, name: info.name }),
                       role: ["owner"] as IRoleMember[],
                     },
                     {
                       icon: <LogOutIcon size={16} />,
                       label: "Rời khỏi",
                       onSelect: () => {
-                        handleExitMember(listId)
+                        handleExitMember(listId);
                       },
                       destructive: true,
                       role: ["can edit", "read only"] as IRoleMember[],
@@ -257,13 +258,13 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                     return;
                   }
 
-                    const handleNavigate = (e: React.MouseEvent<HTMLElement>) => {
-  const target = e.target as HTMLElement;
-  if (!e.currentTarget.contains(target)) return;
-  if (target.closest("[data-menu-trigger]")) return;
+                  const handleNavigate = (e: React.MouseEvent<HTMLElement>) => {
+                    const target = e.target as HTMLElement;
+                    if (!e.currentTarget.contains(target)) return;
+                    if (target.closest("[data-menu-trigger]")) return;
 
-  route.push(`/dashboard/work/lists/${listId}`);
-};
+                    route.push(`/dashboard/work/lists/${listId}`);
+                  };
 
                   return (
                     <ContextMenu key={listId}>
@@ -281,10 +282,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                           onMouseDown={(e) => e.stopPropagation()}
                           onPointerDown={(e) => e.stopPropagation()}
                         >
-                          <div
-                           
-                            className="flex justify-between items-center group/list-item w-full p-2!"
-                          >
+                          <div className="flex justify-between items-center group/list-item w-full p-2!">
                             <span className="flex items-center gap-2 pl-1">
                               <Folder
                                 data-icon="inline-start"

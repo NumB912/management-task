@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "./dist",
+    "module": "nodenext",
+    "target": "esnext",
+    "ignoreDeprecations":"6.0",
+    "types": [],
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "strict": true,
+    "baseUrl": ".",
+    "paths":{
+      "@domain/*":["src/domain/*"],
+      "@infrastructure/*":["src/infrastructure/*"],
+      "@application/*":["src/application/*"],
+      "@adapter/*":["src/adapter/*"]
+    },
+    "jsx": "react-jsx",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "../dist"
+  ]
+}

@@ -3,4 +3,5 @@ export interface IUserModel{
     name:string,
     avatar?:string,
     role:string,
+    email:string
 }

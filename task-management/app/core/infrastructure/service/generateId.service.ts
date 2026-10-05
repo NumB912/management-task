@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { GenerateId } from "../../domain/services/generateId.service";
+import { GenerateId } from "../../domain/services/generateID.service";
 
 export class GenerateIdService implements GenerateId {
   generate(): string {

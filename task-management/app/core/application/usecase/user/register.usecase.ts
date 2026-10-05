@@ -1,4 +1,4 @@
-import { AppError, IHashService, IUnitWork, IUsecase, IUserRepository } from "@/app/core/domain";
+import { AppError, ICredentialsService, IUnitWork, IUsecase, IUserRepository } from "@/app/core/domain";
 import { InitListUsecase } from "../list";
 
 
@@ -7,7 +7,7 @@ export class RegisterEmailUsecase implements IUsecase<void> {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly initListUsecase:InitListUsecase,
-    private readonly hashService: IHashService,
+    private readonly CredentialsService: ICredentialsService,
     private readonly unitWork: IUnitWork,
   ) {
   }
@@ -26,7 +26,7 @@ export class RegisterEmailUsecase implements IUsecase<void> {
       }
       await this.unitWork.startTransaction()
       const session = await this.unitWork.getSession()
-      const passwordHash = await this.hashService.hash(registerForm.password)
+      const passwordHash = await this.CredentialsService.hash(registerForm.password)
       const userCreate = await this.userRepository.create({
         password: passwordHash,
         email: registerForm.email,

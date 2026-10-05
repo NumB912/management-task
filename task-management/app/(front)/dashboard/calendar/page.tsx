@@ -29,6 +29,7 @@ import {useCreateTaskWithSectionObject } from "../../feature/hook/useTaskMutatio
 import { useShallow } from "zustand/react/shallow";
 import { DEFAULT_COLORS } from "../../model/mod/color.config";
 import { formatDate, formatDateVi } from "../../utils/getDayOfMonth.utils";
+import ObjectID from "bson-objectid";
 
 const Page = () => {
   const [view, setView] = useState<ViewMode>("month");
@@ -68,8 +69,8 @@ const Page = () => {
   };
 
   const handleSaveEvent = (data: ICreateTaskModel) => {
-    const idTemp = `temp-task-id-${crypto.randomUUID()}`
-    const idRuleTemp =  `temp-rule-id-${crypto.randomUUID()}`
+    const idTemp = `${new ObjectID().toString()}`
+    const idRuleTemp =  `${new ObjectID().toString()}`
     addTaskStore({
       id: idTemp,
       children: [],
@@ -91,7 +92,14 @@ const Page = () => {
       section: data.section,
       status: "pending"
     })
-    createTask(data,{
+    createTask({
+      ...data,
+      id:idTemp,
+      rule:{
+        ...data.rule,
+        id:idRuleTemp
+      }
+    },{
       onSuccess(data, variables, onMutateResult, context) {
         changeIdTaskStore(idTemp,data.id)
       },

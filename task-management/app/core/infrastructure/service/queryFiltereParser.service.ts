@@ -1,7 +1,7 @@
-import { injectable } from "tsyringe";
+import { Injectable } from "tsyringe";
 import { IQueryFilterParserService } from "../../domain";
 import { FilterAndGroup, FilterOrGroups, IFilterCondition, SPECIAL_KEYWORDS } from "../../domain/type/filterLogic.type";
-@injectable()
+@Injectable()
 export class QueryFilterParser implements IQueryFilterParserService {
     public parse(query: string = ""): FilterOrGroups {
         if (!query.trim()) return [];

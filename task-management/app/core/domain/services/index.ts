@@ -1,5 +1,5 @@
-export type { IHashService } from "./hashService.service"
-export type {ICaculateDeadLine} from "./caculateDeadLineService.service"
+export type { ICredentialsService } from "./hash.service"
+export type {ICaculateDeadLine} from "./nextday.service"
 export type {IOtpService} from "./otp.service"
-export type {ITokenService} from "./IToken.service"
+export type {ITokenService} from "./token.service"
 export type {IQueryFilterParserService} from "./filter.service"

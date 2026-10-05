@@ -13,8 +13,6 @@ export class GetAllListUsecase implements IUsecase<Partial<IList>[]> {
         throw new AppError("NOT_FOUND", "Không có người dùng", 404)
       }
       const lists = await this.listRepository.findListByUser(data.user_id)
-
-      console.log(lists)
       return lists ?? [];
     } catch (error) {
       console.error(error)

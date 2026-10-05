@@ -1,5 +1,5 @@
 
-import { inject, injectable } from "tsyringe";
+import { Inject, Injectable } from "tsyringe";
 import { TYPES } from "../container/type.container";
 import { IUser } from "@/app/core/domain";
 import { IUserRepository } from "../../domain/repositories/IUser.repository";
@@ -9,7 +9,7 @@ import { ClientSession } from "mongoose";
 import { BaseRepository } from "./base.repositories";
 import { IUserDocument } from "./database/interface";
 import { DatabaseModels } from "./database/clientSchema.database";
-@injectable()
+@Injectable()
 export class UserRepository extends BaseRepository<IUserDocument, IUser> implements IUserRepository {
   protected toDomain(doc: IUserDocument): IUser {
     return this.UserMapper.toDomain(doc)
@@ -24,7 +24,7 @@ export class UserRepository extends BaseRepository<IUserDocument, IUser> impleme
     return this.UserMapper.toPersistencePartial(doc)
   }
   constructor(
-    @inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
+    @Inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
     private readonly UserMapper: UserMapper,
   ) { super(db.User) }
   async update(

@@ -10,7 +10,7 @@ import {
   TaskSchema,
   UserSchema
 } from "./schema/index.schema"
-import { IFilterDocument, IListDocument, IMemberDocument, IRuleDocument, ISectionDocument, ITagDocument, ITaskDocument, IUserDocument } from "./interface";
+import { IIFilterDocument, IListDocument, IMemberDocument, IRuleDocument, IISectionDocument, ITagDocument, ITaskDocument, IUserDocument } from "./interface";
 import { MongodbClient } from "./mongoClient.Database";
 import { databaseConfig } from "@/app/core/config";
 import { IPromodoDocument } from "./interface/promodo.document";
@@ -24,9 +24,9 @@ const globalWithModels = globalThis as typeof globalThis & {
 export class DatabaseModels {
   readonly Task: Model<ITaskDocument>;
   readonly Rule: Model<IRuleDocument>;
-  readonly Section: Model<ISectionDocument>;
+  readonly Section: Model<IISectionDocument>;
   readonly List: Model<IListDocument>;
-  readonly Filter: Model<IFilterDocument>;
+  readonly Filter: Model<IIFilterDocument>;
   readonly Tag: Model<ITagDocument>;
   readonly User: Model<IUserDocument>;
   readonly Member: Model<IMemberDocument>;
@@ -36,13 +36,13 @@ export class DatabaseModels {
   private constructor(client: Mongoose) {
     this.Task = this.getOrCreate<ITaskDocument>(client, "task", TaskSchema);
     this.Rule = this.getOrCreate<IRuleDocument>(client, "rule", RuleSchema);
-    this.Section = this.getOrCreate<ISectionDocument>(
+    this.Section = this.getOrCreate<IISectionDocument>(
       client,
       "section",
       SectionSchema,
     );
     this.List = this.getOrCreate<IListDocument>(client, "list", ListSchema);
-    this.Filter = this.getOrCreate<IFilterDocument>(client, "filter", FilterSchema);
+    this.Filter = this.getOrCreate<IIFilterDocument>(client, "filter", FilterSchema);
     this.Tag = this.getOrCreate<ITagDocument>(client, "tag", TagSchema);
     this.User = this.getOrCreate<IUserDocument>(client, "user", UserSchema)
     this.Member = this.getOrCreate<IMemberDocument>(client, "member", MemberSchema)

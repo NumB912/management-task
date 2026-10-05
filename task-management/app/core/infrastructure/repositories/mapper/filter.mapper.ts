@@ -1,15 +1,15 @@
 import { IFilter } from "@/app/core/domain";
-import { IFilterDocument, IFilterDocumentPopulated } from "../database/interface";
+import { IIFilterDocument, IIFilterDocumentPopulated } from "../database/interface";
 import { TagMapper } from "./tag.mapper";
 import { Types } from "mongoose";
 import { IFilterWithId } from "@/app/core/domain/entities/filter.entities";
 import { IMapper } from "@/app/core/domain/mapper/Imapper.mapper";
 import { UserMapper } from "./user.mapper";
 
-export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFilterDocumentPopulated, IFilter> {
+export class FilterMapper implements IMapper<IIFilterDocument, IFilterWithId, IIFilterDocumentPopulated, IFilter> {
   constructor(private readonly tagMapper: TagMapper, private readonly userMapper: UserMapper) { }
 
-  toDomain(doc: IFilterDocument): IFilterWithId {
+  toDomain(doc: IIFilterDocument): IFilterWithId {
     return {
       id: doc._id.toString(),
       name: doc.name,
@@ -27,7 +27,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     };
   }
 
-  toDomainPartial(doc: Partial<IFilterDocument>): Partial<IFilterWithId> {
+  toDomainPartial(doc: Partial<IIFilterDocument>): Partial<IFilterWithId> {
     const partial: Partial<IFilterWithId> = {};
     if (doc._id) partial.id = doc._id.toString();
     if (doc.name) partial.name = doc.name;
@@ -45,7 +45,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     return partial;
   }
 
-  toDomainPopulate(doc: IFilterDocumentPopulated): IFilter {
+  toDomainPopulate(doc: IIFilterDocumentPopulated): IFilter {
     return {
       id: doc._id.toString(),
       name: doc.name,
@@ -63,7 +63,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     };
   }
 
-  toDomainPartialPopulate(doc: Partial<IFilterDocumentPopulated>): Partial<IFilter> {
+  toDomainPartialPopulate(doc: Partial<IIFilterDocumentPopulated>): Partial<IFilter> {
     const partial: Partial<IFilter> = {};
     if (doc._id) partial.id = doc._id.toString();
     if (doc.name) partial.name = doc.name;
@@ -81,15 +81,15 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     return partial;
   }
 
-  toDomainList(docs: IFilterDocument[]): IFilterWithId[] {
+  toDomainList(docs: IIFilterDocument[]): IFilterWithId[] {
     return docs.map((doc) => this.toDomain(doc));
   }
 
-  toDomainPopulateList(docs: IFilterDocumentPopulated[]): IFilter[] {
+  toDomainPopulateList(docs: IIFilterDocumentPopulated[]): IFilter[] {
     return docs.map(doc => this.toDomainPopulate(doc));
   }
 
-  toPersistence(entity: IFilterWithId): IFilterDocument {
+  toPersistence(entity: IFilterWithId): IIFilterDocument {
     return {
       _id: new Types.ObjectId(entity.id),
       name: entity.name,
@@ -104,11 +104,11 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
       created_at: entity.created_at,
       updated_at: entity.updated_at ?? null,
       deleted_at: entity.deleted_at ?? null,
-    } as IFilterDocument;
+    } as IIFilterDocument;
   }
 
-  toPersistencePartial(entity: Partial<IFilterWithId>): Partial<IFilterDocument> {
-    const update: Partial<IFilterDocument> = {};
+  toPersistencePartial(entity: Partial<IFilterWithId>): Partial<IIFilterDocument> {
+    const update: Partial<IIFilterDocument> = {};
     if (entity.id !== undefined) update._id = new Types.ObjectId(entity.id);
     if (entity.name !== undefined) update.name = entity.name;
     if (entity.tags !== undefined) update.tags = entity.tags;
@@ -122,7 +122,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     return update;
   }
 
-  toPersistencePopulate(entity: IFilter): IFilterDocumentPopulated {
+  toPersistencePopulate(entity: IFilter): IIFilterDocumentPopulated {
     return {
       _id: new Types.ObjectId(entity.id),
       name: entity.name,
@@ -137,11 +137,11 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
       created_at: entity.created_at,
       updated_at: entity.updated_at ?? null,
       deleted_at: entity.deleted_at ?? null,
-    } as IFilterDocumentPopulated;
+    } as IIFilterDocumentPopulated;
   }
 
-  toPersistencePartialPopulate(entity: Partial<IFilter>): Partial<IFilterDocumentPopulated> {
-    const update: Partial<IFilterDocumentPopulated> = {};
+  toPersistencePartialPopulate(entity: Partial<IFilter>): Partial<IIFilterDocumentPopulated> {
+    const update: Partial<IIFilterDocumentPopulated> = {};
     if (entity.id) update._id = new Types.ObjectId(entity.id);
     if (entity.name) update.name = entity.name;
     if (entity.tags) {

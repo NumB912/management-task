@@ -11,13 +11,13 @@ const Page = React.memo(({ params }: { params: Promise<{ listId: string }> }) =>
   const { setTitle } = useHeader();
   const list = useWorkspaceStore(useShallow((state) => state.listIndex[listId]));
   const route = useRouter()
-  if(!list){
-    route.replace("/dashboard/work/inbox")
-  }
   const sectionIds =list.sections
   useEffect(() => {
-    if (list) setTitle(list.name); 
-  }, [list]);
+    if(!list){
+    route.replace("/dashboard/work/inbox")
+  }
+    if (list) setTitle(`${list.name}`); 
+  }, [list,setTitle]);
   
   return <SectionList listId={listId} sections={sectionIds?? []} />;
 });

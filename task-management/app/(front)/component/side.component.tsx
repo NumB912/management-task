@@ -1,5 +1,5 @@
 "use client";
-import { Calendar, Clock, Home, List } from "lucide-react";
+import { Calendar, Circle, Clock, Home, List, LogOut, User, User2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import useUserState from "../states/user/user.state";
@@ -10,11 +10,16 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import NotificationBell from "../components/notifier/notificationBell";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "../utils/actor.utils";
+import { useProfile } from "../states/profile.state";
 
 const Side = () => {
-  const apiUrl = `${process.env.NEXT_PUBLIC_NOTIFICATION_URL}notifications/stream`
+  const apiUrl = `${process.env.NEXT_PUBLIC_NOTIFICATION_URL}notifications/stream`;
   const pathName = usePathname();
   const { user } = useUserState();
+  const {open,setOpen} = useUserState()
+  const logout = useUserState((state)=>state.logout)
   const navItems = [
     { href: "/dashboard", label: "Dashboard", Icon: Home, exact: true },
     {
@@ -39,27 +44,42 @@ const Side = () => {
   return (
     <div className="flex flex-col p-2 bg-linear-180 from-primary to-primary/50 h-screen sticky top-0">
       <DropdownMenu>
-        <DropdownMenuTrigger className="w-full items-center justify-center flex">
-          <div className="profile bg-white rounded-full flex items-center justify-center overflow-hidden aspect-square w-11 ">
-            {user ? (
-              user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-lg font-semibold text-gray-600">
-                  {user?.name?.charAt(0).toUpperCase() ?? ""}
-                </span>
-              )
-            ) : (
-              <span className="text-gray-300">?</span>
-            )}
+        <DropdownMenuTrigger
+          className="w-full items-center justify-center flex"
+          asChild
+        >
+          <div className="profile  aspect-square w-11 ">
+            <Avatar className="w-11 h-11 ">
+              <AvatarImage src={user?.avatar} />
+              <AvatarFallback>{getInitials(user?.name ?? "")}</AvatarFallback>
+            </Avatar>
           </div>
         </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem>Hello</DropdownMenuItem>
+        <DropdownMenuContent className="max-w-xs min-w-2xs p-0" side="bottom" sideOffset={0}>
+          <DropdownMenuItem className="p-3 rounded-none! h-fit border-b border-gray-200" onClick={()=>setOpen(!open)}>
+              <div className="flex items-center gap-2">
+                              <Avatar className="w-11 h-11 ">
+              <AvatarImage src={user?.avatar} />
+              <AvatarFallback>{getInitials(user?.name ?? "")}</AvatarFallback>
+            </Avatar>
+                  <div className=" flex flex-col">
+                      <div className="font-bold text-[16px]">{user?.name}</div>
+                      <div className="text-sm text-neutral-500">Thông tin người dùng</div>
+                  </div>
+              </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={()=>{
+            logout()
+          }} className="p-3 rounded-none">
+            <Circle />
+            <span>Quên mật khẩu</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={()=>{
+            logout()
+          }} className="p-3 rounded-none">
+            <LogOut />
+            <span>Đăng xuất</span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

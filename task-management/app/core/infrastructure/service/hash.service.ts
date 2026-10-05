@@ -1,9 +1,9 @@
-import { AppError, IHashService } from "@/app/core/domain";
+import { AppError, ICredentialsService } from "@/app/core/domain";
 import bcrypt from 'bcrypt'
-import { injectable } from "tsyringe";
+import { Injectable } from "tsyringe";
 
-@injectable()
-export default class HashService implements IHashService {
+@Injectable()
+export default class CredentialsService implements ICredentialsService {
     async hash(password: string): Promise<string> {
         if(!password || password.length == 0){
             throw new AppError("NOT_FOUND",'Không tìm thấy giá trị truyền vào',404)

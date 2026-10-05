@@ -1,7 +1,7 @@
 import { createClient } from "redis";
 import type { RedisClientType } from "@redis/client";
-import { ICache } from "../../domain";
-import { CacheConfig } from "../../config";
+import { ICache } from "@/domain";
+import { CacheConfig } from "@/config";
 
 declare global {
   var __redisCacheInstance: RedisCache | undefined;
@@ -33,7 +33,7 @@ class RedisCache implements ICache {
       this.connectPromise = null;
     });
   }
-  static getInstance(): RedisCache {
+  static cf(): RedisCache {
     if (!globalThis.__redisCacheInstance) {
       globalThis.__redisCacheInstance = new RedisCache();
     }

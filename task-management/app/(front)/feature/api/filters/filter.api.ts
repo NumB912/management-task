@@ -1,9 +1,6 @@
 import { axiosInstance } from '@/app/(front)/lib/axios';
 import { ITaskModel } from '@/app/(front)/model';
 import { IFilterModel } from '@/app/(front)/model/filter.model';
-
-type ICreateFilterPayload = Omit<IFilterModel, "id" | "user">;
-
 export const filterApi = {
   getById: async (id: string): Promise<{
       filter: IFilterModel,tasks:ITaskModel[]

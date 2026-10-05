@@ -1,7 +1,7 @@
 import {
   AppError,
   ICache,
-  IHashService,
+  ICredentialsService,
   ITokenService,
   IUsecase,
   IUserRepository,
@@ -11,17 +11,17 @@ export class ChangePasswordUsecase implements IUsecase<void> {
   private readonly tokenService: ITokenService;
   private readonly cache: ICache;
   private readonly repository: IUserRepository;
-  private readonly hashService: IHashService;
+  private readonly CredentialsService: ICredentialsService;
   constructor(
     repository: IUserRepository,
     tokenService: ITokenService,
-    hashService: IHashService,
+    CredentialsService: ICredentialsService,
     cache: ICache,
   ) {
     this.tokenService = tokenService;
     this.cache = cache;
     this.repository = repository;
-    this.hashService = hashService;
+    this.CredentialsService = CredentialsService;
   }
 
   async execute(formChangePassword: {
@@ -56,7 +56,7 @@ export class ChangePasswordUsecase implements IUsecase<void> {
         throw new AppError("USER_NOT_EXIST", "Người dùng không tồn tại", 400);
       }
 
-      const passwordHash = await this.hashService.hash(
+      const passwordHash = await this.CredentialsService.hash(
         formChangePassword.password,
       );
       await this.repository.update(user?.id, {

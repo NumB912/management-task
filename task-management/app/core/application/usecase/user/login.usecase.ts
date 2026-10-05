@@ -1,7 +1,7 @@
 import {
   AppError,
   ICache,
-  IHashService,
+  ICredentialsService,
   ITokenService,
   IUsecase,
   IUserRepository,
@@ -15,18 +15,18 @@ export class LoginWithEmailUseCase implements IUsecase<{
   refresh_token: string;
 }> {
   private readonly repository: IUserRepository;
-  private readonly hashService: IHashService;
+  private readonly CredentialsService: ICredentialsService;
   private readonly tokenService: ITokenService;
   private readonly cache: ICache;
 
   constructor(
     repository: IUserRepository,
-    hashService: IHashService,
+    CredentialsService: ICredentialsService,
     tokenService: ITokenService,
     cache: ICache,
   ) {
     this.repository = repository;
-    this.hashService = hashService;
+    this.CredentialsService = CredentialsService;
     this.tokenService = tokenService;
     this.cache = cache;
   }
@@ -70,7 +70,7 @@ export class LoginWithEmailUseCase implements IUsecase<{
           400,
         );
       }
-      const compare = await this.hashService.compare(
+      const compare = await this.CredentialsService.compare(
         loginDTO.password,
         user.password,
       );

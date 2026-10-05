@@ -36,6 +36,8 @@ interface IWorkspaceState {
   filterIndex: Record<string, IFilterModel>;
   taskIndex: Record<string, ITaskModel>;
   taskLocation: Record<string, ITaskLocation>;
+  updateFilter:(filterId:string,data:Partial<IFilterModel>)=>void;
+  addFilter:(data:IFilterModel)=>void
   setInboxCount: (inboxCount: number) => void;
   setTodayCount: (todayCount: number) => void;
   setNextDayCount: (nextDayCount: number) => void;
@@ -269,6 +271,39 @@ addMember(DTO) {
       },
     };
   });
+},
+updateFilter(filterId, data) {
+  set((state)=>{
+    const filters = state.filterIndex
+    if(!filterId||!data) return state
+    const filter = filters[filterId]
+    if(!filter) return state
+
+    return {
+      filterIndex:{
+        ...filters,
+        [filterId]:{
+          ...filter,
+          ...data
+        }
+      }
+    }
+  })
+},
+addFilter(data) {
+  set((state)=>{
+    const filters = state.filterIndex
+    if(!data) return state
+    const filter = filters[data.id]
+    if(!filter) return state
+    return {
+      filterIndex:{
+        ...filters,
+        [data.id]:{
+          ...data
+        }
+      }
+    }})
 },
 removeMember(DTO) {
   set((state) => {

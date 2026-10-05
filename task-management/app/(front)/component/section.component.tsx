@@ -362,7 +362,7 @@ const Section = ({
           className={cn(
             "p-0! gap-0.5 flex flex-col items-center",
             "overflow-x-hidden overflow-y-auto",
-            "max-h-[min(65vh,600px)]! min-w-65! h-full w-full",
+            "max-h-[min(65vh,600px)]! max-w-[min(40vw,500px)] min-w-65! h-full w-full",
           )}
         >
           {isCreateTask && (

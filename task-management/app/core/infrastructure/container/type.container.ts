@@ -2,6 +2,7 @@ export const TYPES = {
   DatabaseType: Symbol.for("DatabaseClient"),
   MessageQueue:Symbol.for("MessageQueue"),
   Publisher:Symbol.for("Publisher"),
+  PublisherFile:Symbol.for("PublisherFile"),
   Consumer:Symbol.for("Consumer"),
   UnitWork:Symbol.for("UnitWork"),
   Cache:Symbol.for("Cache"),
@@ -10,7 +11,7 @@ export const TYPES = {
   RealTimeNotifier:Symbol.for("RealTimeNotifier"),
 
 
-
+  logoutUsecase:Symbol.for("logoutUsecase"),
   exitFromList:Symbol.for("exitFromList"),
   readNotification:Symbol.for("readNotification"),
   getNotification:Symbol.for("NotificationUsecase"),
@@ -18,6 +19,8 @@ export const TYPES = {
   getPromodoUsecase:Symbol.for("getPromodoUsecase"),
   notificationRepository:Symbol.for("notificationRepository"),
 
+
+  putProfileUsecase:Symbol.for("putProfileUsecase"),
   GetProfileUsecase:Symbol.for("GetProfileUsecase"),
   GetTodayUsecase:Symbol.for("GetTodayUsecase"),
   GetUpcomingUsecase:Symbol.for("GetUpcomingUsecase"),
@@ -101,7 +104,7 @@ export const TYPES = {
   
   generateId:Symbol.for("generateId"),
   calculateDeadLineService:Symbol.for("calculateDeadLineService"),
-  HashService:Symbol.for("HashService"),
+  CredentialsService:Symbol.for("CredentialsService"),
   TokenService:Symbol.for("TokenService"),
   OtpService:Symbol.for("OtpService"),
   QueryFilterParserService:Symbol.for("QueryFilterParserService"),
