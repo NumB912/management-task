@@ -27,17 +27,16 @@ export default class LocalStorageService implements UploadService {
     return base || "file.bin";
   }
 
-  async saveFile(file: FileUpload): Promise<UploadedFileDto> {
+  async saveFile(file: FileUpload,url:string,fileName:string): Promise<UploadedFileDto> {
     await this.ensureDir();
-    const filename = `${randomUUID()}-${this.safeName(file.originalName)}`;
-    await writeFile(path.join(this.uploadDir, filename), file.buffer);
-
+    const pathWriteFile = path.join(this.uploadDir,url,fileName)
+    await writeFile(pathWriteFile, file.buffer);
     return {
-      filename,
+      filename:fileName,
       originalName: file.originalName,
       mimetype: file.mimetype,
       size: file.size,
-      url: `${UploadConfig.BASE_URL}/uploads/${filename}`,
+      url: `${UploadConfig.BASE_URL}/${url}/${fileName}`,
     };
   }
 
@@ -56,12 +55,12 @@ export default class LocalStorageService implements UploadService {
     return files.map((file) => this.toDto(file));
   }
 
-  async deleteFile(filename: string): Promise<void> {
+  async deleteFile(filename: string,url:string): Promise<void> {
     await this.ensureDir();
     const safe = this.safeName(filename);
-
+    console.log(path.join(this.uploadDir,url, safe))
     try {
-      await unlink(path.join(this.uploadDir, safe));
+      await unlink(path.join(this.uploadDir,url, safe));
     } catch (error) {
        if ((error as { code?: string }).code === "ENOENT") {
         console.warn(`[Storage] File không tồn tại, bỏ qua: ${safe}`);
@@ -71,8 +70,8 @@ export default class LocalStorageService implements UploadService {
     }
   }
 
-  async deleteFiles(filenames: string[]): Promise<void> {
-    await Promise.all(filenames.map((filename) => this.deleteFile(filename)));
+  async deleteFiles(filenames: string[],url:string): Promise<void> {
+    await Promise.all(filenames.map((filename) => this.deleteFile(filename,url)));
   }
 
   async exists(filename: string): Promise<boolean> {

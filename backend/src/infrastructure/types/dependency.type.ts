@@ -21,7 +21,8 @@ export const TYPES = {
   getPromodoUsecase:Symbol.for("getPromodoUsecase"),
   notificationRepository:Symbol.for("notificationRepository"),
 
-
+  deleteAvatarUsecase:Symbol.for("deleteAvatarUsecase"),
+  putAvatarUsecase:Symbol.for("putAvatarUsecase"),
   putProfileUsecase:Symbol.for("putProfileUsecase"),
   GetProfileUsecase:Symbol.for("GetProfileUsecase"),
   GetTodayUsecase:Symbol.for("GetTodayUsecase"),

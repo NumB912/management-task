@@ -14,18 +14,18 @@ import { TYPES } from '@/infrastructure/types/dependency.type.js';
 import {
   type LoginDTO,
   LoginSchemaDTO,
-} from '@/infrastructure/validate/login.validate.js';
+} from '@/infrastructure/validate/user/login.validate.js';
 import {
   type registerDTO,
   RegisterSchemaDTO,
-} from '@/infrastructure/validate/register.validate';
-import { type sendDTO, sendSchemaDTO } from '@/infrastructure/validate/send.validate';
+} from '@/infrastructure/validate/user/register.validate';
+import { type sendDTO, sendSchemaDTO } from '@/infrastructure/validate/user/send.validate';
 import {
   confirmOtpSchemaDTO,
   resetPasswordSchemaDTO,
   type confirmOtpDTO,
   type resetPasswordDTO,
-} from '@/infrastructure/validate/verify.validate';
+} from '@/infrastructure/validate/user/verify.validate';
 import {
   Body,
   Controller,
@@ -60,8 +60,8 @@ export class AuthController {
     private readonly sendChangePasswordUC: SendChangePasswordUsecase,
     @Inject(TYPES.ChangePasswordUsecase)
     private readonly changePasswordUC: ChangePasswordUsecase,
-    @Inject(ConfigService)
-    private readonly config: ConfigService,
+      @Inject(ConfigService)
+      private readonly config: ConfigService,
   ) {}
 
   @Post('login')
@@ -150,7 +150,7 @@ export class AuthController {
 
   @Post('send/email/verify')
   @HttpCode(200)
-  async confirmOtp(
+  async verify(
     @Body(new ZodValidationPipe(confirmOtpSchemaDTO)) dto: confirmOtpDTO,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -204,9 +204,9 @@ export class AuthController {
     return { message: 'Làm mới token thành công' };
   }
 
-  @Post('resetPassword')
+  @Post('reset/email')
   @HttpCode(200)
-  async resetPassword(
+  async reset(
     @Body(new ZodValidationPipe(resetPasswordSchemaDTO)) dto: resetPasswordDTO,
   ) {
     const { email, password } = dto;
@@ -214,7 +214,7 @@ export class AuthController {
     return { message: 'Đặt lại mật khẩu thành công' };
   }
 
-  @Post('sendResetPassword')
+  @Post('send/email/password')
   @HttpCode(200)
   async sendResetPassword(
     @Body(new ZodValidationPipe(sendSchemaDTO)) dto: sendDTO,

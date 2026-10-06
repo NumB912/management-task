@@ -1,4 +1,17 @@
 services:
+  file-services:
+    build: "./file-services"
+    container_name: task-management-file-services
+    ports:
+      - "3006:3006"
+    env_file: ./file-services/.env
+    volumes:
+      - ./file-services/public/uploads:/app/public/uploads
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - tm-network
   email-services:
     build: "./email-services"
     container_name: task-management-email-services

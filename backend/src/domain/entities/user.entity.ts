@@ -5,7 +5,7 @@ export interface IUser{
     email:string,
     password:string,
     name:string,
-    avatar?:string,
+    avatar?:string|null,
     role:IRole,
     created_at:Date,
     updated_at?:Date|null,

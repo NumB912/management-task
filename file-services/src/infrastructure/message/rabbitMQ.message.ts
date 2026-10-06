@@ -1,15 +1,12 @@
 import amqplib, { type Channel, type ChannelModel } from "amqplib";
 import { RabbitMQConfig } from "src/config.js";
 
-const globalRabbitInstance = globalThis as typeof globalThis & {
-  _instanceRabbit?: RabbitMQ;
-};
-
 const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_RECONNECT_DELAY_MS = 1000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
 
 class RabbitMQ {
+  private static instance:RabbitMQ
   private channel: Channel | null = null;
   private connection: ChannelModel | null = null;
   private connecting: Promise<Channel> | null = null;
@@ -18,8 +15,8 @@ class RabbitMQ {
   private constructor() {}
 
   public static getInstance(): RabbitMQ {
-    globalRabbitInstance._instanceRabbit ??= new RabbitMQ();
-    return globalRabbitInstance._instanceRabbit;
+    this.instance ??= new RabbitMQ();
+    return this.instance;
   }
 
   public async getChannel(): Promise<Channel> {
@@ -43,7 +40,6 @@ class RabbitMQ {
     this.connection = await amqplib.connect(
       `amqp://${RabbitMQConfig.USER}:${RabbitMQConfig.PASS}@${RabbitMQConfig.HOST}:${RabbitMQConfig.PORT}?heartbeat=30`,
     );
-
     this.connection.on("error", (err: Error) => {
       console.error("[RabbitMQ] Lỗi kết nối:", err.message);
     });

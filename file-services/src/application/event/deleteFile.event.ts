@@ -12,43 +12,27 @@ export default class DeleteFileEvent implements IUsecase<void> {
     this.consumer = consumer;
   }
 
-  async handle(content: Buffer, headers: Record<string, unknown>) {
-    console.log(">>> [FILE DELETE CONSUMER] Nhận được yêu cầu xóa");
+  async handle(dto: { fileName: string,userId:string }) {
+    const { fileName,userId } = dto;
 
-    let filename: string | null =
-      typeof headers["filename"] === "string" ? headers["filename"] : null;
-    if (!filename && content.length > 0) {
-      try {
-        const parsed: unknown = JSON.parse(content.toString());
-        if (
-          typeof parsed === "object" &&
-          parsed !== null &&
-          "filename" in parsed &&
-          typeof (parsed as { filename: unknown }).filename === "string"
-        ) {
-          filename = (parsed as { filename: string }).filename;
-        }
-      } catch {
-        // không phải JSON hợp lệ -> báo lỗi thiếu filename bên dưới
-      }
-    }
-
-    if (!filename) {
-      throw new ValidationError(["Thiếu tên file cần xóa (filename)"]);
-    }
-
-    await this.deleteFileUC.execute(filename);
-    console.log(`[FILE DELETE CONSUMER] Đã xóa: ${filename}`);
+    this.deleteFileUC.execute([fileName], `avatars/${userId}`);
+    return fileName;
   }
 
   async execute(): Promise<void> {
-    await this.consumer.subBuffer(
+    await this.consumer.sub<{
+      fileName: string;
+      userId:string;
+    }>(
       "exchange.file",
       "file-remove-queue",
       ["file.remove"],
       "direct",
-      async ({content,headers}) => {
-        await this.handle(content, headers);
+      async (event) => {
+        await this.handle({
+          userId:event.userId,
+          fileName: event.fileName,
+        });
       },
     );
   }

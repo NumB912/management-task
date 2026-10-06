@@ -100,7 +100,7 @@ export class DeleteListUsecase implements IUsecase<IListWithId | null> {
           {
             id:user?.id,
             name:user?.name,
-            avatar:user?.avatar
+            avatar:user?.avatar??null
           }
         );
       } catch (error) {
@@ -118,7 +118,7 @@ export class DeleteListUsecase implements IUsecase<IListWithId | null> {
     actor?: {
       id?:string,
       name?:string,
-      avatar?:string
+      avatar?:string|null
     },
   ) {
     this.publisher.pub("list.exchange", "list.delete", "direct", {

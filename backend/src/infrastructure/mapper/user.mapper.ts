@@ -120,7 +120,7 @@ toPersistencePartial(entity: Partial<IUser>): Partial<IUserDocument> {
     const update: Partial<IUserDocument> = {};
     if (entity.id) update._id = new Types.ObjectId(entity.id);
     if (entity.name) update.name = entity.name;
-    if (entity.avatar) update.avatar = entity.avatar;
+    if (entity.avatar!==undefined) update.avatar = entity.avatar;
     if (entity.role) update.role = entity.role;
     if (entity.email) update.email = entity.email;
     if (entity.password) update.password = entity.password;

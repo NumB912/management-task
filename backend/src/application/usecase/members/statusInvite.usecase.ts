@@ -26,7 +26,7 @@ interface IStatusMemberInviteInput {
 interface PublishContext {
   userIds: string[];
   member: Record<string, unknown>;
-  actor: { id: string; name?: string; avatar?: string };
+  actor: { id: string; name?: string; avatar?: string|null };
   email?: string;
   list: IListWithId;
 }

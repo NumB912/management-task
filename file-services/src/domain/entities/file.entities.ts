@@ -7,7 +7,7 @@ export interface FileUploadProps {
   maxSizeBytes?: number;
 }
 
-const DEFAULT_MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const DEFAULT_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
 export default class FileUpload {
   readonly buffer: Buffer;

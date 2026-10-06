@@ -65,7 +65,7 @@ export class UpdateListUsecase
       try {
         const user = await this.userRepository.findById(userId)
         await this.notifyMembers(list, { id: list.id, name }, userId,{
-          avatar:user?.avatar,
+          avatar:user?.avatar??null,
           id:user?.id,
           name:user?.name
         });
@@ -84,7 +84,7 @@ export class UpdateListUsecase
     actor?: {
       name?:string,
       id?:string,
-      avatar?:string
+      avatar?:string|null
     },
   ) {
     const members = (await this.memberRepository.findManyByIds(list.members)) ?? []

@@ -103,6 +103,9 @@ import { UpdateTaskUsecase } from '@/application/usecase/tasks/updateTask.usecas
 import { GetProfileUsecase } from '@/application/usecase/user/getProfile.usecase.js';
 import { PutProfileUsecase } from '@/application/usecase/user/profileupdate.usecase.js';
 import { WorkSpaceUsecase } from '@/application/usecase/workSpace/workspace.usecase.js';
+import { PutAvatarUsecase } from '@/application/usecase/user/avatarPut.usecase';
+import { IUserRepository } from '@/domain';
+import { DeleteAvatarUsecase } from '@/application/usecase/user/avatarDel.usecase';
 
 const repositories = [
   { provide: TYPES.TagRepository, useClass: TagRepository },
@@ -1064,6 +1067,17 @@ const usecase = [
       filterRepo: FilterRepository,
     ) => new WorkSpaceUsecase(tagRepo, listRepo, filterRepo),
   },
+  {
+    provide:TYPES.putAvatarUsecase,
+    inject:[TYPES.UserRepository,TYPES.Publisher,TYPES.UnitWork],
+    useFactory:(userRepo:UserRepository,pub:Publisher,unitWork:UnitWorkMongo)=>new PutAvatarUsecase(userRepo,pub,unitWork)
+  }
+  ,
+    {
+    provide:TYPES.deleteAvatarUsecase,
+    inject:[TYPES.UserRepository,TYPES.Publisher,TYPES.UnitWork],
+    useFactory:(userRepo:UserRepository,pub:Publisher,unitWork:UnitWorkMongo)=>new DeleteAvatarUsecase(userRepo,pub,unitWork)
+  }
 ];
 
 @Global()

@@ -12,7 +12,7 @@ export class PutProfileUsecase implements IUsecase<boolean> {
         private readonly unitwork:IUnitWork
     ) { }
 
-    async execute(DTO: { userId: string,data:Partial<Pick<IUser,"email"|"avatar">> }): Promise<boolean> {
+    async execute(DTO: { userId: string,data:Pick<IUser,"name"> }): Promise<boolean> {
         try {
             const {data,userId} = DTO
             await this.unitwork.startTransaction()

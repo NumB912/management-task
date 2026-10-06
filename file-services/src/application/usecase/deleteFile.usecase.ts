@@ -3,12 +3,10 @@ import type IUsecase from "@domain/usecase/usecase.entities.js";
 
 export default class DeleteFileUsecase implements IUsecase<void> {
   private storage: UploadService;
-
   constructor(storage: UploadService) {
     this.storage = storage;
   }
-
-  async execute(filename: string): Promise<void> {
-    await this.storage.deleteFile(filename);
+  async execute(filenames: string[],url:string): Promise<void> {
+    await this.storage.deleteFiles(filenames,url);
   }
 }

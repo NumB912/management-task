@@ -6,5 +6,4 @@ export const LoginSchemaDTO = z.object({
   .min(8, 'Tối thiểu 8 ký tự')
 });
 
-
 export type LoginDTO = z.infer<typeof LoginSchemaDTO>;

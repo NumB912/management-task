@@ -14,7 +14,7 @@ export default class UploadFileUsecase
     this.storage = storage;
   }
 
-  async execute(file: FileUpload): Promise<UploadedFileDto> {
-    return this.storage.saveFile(file);
+  async execute(file: FileUpload,fileName:string,url:string): Promise<UploadedFileDto> {
+    return this.storage.saveFile(file,fileName,url);
   }
 }

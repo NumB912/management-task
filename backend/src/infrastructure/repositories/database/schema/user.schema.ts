@@ -17,7 +17,7 @@ export class User extends BaseSchema {
   password: string;
 
   @Prop({ type: String, required: false })
-  avatar?: string;
+  avatar?: string|null;
 
   @Prop({ type: String, enum: ['user', 'admin'], default: 'user' })
   role: string;

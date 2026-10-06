@@ -1,11 +1,11 @@
 import type FileUpload from "@domain/entities/file.entities.js";
 
 export interface UploadService {
-  saveFile(file: FileUpload): Promise<UploadedFileDto>;
+  saveFile(file: FileUpload,url:string,fileName:String): Promise<UploadedFileDto>;
   toDto(file: MultipartFileLike): UploadedFileDto;
   toDtos(files: MultipartFileLike[]): UploadedFileDto[];
-  deleteFile(filename: string): Promise<void>;
-  deleteFiles(filenames: string[]): Promise<void>;
+  deleteFile(filename: string,url:string): Promise<void>;
+  deleteFiles(filenames: string[],url:string): Promise<void>;
   exists(filename: string): Promise<boolean>;
 }
 
