@@ -1,11 +1,8 @@
 "use client";
 import React, { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { toast } from "sonner";
 import CalendarComponent from "../calendar/calendar.component";
-import { ITaskModel } from "../../model";
 import { Button } from "@/components/ui/button";
-import ObjectID from "bson-objectid";
 import {
   ArrowRight,
   Calendar,
@@ -44,14 +41,12 @@ import EditTask from "./editTask";
 import { useWorkspaceStore } from "../../states/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import { Ipriority, IStatus } from "../../model/type/type";
-import { useCreateTag } from "../../feature/hook/useTagMutation.hook";
 import { formatTimer } from "../../utils/formatTimer";
-import { getNextOccurrence } from "../../utils/caculateNextDay";
-import useTaskHook from "../../feature/hook/task/task.hook";
 import {
   PRIORITY_BORDER,
   PRIORITY_COLORS,
 } from "../../model/mod/priorityConfig";
+import { useTask } from "../../feature/hook/task/task.hook";
 
 export interface TaskProp {
   taskId: string;
@@ -63,6 +58,7 @@ interface TaskCheckboxProps {
   priority: Ipriority | undefined;
   onHandle: () => void;
 }
+
 export function TaskCheckbox({
   status,
   priority,
@@ -98,159 +94,20 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
   const [openContextMenu, setOpenContextMenu] = useState<boolean>(false);
 
   const {
-    addTaskStore,
-    moveTaskIntoSection,
-    removeTaskStore,
     task,
-    updateTaskStore,
-    deleteTask,
-    updateRule,
-    updateStatusApi,
-    updateTask,
-  } = useTaskHook(taskId);
-  const listGet = useWorkspaceStore((state) => state.getListWithName);
+    handleCreateTag,
+    handleDeleteTask,
+    handleUpdateRule,
+    handleUpdateTags,
+    handleUpdateTask,
+    toggleStatus,
+  } = useTask(taskId);
+
+  const listGet = useWorkspaceStore((s) => s.getListWithName);
   const lists = useMemo(() => listGet(""), [listGet]);
+  const sectionIndex = useWorkspaceStore(useShallow((s) => s.sectionIndex));
   const taskRef = useRef<HTMLDivElement>(null);
-  const sectionIndex = useWorkspaceStore(
-    useShallow((state) => state.sectionIndex),
-  );
-  type Pending = {
-    status: ITaskModel["status"];
-    record: Record<string, { date: Date; rule: string }>;
-    snapshot: { status: ITaskModel["status"]; rule: ITaskModel["rule"] };
-  };
-  const pendings = useRef<Record<string, Pending>>({});
-  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-
-  const { mutate: createTag } = useCreateTag();
   if (!task?.id || depth > 4) return null;
-
-  const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
-    const prev = task;
-    if (!prev ) return;
-    const { section, ...rest } = data;
-    const isMoving = !!section && section !== prev.section;
-    const restKeys = Object.keys(rest) as (keyof ITaskModel)[];
-    if (isMoving) moveTaskIntoSection(id, section!);
-    if (restKeys.length) updateTaskStore(id, rest);
-
-    updateTask(
-      { taskId: id, data },
-      {
-        onSuccess: () => {},
-        onError: () => {
-          if (isMoving) moveTaskIntoSection(id, prev.section);
-          if (restKeys.length) {
-            updateTaskStore(
-              id,
-              Object.fromEntries(restKeys.map((k) => [k, prev[k]])),
-            );
-          }
-          toast.error("Không thể cập nhật task");
-        },
-      },
-    );
-  };
-
-  const handleUpdateRule = (id: string, data: Partial<IRuleModel>) => {
-    const prev = task;
-    if (!prev ) return;
-    updateTaskStore(id, { rule: { ...prev.rule, ...data } });
-    updateRule(
-      { taskId: id, data },
-      {
-        onSuccess: () => {},
-        onError: () => {
-          updateTaskStore(id, { rule: prev.rule });
-          toast.error("Không thể cập nhật lịch/ưu tiên");
-        },
-      },
-    );
-  };
-
-  const handleConfirmTags = (tags: string[]) => {
-    setOpenTagEdit(false);
-    handleUpdateRule(taskId, { tags });
-  };
-
-  const flush = (id: string) => {
-    clearTimeout(timers.current[id]);
-    delete timers.current[id];
-    const p = pendings.current[id];
-    if (!p) return;
-    delete pendings.current[id];
-    updateStatusApi(
-      {
-        taskId: id,
-        data: {
-          id: id,
-          record: p.record,
-          status: p.status,
-        },
-      },
-    );
-  };
-
-  const schedule = (
-    id: string,
-    status: IStatus,
-    tempId: string | undefined,
-    rule: string | undefined,
-    snapshot: Pending["snapshot"],
-    nextDate?: Date,
-  ) => {
-    if (pendings.current[id] && pendings.current[id].status !== status) {
-      flush(id);
-    }
-    const p = (pendings.current[id] ??= { status, record: {}, snapshot });
-    if (tempId && nextDate)
-      p.record[tempId] = { date: new Date(nextDate), rule: rule ?? "" };
-
-    clearTimeout(timers.current[id]);
-    timers.current[id] = setTimeout(() => flush(id), 200);
-  };
-  const canRecur = (
-    task: ITaskModel,
-    nextDate: Date | null,
-  ): nextDate is Date => {
-    if (!nextDate || !task.rule.start_date) return false;
-    const until = task.rule.repeat.until && new Date(task.rule.repeat.until);
-    return !until || nextDate?.getTime() <= until?.getTime();
-  };
-  const handleUpdateStatusTask = (id: string, status: IStatus) => {
-    const current = task;
-    if (!current ) return;
-    const snapshot = { status: current.status, rule: current.rule };
-    const { next, isEnded } = getNextOccurrence(current);
-    const tempId = new ObjectID().toHexString();
-    const rule = new ObjectID().toHexString();
-    if (next && tempId && current.rule.start_date && canRecur(current, next)) {
-      addTaskStore({
-        ...current,
-        id: tempId,
-        status,
-        rule: { ...current.rule, id: rule, repeat: { mode: "none" } },
-      });
-      updateTaskStore(id, {
-        status: "pending",
-        rule: { ...current.rule, start_date: next },
-      });
-      schedule(id, status, tempId, rule, snapshot, current?.rule?.start_date!);
-    } else if (isEnded && status === "done") {
-      updateTaskStore(id, { status });
-      schedule(id, status, tempId, rule, snapshot, current?.rule?.start_date!);
-    } else {
-      updateTaskStore(id, { status });
-      schedule(id, status, undefined, undefined, snapshot);
-    }
-  };
-
-  const handleDeleteTask = (id: string) => {
-    removeTaskStore(id);
-    deleteTask(id, {
-      onError: () => toast.error("Không thể xoá task"),
-    });
-  };
 
   return (
     <div className="task flex flex-col flex-1">
@@ -287,12 +144,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                     <TaskCheckbox
                       status={task.status}
                       priority={task?.rule?.priority ?? 4}
-                      onHandle={() => {
-                        handleUpdateStatusTask(
-                          task.id,
-                          task.status !== "pending" ? "pending" : "done",
-                        );
-                      }}
+                      onHandle={toggleStatus}
                     />
                   </div>
 
@@ -370,9 +222,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
             <ContextMenuContent className="w-55 p-2">
               <ContextMenuItem
                 className={cn("p-2")}
-                onSelect={() => {
-                  setisOpenTaskEdit(true);
-                }}
+                onSelect={() => setisOpenTaskEdit(true)}
               >
                 <Pencil className="mr-1 h-6 w-6" />
                 Sửa (Edit)
@@ -386,7 +236,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                   <Button
                     type="button"
                     variant={"ghost"}
-                    aria-label={`Hôm nay`}
+                    aria-label="Hôm nay"
                     className={cn(
                       "flex items-center justify-center rounded p-2 aspect-square border transition-colors",
                     )}
@@ -464,9 +314,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                         className={cn(
                           "flex items-center justify-center w-fit rounded p-2! border transition-colors",
                         )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <Calendar className="h-5! w-5! stroke-[1.5px]" />
                       </Button>
@@ -529,9 +377,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                         }}
                       >
                         <Flag
-                          className={cn(
-                            "h-5! w-5! stroke-[1.5px] fill-current",
-                          )}
+                          className={cn("h-5! w-5! stroke-[1.5px] fill-current")}
                         />
                       </Button>
                     );
@@ -550,9 +396,9 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                       {list.sections?.length ? (
                         <ContextMenuSub>
                           <ContextMenuSubTrigger
-                            onClick={() => {
-                              handleUpdateTask(task.id, { list: list.id });
-                            }}
+                            onClick={() =>
+                              handleUpdateTask(task.id, { list: list.id })
+                            }
                           >
                             <Folder className="mr-1 h-4 w-4" />
                             {list.name}
@@ -565,9 +411,9 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                                 <ContextMenuItem
                                   key={section}
                                   textValue={sectionItem.name}
-                                  onSelect={() => {
-                                    handleUpdateTask(taskId, { section });
-                                  }}
+                                  onSelect={() =>
+                                    handleUpdateTask(taskId, { section })
+                                  }
                                 >
                                   <File className="mr-1 h-4 w-4" />
                                   {sectionItem.name}
@@ -578,9 +424,9 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
                         </ContextMenuSub>
                       ) : (
                         <ContextMenuItem
-                          onSelect={() => {
-                            handleUpdateTask(task.id, { list: list.id });
-                          }}
+                          onSelect={() =>
+                            handleUpdateTask(task.id, { list: list.id })
+                          }
                         >
                           {list.name}
                         </ContextMenuItem>
@@ -592,9 +438,7 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
 
               <ContextMenuItem
                 className={cn("p-2")}
-                onSelect={() => {
-                  setOpenTagEdit(true);
-                }}
+                onSelect={() => setOpenTagEdit(true)}
               >
                 <TagIcon className="mr-1 h-6 w-6" />
                 Thẻ
@@ -623,9 +467,14 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
         open={openTagEdit}
         onOpenChange={setOpenTagEdit}
         selectedTags={task.rule?.tags ?? []}
-        onCreateTag={(name) => createTag({ name })}
-        onConfirm={handleConfirmTags}
+        onCreateTag={handleCreateTag}
+        onConfirm={(tags) => {
+          setOpenTagEdit(false);
+          handleUpdateTags(tags);
+        }}
       />
     </div>
   );
 });
+
+Task.displayName = "Task";

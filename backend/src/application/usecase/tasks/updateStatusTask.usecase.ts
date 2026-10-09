@@ -200,8 +200,7 @@ export class UpdateStatusUsecase implements IUsecase<void> {
       await this.sectionRepository.pushTaskIntoSection({
         id: String(taskCur.section),
         tasks: createTaskMany.map((it) => it.id),
-        session,
-      });
+      },session);
 
       if (isEnded) {
         await this.taskRepository.update(

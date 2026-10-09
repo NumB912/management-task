@@ -11,9 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
 import { Calendar1, CalendarArrowUp, Inbox, Plus, Repeat } from "lucide-react";
-
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -21,343 +19,87 @@ import TagCombobox from "@/app/(front)/components/tagCompobox";
 import PriorityDropdown from "@/app/(front)/components/piorityCombobox";
 import CalendarComponent from "@/app/(front)/components/calendar/calendar.component";
 import ListPicker from "@/app/(front)/components/listCombobox";
+import ColorPicker from "@/app/(front)/components/color/colorPicker.component";
+import { TaskCheckbox } from "@/app/(front)/components/task/taskCard";
 
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
-
-import { IRuleModel, ITaskModel } from "@/app/(front)/model";
-
-import { IStatus } from "@/app/(front)/model/type/type";
-
+import { IRuleModel } from "@/app/(front)/model";
 import { formatDate } from "@/app/(front)/utils/getDayOfMonth.utils";
 import { formatTimer } from "@/app/(front)/utils/formatTimer";
-import { DialogDescription } from "@/app/(front)/components/ui/dialog";
-import useTaskHook from "@/app/(front)/feature/hook/task/task.hook";
-import { toast } from "sonner";
-import { TaskCheckbox } from "@/app/(front)/components/task/taskCard";
-import { getNextOccurrence } from "@/app/(front)/utils/caculateNextDay";
-import Link from "next/link";
-import ColorPicker from "@/app/(front)/components/color/colorPicker.component";
-import ObjectID from "bson-objectid";
+import { useTask } from "@/app/(front)/feature/hook/task/task.hook";
 
 interface PageProps {
-  params: Promise<{
-    taskId: string;
-  }>;
+  params: Promise<{ taskId: string }>;
 }
 
 export default function TaskPage({ params }: Readonly<PageProps>) {
   const { taskId } = use(params);
   const router = useRouter();
-  const {
-    addTaskStore,
-    moveTaskIntoSection,
-    task,
-    updateRule,
-    updateStatusApi,
-    updateTask,
-    updateTaskStore,
-  } = useTaskHook(taskId);
-  console.log("task", task);
-  const listIndex = useWorkspaceStore((state) => state.listIndex);
-  const sectionIndex = useWorkspaceStore((state) => state.sectionIndex);
-  const list = useMemo(() => {
-    if (!task) return undefined;
-    return listIndex[task.list];
-  }, [listIndex, task]);
-  
-  const section = useMemo(() => {
-    if (!task || !list) return undefined;
-    return sectionIndex[task.section];
-  }, [task]);
-  type Pending = {
-    status: ITaskModel["status"];
-    record: Record<string, {
-      readonly date: Date;
-      readonly rule: string;
-    }>;
-    snapshot: { status: ITaskModel["status"]; rule: ITaskModel["rule"] };
-  };
-  const pendings = useRef<Record<string, Pending>>({});
-  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  const [name, setName] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [color, setColor] = useState<string>(task?.rule?.color!);
-  const [status, setStatus] = useState<IStatus>("pending");
+  const {
+    task,
+    handleUpdateTask,
+    handleUpdateRule,
+    handleUpdateTags,
+    handleCreateTag,
+    toggleStatus,
+  } = useTask(taskId);
+
+  const listIndex = useWorkspaceStore((s) => s.listIndex);
+  const [name, setName] = useState(task?.name ?? "");
+  const [color, setColor] = useState<string>(task?.rule?.color ?? "");
   const [openTags, setOpenTags] = useState(false);
   const [openPriority, setOpenPriority] = useState(false);
+  const isEditingName = useRef(false);
   useEffect(() => {
-    if (!task) return;
+    if (!task || isEditingName.current) return;
     setName(task.name ?? "");
-    setTags(task.rule?.tags ?? []);
-    setStatus(task.status);
-  }, [
-    taskId,
-    task?.name,
-    task?.status,
-    task.rule,
-    list,
-    section,
-  ]);
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      router.back();
-    }
-  };
-
-  const handleNameBlur = () => {
+  }, [taskId, task?.name]);
+  useEffect(() => {
+    setColor(task?.rule?.color ?? "");
+  }, [taskId]);
+  const commitName = () => {
     if (!task) return;
-
     const newName = name.trim();
-
     if (!newName) {
       setName(task.name ?? "");
       return;
     }
-
-    if (newName === task.name) {
-      return;
-    }
-
-    const previousName = task.name;
-    updateTaskStore(taskId, {
-      name: newName,
-    });
-
-    updateTask(
-      {
-        taskId,
-        data: {
-          name: newName,
-        },
-      },
-      {
-        onError() {
-          updateTaskStore(taskId, {
-            name: previousName,
-          });
-          setName(previousName ?? "");
-        },
-      },
-    );
+    if (newName === task.name) return;
+    handleUpdateTask(taskId, { name: newName });
   };
 
   useEffect(() => {
-    if (!status) return;
-    if (status == task.status) return;
-    const timeOut = setTimeout(() => {
-      updateTask({
-        taskId: taskId,
-        data: {
-          status: status,
-        },
-      });
-    }, 1000);
-    return () => {
-      clearTimeout(timeOut);
-    };
-  }, [status, task]);
-  useEffect(() => {
     if (!task) return;
-
-    const currentName = name.trim();
-
-    if (!currentName) return;
-
-    if (currentName === task.name) {
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      handleNameBlur();
-    }, 1000);
-
-    return () => {
-      clearTimeout(timeout);
-    };
+    const newName = name.trim();
+    if (!newName || newName === task.name) return;
+    const t = setTimeout(commitName, 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, task?.name]);
 
-
-  const flush = (id: string) => {
-    clearTimeout(timers.current[id]);
-    delete timers.current[id];
-    const p = pendings.current[id];
-    if (!p) return;
-    delete pendings.current[id];
-    updateStatusApi(
-      {
-        taskId: id,
-        data: {
-          id: id,
-          record: p.record,
-          status: p.status,
-        },
-      },
-    );
-  };
-
-  const schedule = (
-    id: string,
-    status: IStatus,
-    tempId: string | undefined,
-    rule: string | undefined,
-    snapshot: Pending["snapshot"],
-    nextDate?: Date,
-  ) => {
-    if (pendings.current[id] && pendings.current[id].status !== status) {
-      flush(id);
-    }
-    const p = (pendings.current[id] ??= { status, record: {}, snapshot });
-    if (tempId && nextDate)
-      p.record[tempId] = { date: new Date(nextDate), rule: rule ?? "" };
-
-    clearTimeout(timers.current[id]);
-    timers.current[id] = setTimeout(() => flush(id), 500);
-  };
-  const canRecur = (
-    task: ITaskModel,
-    nextDate: Date | null,
-  ): nextDate is Date => {
-    if (!nextDate || !task.rule.start_date) return false;
-    const until = task.rule.repeat.until && new Date(task.rule.repeat.until);
-    return !until || nextDate?.getTime() <= until?.getTime();
-  };
-  const handleUpdateStatusTask = (id: string, status: IStatus) => {
-    const current = task;
-    if (!current) return;
-    const snapshot = { status: current.status, rule: current.rule };
-    const { next, isEnded } = getNextOccurrence(current);
-    const tempId = new ObjectID().toHexString();
-    const rule = new ObjectID().toHexString();
-    if (next && tempId && current.rule.start_date && canRecur(current, next)) {
-      addTaskStore({
-        ...current,
-        id: tempId,
-        status,
-        rule: { ...current.rule, id: rule, repeat: { mode: "none" } },
-      });
-      updateTaskStore(id, {
-        status: "pending",
-        rule: { ...current.rule, start_date: next },
-      });
-      schedule(id, status, tempId, rule, snapshot, current?.rule?.start_date!);
-    } else if (isEnded && status === "done") {
-      updateTaskStore(id, { status });
-      schedule(id, status, tempId, rule, snapshot, current?.rule?.start_date!);
-    } else {
-      updateTaskStore(id, { status });
-      schedule(id, status, undefined, undefined, snapshot);
-    }
-  };
-
-
+  // ---------- màu: debounce 1s, bỏ qua nếu không đổi ----------
   useEffect(() => {
-    if (!color) return;
-    const handle = setTimeout(() => {
-      const prevRule = task.rule;
-      updateTaskStore(taskId, {
-        rule: {
-          ...task.rule,
-          color: color,
-        },
-      });
-      updateRule(
-        {
-          taskId: taskId,
-          data: {
-            color: color,
-          },
-        },
-        {
-          onSuccess(data, variables, onMutateResult, context) {},
-          onError(error, variables, onMutateResult, context) {
-            updateTaskStore(taskId, {
-              rule: prevRule,
-            });
-          },
-        },
-      );
+    if (!task || !color || color === task.rule?.color) return;
+    const t = setTimeout(() => {
+      handleUpdateRule(taskId, { color });
     }, 1000);
-    return () => {
-      clearTimeout(handle);
-    };
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [color]);
 
-  const handleUpdateRule = (id: string, data: Partial<IRuleModel>) => {
-    const prev = task;
-    const { id: ruleId, ...rest } = data;
-    if (!prev) return;
-    updateTaskStore(id, { rule: { ...prev.rule, ...data } });
-    updateRule(
-      {
-        taskId: id,
-        data: {
-          ...rest,
-        },
-      },
-      {
-        onSuccess: () => {},
-        onError: () => {
-          updateTaskStore(id, { rule: prev.rule });
-          toast.error("Không thể cập nhật lịch/ưu tiên");
-        },
-      },
-    );
-  };
-  const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
-    const prev = task;
-    if (!prev) return;
-    const { section, ...rest } = data;
-    const isMoving = !!section && section !== prev.section;
-    const restKeys = Object.keys(rest) as (keyof ITaskModel)[];
-    if (isMoving) moveTaskIntoSection(id, section!);
-    if (restKeys.length) updateTaskStore(id, rest);
-    updateTask(
-      { taskId: id, data },
-      {
-        onSuccess: () => {},
-        onError: () => {
-          if (isMoving) moveTaskIntoSection(id, prev.section);
-          if (restKeys.length) {
-            updateTaskStore(
-              id,
-              Object.fromEntries(restKeys.map((k) => [k, prev[k]])),
-            );
-          }
-          toast.error("Không thể cập nhật task");
-        },
-      },
-    );
+  const handleOpenChange = (open: boolean) => {
+    if (!open) router.back();
   };
 
-  const onConfirmTags = (newTags: string[]) => {
-    if (!task) return;
-    setOpenTags(false);
-    handleUpdateRule(taskId, {
-      tags: newTags,
-    });
-  };
+  if (!task) return null;
 
-  const onSelectPriority = (newPriority: number) => {
-    if (!task) return;
-    handleUpdateRule(task.id, {
-      priority: newPriority as 1 | 2 | 3 | 4,
-    });
-  };
-
-  if (!task) {
-    return null;
-  }
+  const tags = task.rule?.tags ?? [];
+  const listName = listIndex[task.list]?.name;
 
   return (
     <Dialog open={true} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="
-          gap-0 sm:max-w-4xl sm:max-h-4xl p-0 m-0
-          rounded-sm
-          max-w-lvh
-        "
-      >
+      <DialogContent className="gap-0 sm:max-w-4xl sm:max-h-4xl p-0 m-0 rounded-sm max-w-lvh">
         <DialogHeader className="p-3 border-b">
           <DialogTitle>
             <button
@@ -365,51 +107,28 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
               className="flex gap-2 text-neutral-500 items-center text-sm"
             >
               <Inbox className="w-4 h-4" />
-              {listIndex[task.list]?.name.toLocaleLowerCase() === "inbox"
-                ? "Hộp thư"
-                : listIndex[task.list]?.name}
+              {listName?.toLocaleLowerCase() === "inbox" ? "Hộp thư" : listName}
             </button>
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex h-full min-h-140">
-          <div
-            className="
-              flex-1
-              flex
-              flex-col
-              h-full
-              max-h-140
-              overflow-y-auto
-              gap-4
-              p-5
-            "
-          >
+          <div className="flex-1 flex flex-col h-full max-h-140 overflow-y-auto gap-4 p-5">
             <div className="flex items-center justify-start gap-3">
               <TaskCheckbox
                 status={task.status}
-                priority={task?.rule?.priority ?? 4}
-                onHandle={() => {
-                  handleUpdateStatusTask(
-                    task.id,
-                    task.status !== "pending" ? "pending" : "done",
-                  );
-                }}
+                priority={task.rule?.priority ?? 4}
+                onHandle={toggleStatus}
               />
-
               <Input
                 value={name}
-                onChange={(event) => setName(event.target.value)}
-                className="
-                  flex-1
-                  text-2xl!
-                  font-semibold
-                  outline-none!
-                  border-0
-                  bg-transparent!
-                  focus:outline-0!
-                  placeholder:text-neutral-300
-                "
+                onChange={(e) => setName(e.target.value)}
+                onFocus={() => (isEditingName.current = true)}
+                onBlur={() => {
+                  isEditingName.current = false;
+                  commitName();
+                }}
+                className="flex-1 text-2xl! font-semibold outline-none! border-0 bg-transparent! focus:outline-0! placeholder:text-neutral-300"
                 placeholder="Tên công việc"
               />
             </div>
@@ -417,49 +136,20 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
               <Textarea
                 placeholder="Nhập chi tiết"
                 rows={4}
-                className="
-                pl-10
-                w-full
-                max-w-full
-                min-h-24
-                max-h-60
-                overflow-y-auto
-                overflow-x-hidden
-                border-0
-                bg-transparent!
-                text-md
-                resize-none!
-                whitespace-pre-wrap
-                wrap-break-word
-                focus-visible:ring-0
-                focus-visible:ring-offset-0
-                "
+                className="pl-10 w-full max-w-full min-h-24 max-h-60 overflow-y-auto overflow-x-hidden border-0 bg-transparent! text-md resize-none! whitespace-pre-wrap wrap-break-word focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
           </div>
-          <div
-            className="
-              max-w-70
-              w-full
-              flex
-              flex-col
-              gap-3
-              p-5
-              bg-primary/5
-            "
-          >
+
+          <div className="max-w-70 w-full flex flex-col gap-3 p-5 bg-primary/5">
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-bold">Danh sách</span>
-
               <ListPicker
                 selectedList={task.list}
                 selectedSection={task.section}
-                onSelect={({ list, section }) => {
-                  handleUpdateTask(taskId, {
-                    list: list,
-                    section: section,
-                  });
-                }}
+                onSelect={({ list, section }) =>
+                  handleUpdateTask(taskId, { list, section })
+                }
               />
             </div>
 
@@ -470,46 +160,24 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                   onChangeSubmit={(
                     rule: Pick<
                       IRuleModel,
-                      | "end_date"
-                      | "repeat"
-                      | "start_date"
-                      | "timer"
-                      | "endTimer"
+                      "end_date" | "repeat" | "start_date" | "timer" | "endTimer"
                     >,
-                  ) => {
-                    handleUpdateRule(task.id, rule);
-                  }}
+                  ) => handleUpdateRule(task.id, rule)}
                   trigger={
                     <div className="w-full flex flex-col gap-2">
                       <span className="text-sm font-bold">Ngày</span>
-
                       <Button
                         variant="outline"
-                        className="
-                        flex
-                        w-full
-                        p-1.5!
-                        cursor-pointer
-                        justify-start
-                        text-sm
-                        rounded-sm
-                        bg-transparent!
-                        hover:bg-transparent!
-                        text-neutral-700!
-                      "
+                        className="flex w-full p-1.5! cursor-pointer justify-start text-sm rounded-sm bg-transparent! hover:bg-transparent! text-neutral-700!"
                       >
-                        {task.rule?.start_date ? (
+                        {task.rule.start_date ? (
                           <div className="flex gap-1.5 items-center">
                             <Calendar1 />
-
                             <p>{formatDate(task.rule.start_date)}</p>
-
                             {task.rule.repeat?.mode !== "none" && <Repeat />}
-
                             {task.rule.timer && (
                               <span>{formatTimer(task.rule.timer)}</span>
                             )}
-
                             {task.rule.endTimer && (
                               <span>{formatTimer(task.rule.endTimer)}</span>
                             )}
@@ -517,8 +185,7 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                         ) : (
                           <div className="flex gap-2 items-center">
                             <Plus className="w-2 h-2" />
-
-                            <span className="text-sm">Thêm ngày</span>
+                            <span className="text-sm">Thêm ngày</span>
                           </div>
                         )}
                       </Button>
@@ -527,39 +194,29 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                 />
               )}
             </div>
+
             {task.rule?.end_date && (
               <div className="w-full flex flex-col gap-1.5">
                 <span className="text-sm font-bold">Hạn chót</span>
-
                 <Button
                   variant="outline"
-                  className="
-                    flex
-                    p-1.5!
-                    w-full
-                    cursor-pointer
-                    justify-start
-                    text-sm
-                    rounded-sm
-                    bg-transparent!
-                    hover:bg-transparent!
-                    text-neutral-700!
-                  "
+                  className="flex p-1.5! w-full cursor-pointer justify-start text-sm rounded-sm bg-transparent! hover:bg-transparent! text-neutral-700!"
                 >
                   <div className="flex gap-2 items-center">
                     <CalendarArrowUp />
-
                     <p>{formatDate(task.rule.end_date)}</p>
                   </div>
                 </Button>
               </div>
             )}
+
             <div className="min-w-35">
               <div className="grid gap-1.5">
                 <span className="text-sm font-bold">Độ ưu tiên</span>
-
                 <PriorityDropdown
-                  onSelectPriority={onSelectPriority}
+                  onSelectPriority={(p) =>
+                    handleUpdateRule(task.id, { priority: p as 1 | 2 | 3 | 4 })
+                  }
                   priority={task.rule?.priority ?? 4}
                   align="center"
                   open={openPriority}
@@ -567,16 +224,12 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                 />
               </div>
             </div>
+
             <div className="w-full flex flex-col gap-1.5">
-              <span className="text-sm font-bold">Màu</span>
-              <ColorPicker
-                inline
-                value={color}
-                onChange={(value) => {
-                  setColor(value);
-                }}
-              />
+              <span className="text-sm font-bold">Màu</span>
+              <ColorPicker inline value={color} onChange={setColor} />
             </div>
+
             <div className="grid gap-1.5 min-h-15">
               <div className="flex w-full justify-between items-center">
                 <span className="text-sm font-bold">Thẻ</span>
@@ -591,21 +244,17 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
 
               <TagCombobox
                 selectedTags={tags}
-                onConfirm={onConfirmTags}
+                onConfirm={(newTags) => {
+                  setOpenTags(false);
+                  handleUpdateTags(newTags);
+                }}
+                onCreateTag={handleCreateTag}
+                open={openTags}
+                onOpenChange={setOpenTags}
                 trigger={
                   <div className="flex flex-wrap gap-1.5">
                     {tags.length === 0 ? (
-                      <div
-                        className="
-                          flex
-                          items-center
-                          justify-center
-                          w-full
-                          p-1
-                          rounded
-                          text-neutral-500
-                        "
-                      >
+                      <div className="flex items-center justify-center w-full p-1 rounded text-neutral-500">
                         Không có thẻ được thêm vào
                       </div>
                     ) : (
@@ -614,17 +263,11 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                           <Badge
                             key={tag}
                             variant="ghost"
-                            className="
-                                text-xs
-                                outline-1
-                                outline-neutral-300
-                                text-black
-                              "
+                            className="text-xs outline-1 outline-neutral-300 text-black"
                           >
                             {tag}
                           </Badge>
                         ))}
-
                         {tags.length > 4 && (
                           <Badge variant="outline" className="text-xs">
                             +{tags.length - 4}
@@ -634,9 +277,6 @@ export default function TaskPage({ params }: Readonly<PageProps>) {
                     )}
                   </div>
                 }
-                onCreateTag={() => {}}
-                onOpenChange={setOpenTags}
-                open={openTags}
               />
             </div>
           </div>

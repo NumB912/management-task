@@ -6,7 +6,7 @@ import {
   UserRepository,
   FilterRepository,
   ListRepository,
-  PromodoRepository,
+  pomodoroRepository,
   RuleRepository,
   SectionRepository,
   TagRepository,
@@ -21,7 +21,7 @@ import {
   ListMapper,
   MemberMapper,
   NotificationMapper,
-  PromodoMapper,
+  pomodoroMapper,
   RuleMapper,
   SectionMapper,
   TagMapper,
@@ -72,8 +72,6 @@ import { CheckOwnerTagUsecase } from '@/application/usecase/middleware/checkOwne
 import { GetNotificationsUsecase } from '@/application/usecase/notifications/getNotification.usecase.js';
 import { ReadedNotificationUsecase } from '@/application/usecase/notifications/readNotification.usecase.js';
 import { RealtimeNotifier } from '@/application/usecase/notifications/notification.usecase.js';
-import { CreatePromodoUsecase } from '@/application/usecase/promodos/createPromodo.usecase.js';
-import { GetPromodoUsecase } from '@/application/usecase/promodos/getPromodo.usecase.js';
 import { CreateRuleUsecase } from '@/application/usecase/rule/createRule.usecase.js';
 import { CreateSectionUsecase } from '@/application/usecase/sections/createSection.usecase.js';
 import { DeleteSectionUsecase } from '@/application/usecase/sections/deleteSection.usecase.js';
@@ -106,6 +104,8 @@ import { WorkSpaceUsecase } from '@/application/usecase/workSpace/workspace.usec
 import { PutAvatarUsecase } from '@/application/usecase/user/avatarPut.usecase';
 import { IUserRepository } from '@/domain';
 import { DeleteAvatarUsecase } from '@/application/usecase/user/avatarDel.usecase';
+import { CreatePomodoroUsecase, DeletePomodoroUsecase, GetPomodoroUsecase, UpdatePomodoroUsecase } from '@/application/usecase/pomodoro';
+
 
 const repositories = [
   { provide: TYPES.TagRepository, useClass: TagRepository },
@@ -114,7 +114,7 @@ const repositories = [
   { provide: TYPES.RuleRepository, useClass: RuleRepository },
   { provide: TYPES.TaskRepository, useClass: TaskRepository },
   { provide: TYPES.FilterRepository, useClass: FilterRepository },
-  { provide: TYPES.PromodoRepository, useClass: PromodoRepository },
+  { provide: TYPES.pomodoroRepository, useClass: pomodoroRepository },
   { provide: TYPES.SectionRepository, useClass: SectionRepository },
   { provide: TYPES.notificationRepository, useClass: NotificationRepository },
   { provide: TYPES.ListRepository, useClass: ListRepository },
@@ -127,7 +127,7 @@ const mappers = [
   { provide: TYPES.RuleMapper, useClass: RuleMapper },
   { provide: TYPES.TaskMapper, useClass: TaskMapper },
   { provide: TYPES.FilterMapper, useClass: FilterMapper },
-  { provide: TYPES.PromodoMapper, useClass: PromodoMapper },
+  { provide: TYPES.pomodoroMapper, useClass: pomodoroMapper },
   { provide: TYPES.SectionMapper, useClass: SectionMapper },
   { provide: TYPES.NotificationMapper, useClass: NotificationMapper },
   { provide: TYPES.ListMapper, useClass: ListMapper },
@@ -235,6 +235,7 @@ const usecase = [
         unitWork,
       ),
   },
+  
   {
     provide: TYPES.SendResetPasswordUsecase,
     inject: [
@@ -365,13 +366,15 @@ const usecase = [
     inject: [
       TYPES.ListRepository,
       TYPES.SectionRepository,
+      TYPES.UserRepository,
       TYPES.MemberRepository,
     ],
     useFactory: (
       listRepo: ListRepository,
       sectionRepo: SectionRepository,
+      userRepo:IUserRepository,
       memberRepo: MemberRepository,
-    ) => new InitListUsecase(listRepo, sectionRepo, memberRepo),
+    ) => new InitListUsecase(listRepo,sectionRepo,userRepo,memberRepo),
   },
   {
     provide: TYPES.SortSectionUsecase,
@@ -607,16 +610,28 @@ const usecase = [
     ) => new RealtimeNotifier(publisher, notificationRepo),
   },
   {
-    provide: TYPES.createPromodoUsecase,
-    inject: [TYPES.PromodoRepository, TYPES.UnitWork],
-    useFactory: (promodoRepo: PromodoRepository, unitWork: UnitWorkMongo) =>
-      new CreatePromodoUsecase(promodoRepo, unitWork),
+    provide: TYPES.createpomodoroUsecase,
+    inject: [TYPES.pomodoroRepository, TYPES.UnitWork],
+    useFactory: (pomodoroRepo: pomodoroRepository, unitWork: UnitWorkMongo) =>
+      new CreatePomodoroUsecase(pomodoroRepo, unitWork),
   },
   {
-    provide: TYPES.getPromodoUsecase,
-    inject: [TYPES.PromodoRepository],
-    useFactory: (promodoRepo: PromodoRepository) =>
-      new GetPromodoUsecase(promodoRepo),
+    provide: TYPES.DeletePomodoroUsecase,
+    inject: [TYPES.pomodoroRepository, TYPES.UnitWork],
+    useFactory: (pomodoroRepo:pomodoroRepository, unitWork:UnitWorkMongo) =>
+      new DeletePomodoroUsecase(pomodoroRepo, unitWork),
+  },
+    {
+    provide: TYPES.updatePomodoUsecase,
+    inject: [TYPES.pomodoroRepository, TYPES.UnitWork],
+    useFactory: (pomodoroRepo:pomodoroRepository, unitWork:UnitWorkMongo) =>
+      new UpdatePomodoroUsecase(pomodoroRepo, unitWork),
+  },
+  {
+    provide: TYPES.GetPomodoroUsecase,
+    inject: [TYPES.pomodoroRepository],
+    useFactory: (pomodoroRepo: pomodoroRepository) =>
+      new GetPomodoroUsecase(pomodoroRepo),
   },
   {
     provide: TYPES.CreateRuleUsecase,
@@ -835,7 +850,6 @@ const usecase = [
     ],
     useFactory: (
       taskRepo: TaskRepository,
-      sectionRepo: SectionRepository,
       tagRepo: TagRepository,
       listRepo: ListRepository,
       memberRepo: MemberRepository,
@@ -846,7 +860,6 @@ const usecase = [
     ) =>
       new CreateTaskUsecase(
         taskRepo,
-        sectionRepo,
         tagRepo,
         listRepo,
         memberRepo,
@@ -934,12 +947,13 @@ const usecase = [
   },
   {
     provide: TYPES.MoveToSectionUsecase,
-    inject: [TYPES.TaskRepository, TYPES.SectionRepository, TYPES.UnitWork],
+    inject: [TYPES.TaskRepository, TYPES.SectionRepository,TYPES.ListRepository, TYPES.UnitWork],
     useFactory: (
       taskRepo: TaskRepository,
       sectionRepo: SectionRepository,
+      listRepo:ListRepository,
       unitWork: UnitWorkMongo,
-    ) => new MoveToSectionUsecase(taskRepo, sectionRepo, unitWork),
+    ) => new MoveToSectionUsecase(taskRepo, sectionRepo,listRepo, unitWork),
   },
   {
     provide: TYPES.GetTodayUsecase,

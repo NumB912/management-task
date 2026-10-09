@@ -12,10 +12,9 @@ import {
 import NotificationBell from "../components/notifier/notificationBell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "../utils/actor.utils";
-import { useProfile } from "../states/profile.state";
 
 const Side = () => {
-  const apiUrl = `${process.env.NEXT_PUBLIC_NOTIFICATION_URL}notifications/stream`;
+  const apiUrl = `${process.env.NEXT_PUBLIC_NOTIFICATION_URL}/notifications/stream`;
   const pathName = usePathname();
   const { user } = useUserState();
   const {open,setOpen} = useUserState()
@@ -28,7 +27,7 @@ const Side = () => {
       Icon: List,
       activeMatch: "/dashboard/work",
     },
-    { href: "/dashboard/promodo", label: "Pomodoro", Icon: Clock },
+    { href: "/dashboard/pomodoro", label: "Pomodoro", Icon: Clock },
     { href: "/dashboard/calendar", label: "Calendar", Icon: Calendar },
   ];
 

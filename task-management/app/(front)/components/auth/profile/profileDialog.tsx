@@ -56,6 +56,7 @@ const ProfileDialog = ({
   const {setUser} = useUserState()
   const [loggingOut, setLoggingOut] = useState(false);
   const {mutate:update} = useUpdateProfile()
+  
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
@@ -69,6 +70,7 @@ const ProfileDialog = ({
   }
 
   async function handleSubmit(){
+
     setUser({
       name:draft
     })

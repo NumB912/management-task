@@ -1,5 +1,5 @@
-﻿import { AppError, INotification, IUsecase } from "@/domain";
-import { INotificationRepository } from "@/domain/repositories/INotification.repository";
+﻿import { AppError, INotification, IUsecase } from '@/domain';
+import { INotificationRepository } from '@/domain/repositories/INotification.repository';
 
 export class GetNotificationsUsecase implements IUsecase<
   Partial<INotification>[]
@@ -9,21 +9,22 @@ export class GetNotificationsUsecase implements IUsecase<
   async execute(userId: string): Promise<Partial<INotification>[]> {
     try {
       if (!userId) {
-        throw new AppError("NOT_FOUND", "LÃ´Ìƒi khÃ´ng tiÌ€m thÃ¢Ìy ngÆ°Æ¡Ì€i duÌ€ng", 404);
+        throw new AppError(
+          'NOT_FOUND',
+          'LÃ´Ìƒi khÃ´ng tiÌ€m thÃ¢Ìy ngÆ°Æ¡Ì€i duÌ€ng',
+          404,
+        );
       }
-      const data = await this.repo.findMany({
-        filter: {
-          user: userId,
-        },
+      const data = await this.repo.getNotificationByUser({
+        userId: userId,
       });
-
       return data;
     } catch (error) {
       console.error(error);
       if (error instanceof AppError) {
         throw error;
       }
-      throw new AppError("ERROR", "Lá»—i trong quÃ¡ trÃ¬nh thá»±c thi", 500);
+      throw new AppError('ERROR', 'Lá»—i trong quÃ¡ trÃ¬nh thá»±c thi', 500);
     }
   }
 }

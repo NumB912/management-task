@@ -6,24 +6,23 @@ import TaskAttributesBar from "./TaskAttributesBar";
 import TaskActions from "./taskAction";
 import { useEffect } from "react";
 import { IRuleModel, ITaskModel } from "../../model";
-import ObjectID from "bson-objectid";
 interface AddTaskProp {
   isCreate: boolean;
   setIsCreate: (isCreate: boolean) => void;
-  sectionId: string;
+  sectionId?: string;
   listId: string;
   defaultConfirmRule?: Partial<ICreateRuleDTO>;
   onHandle:(task:ITaskModel)=>void
 }
 
 const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule,onHandle }: AddTaskProp) => {
-  const editor = useTaskInputEditor({ listId, defaultConfirmRule });
+  const editor = useTaskInputEditor({ listId, defaultConfirmRule,sectionId });
   const { handleDone } = useCreateTaskSubmit({
     listId: listId,
-    sectionId: editor.confirmSection ?? sectionId,  
+    sectionId: editor.confirmSection,  
     confirmList: editor.confirmList,
     value: editor.value,
-    confirmedRule: editor.confirmRule as Pick<IRuleModel,"end_date"|"priority"|"repeat"|"start_date"|"tags"|"task"|"timer">,
+    confirmedRule: editor.confirmRule,
     inputRef: editor.refDivInput as React.RefObject<HTMLDivElement>,
     onHandleSubmit:(task:ITaskModel)=>{
       editor.resetEditor()

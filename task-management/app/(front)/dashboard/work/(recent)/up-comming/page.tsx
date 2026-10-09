@@ -8,7 +8,8 @@ import {
   CardContent,
   CardHeader,
 } from "@/app/(front)/components/ui/card";
-import { useCreateTask } from "@/app/(front)/feature/hook/useTaskMutation.hook";
+import { useAddTask } from "@/app/(front)/feature/hook/task/addTask.hook";
+
 import { ITaskModel } from "@/app/(front)/model";
 import { useHeader } from "@/app/(front)/providers/header.provider";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
@@ -67,21 +68,12 @@ const Page = () => {
   const [isCreateTask, setIsCreateTask] = useState(false);
   const [isAddTask, setIsAddTask] = useState<Record<string, boolean>>({});
   const [isAddPreviousTask, setAddPreviousTask] = useState<boolean>(false);
-  const [section, setSection] = useState<{ id: string }>();
   const inbox = useWorkspaceStore((s) => s.inbox);
-  const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
   const getNextInfo = useWorkspaceStore(useShallow((s) => s.getNextInfo()));
-  const getOverdueTasks = useWorkspaceStore(useShallow((s) => s.getOverdueTasks()));
-  const changeIdTaskState = useWorkspaceStore((state) => state.changeIdTask);
-  const addTaskState = useWorkspaceStore((state) => state.addTask);
-  const { mutate: addTaskMutate } = useCreateTask(inbox!);
-  useEffect(() => {
-    if (!inbox) return;
-    const firstSection = listIndex[inbox].sections[0];
-    if (firstSection) {
-      setSection({ id: firstSection });
-    }
-  }, [inbox, listIndex]);
+  const getOverdueTasks = useWorkspaceStore(
+    useShallow((s) => s.getOverdueTasks()),
+  );
+  const addTaskMutate = useAddTask(inbox!);
   useEffect(() => {
     setTitle("Sắp tới");
   }, []);
@@ -105,33 +97,10 @@ const Page = () => {
     sortedGroups.length === 0 && (!overdueTasks || overdueTasks.length === 0);
   const handleAddTask = (task: ITaskModel) => {
     const task_temp_id = `temp-task-id-${Date.now()}`;
-    addTaskState({
+    addTaskMutate({
       ...task,
       id: task_temp_id,
     });
-    addTaskMutate(
-      {
-        list: task.list,
-        name: task.name,
-        rule: {
-          repeat: task.rule.repeat,
-          tags: task.rule.tags,
-          end_date: task.rule.end_date,
-          priority: task.rule.priority,
-          start_date: task.rule.start_date,
-          timer: task.rule.timer,
-        },
-        description: task.description,
-      },
-      {
-        onError(error, variables, onMutateResult, context) {
-          
-        },
-        onSuccess(data, variables, onMutateResult, context) {
-          changeIdTaskState(task_temp_id, data.id.toString());
-        },
-      },
-    );
   };
   return (
     <div className="flex gap-3 py-3">
@@ -162,11 +131,11 @@ const Page = () => {
                 "lg:max-h-[min(79vh,900px)] lg:max-w-md!",
               )}
             >
-              {section && inbox && (
+              {inbox && (
                 <AddTask
                   isCreate={isCreateTask}
                   setIsCreate={setIsCreateTask}
-                  sectionId={section.id}
+                  sectionId={undefined}
                   listId={inbox}
                   defaultConfirmRule={{
                     start_date: new Date(),
@@ -187,11 +156,11 @@ const Page = () => {
               }}
               title="Quá hạn"
             >
-              {section && inbox && (
+              {inbox && (
                 <AddTask
                   isCreate={isAddPreviousTask}
                   setIsCreate={setAddPreviousTask}
-                  sectionId={section.id}
+                  sectionId={undefined}
                   listId={inbox}
                   defaultConfirmRule={{
                     start_date: (() => {
@@ -215,11 +184,11 @@ const Page = () => {
               count={tasksInGroup.length}
               onPlusClick={() => handleIsAddTask(dateKey)}
             >
-              {section && inbox && isAddTask[dateKey] && (
+              {inbox && isAddTask[dateKey] && (
                 <AddTask
                   isCreate={isAddTask[dateKey]}
                   setIsCreate={() => handleIsAddTask(dateKey)}
-                  sectionId={section.id}
+                  sectionId={undefined}
                   listId={inbox}
                   defaultConfirmRule={{ start_date: new Date(dateKey) }}
                   onHandle={handleAddTask}

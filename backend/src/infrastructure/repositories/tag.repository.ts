@@ -1,107 +1,140 @@
-import { TagMapper } from "../mapper/tag.mapper.js";
-import { Types, ClientSession } from "mongoose";
-import { TaskMapper } from "../mapper/task.mapper.js";
-import { DatabaseModels } from "./database/clientSchema.database.js";
-import { BaseRepository } from "./base.repository.js";
-import { ITagRepository } from "@/domain/repositories/ITag.repository.js";
-import { ITagDocument } from "./database/schema/tag.schema.js";
-import { ITagWithId } from "@/domain/entities/tag.entity.js";
-import { Inject, Injectable } from "@nestjs/common";
-import { TYPES } from "../types/dependency.type.js";
+import { TagMapper } from '../mapper/tag.mapper.js';
+import { Types, ClientSession } from 'mongoose';
+import { TaskMapper } from '../mapper/task.mapper.js';
+import { DatabaseModels } from './database/clientSchema.database.js';
+import { BaseRepository } from './base.repository.js';
+import { ITagRepository } from '@/domain/repositories/ITag.repository.js';
+import { ITagDocument } from './database/schema/tag.schema.js';
+import { ITagWithId } from '@/domain/entities/tag.entity.js';
+import { Inject, Injectable } from '@nestjs/common';
+import { TYPES } from '../types/dependency.type.js';
 @Injectable()
-export class TagRepository extends BaseRepository<ITagDocument, ITagWithId> implements ITagRepository {
+export class TagRepository
+  extends BaseRepository<ITagDocument, ITagWithId>
+  implements ITagRepository
+{
   protected toDomain(doc: ITagDocument): ITagWithId {
-    return this.TagMapper.toDomain(doc)
+    return this.TagMapper.toDomain(doc);
   }
   protected toDomainPartial(doc: Partial<ITagDocument>): Partial<ITagWithId> {
-    return this.TagMapper.toDomainPartial(doc)
+    return this.TagMapper.toDomainPartial(doc);
   }
   protected toPresistence(doc: Partial<ITagWithId>): Partial<ITagDocument> {
-    return this.TagMapper.toPersistencePartial(doc)
+    return this.TagMapper.toPersistencePartial(doc);
   }
-  protected toPresistencePartial(doc: Partial<ITagWithId>): Partial<ITagDocument> {
-    return this.TagMapper.toPersistencePartial(doc)
+  protected toPresistencePartial(
+    doc: Partial<ITagWithId>,
+  ): Partial<ITagDocument> {
+    return this.TagMapper.toPersistencePartial(doc);
   }
 
-  constructor(@Inject(TYPES.DatabaseType) private readonly db: DatabaseModels, @Inject(TYPES.TagMapper) private readonly TagMapper: TagMapper) {
+  constructor(
+    @Inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
+    @Inject(TYPES.TagMapper) private readonly TagMapper: TagMapper,
+  ) {
     super(db.Tag);
   }
-  async updateByName(DTO: { name: string, userId: string; data: Partial<ITagWithId>; session?: ClientSession; }): Promise<ITagWithId | null> {
-    const { name, data, session, userId } = DTO
-    const updated = await this.db.Tag.findOneAndUpdate({
+  async updateByName(DTO: {
+    name: string;
+    userId: string;
+    data: Partial<ITagWithId>;
+    session?: ClientSession;
+  }): Promise<ITagWithId | null> {
+    const { name, data, session, userId } = DTO;
+    const filter = this.TagMapper.toPersistencePartial({
       name: name,
-      user: userId
-    }, {
-      $set: this.toPresistencePartial(data)
-    }, {
-      collation: {
-        locale: "vi",
-        strength: 2
-      },
-      session,
-      new: true,
-    })
-    if (!updated) {
-      return null
-    }
-
-    return this.TagMapper.toDomain(updated)
-  }
-
-  async deleteByName(DTO: { name: string, userId: string, session?: ClientSession }): Promise<boolean> {
-    const { name, userId, session } = DTO
-    const result = await this.db.Tag.deleteOne(
+      user: userId,
+    });
+    const updated = await this.db.Tag.findOneAndUpdate(
+      filter,
       {
-        "name": name,
-        "user": userId
+        $set: this.toPresistencePartial(data),
       },
       {
         collation: {
-          locale: "vi",
-          strength: 2
+          locale: 'vi',
+          strength: 2,
         },
         session,
-      }
+        new: true,
+      },
     );
+    if (!updated) {
+      return null;
+    }
+
+    return this.TagMapper.toDomain(updated);
+  }
+
+  async deleteByName(
+    DTO: { name: string; userId: string },
+    session?: ClientSession,
+  ): Promise<boolean> {
+    const { name, userId } = DTO;
+    const filter = this.TagMapper.toPersistencePartial({
+      name: name,
+      user: userId,
+    });
+    const result = await this.db.Tag.deleteOne(filter, {
+      collation: {
+        locale: 'vi',
+        strength: 2,
+      },
+      session,
+    });
     return result.deletedCount > 0;
   }
 
-  async findTagByName(DTO: { name: string, userId: string }): Promise<ITagWithId | null> {
-    const { name, userId } = DTO
+  async findTagByName(
+    DTO: { name: string; userId: string },
+    session?: ClientSession,
+  ): Promise<ITagWithId | null> {
+    const { name, userId } = DTO;
 
-    const findTag = await this.db.Tag.findOne({ name: name, user: new Types.ObjectId(userId) }).collation({
-      locale: "vi",
+    const findTag = await this.db.Tag.findOne({
+      name: name,
+      user: new Types.ObjectId(userId),
+    }).collation({
+      locale: 'vi',
       strength: 2,
     });
 
     if (!findTag) {
-      return null
+      return null;
     }
-    return this.TagMapper.toDomain(findTag)
+    return this.TagMapper.toDomain(findTag);
   }
 
-  async findTagsByName(DTO: { nameTags: string[], userId: string }): Promise<ITagWithId[]> {
-    const { nameTags, userId } = DTO
+  async findTagsByName(DTO: {
+    nameTags: string[];
+    userId: string;
+  },session?:ClientSession): Promise<ITagWithId[]> {
+    const { nameTags, userId } = DTO;
     const findTags = await this.db.Tag.find({
       name: {
-        $in: nameTags
-      }, user: new Types.ObjectId(userId)
+        $in: nameTags,
+      },
+      user: new Types.ObjectId(userId),
     }).collation({
-      locale: "vi",
+      locale: 'vi',
       strength: 2,
     });
 
-    return findTags.map((tag) => this.TagMapper.toDomain(tag))
+    return findTags.map((tag) => this.TagMapper.toDomain(tag));
   }
 
-  async findTagsByUsers(DTO: {
-    userIds: string[];
-    session?: ClientSession;
-  }): Promise<{
-    userId: string;
-    tags: ITagWithId[];
-  }[]> {
-    const { userIds, session } = DTO;
+  async findTagsByUsers(
+    DTO: {
+      userIds: string[];
+    },
+    session?: ClientSession,
+  ): Promise<
+    {
+      userId: string;
+      tags: ITagWithId[];
+    }[]
+  > {
+    const { userIds } = DTO;
     const docs = await this.db.Tag.find({
       user: {
         $in: userIds.map((userId) => new Types.ObjectId(userId)),
@@ -122,46 +155,49 @@ export class TagRepository extends BaseRepository<ITagDocument, ITagWithId> impl
       tags: tagsByUser.get(userId) ?? [],
     }));
   }
-  async updateManyUserIdsAndName(DTO: {
-    userIds: string[],
-    curName: string,
-    newName: string,
-    session?: ClientSession
-  }): Promise<void> {
-    const { curName, newName, userIds, session } = DTO
-    await this.db.Tag.updateMany({
-      _id: {
-        $in: userIds.map((userId) => new Types.ObjectId(userId))
+  async updateManyUserIdsAndName(
+    DTO: {
+      userIds: string[];
+      curName: string;
+      newName: string;
+    },
+    session?: ClientSession,
+  ): Promise<void> {
+    const { curName, newName, userIds } = DTO;
+    await this.db.Tag.updateMany(
+      {
+        _id: {
+          $in: userIds.map((userId) => new Types.ObjectId(userId)),
+        },
+        name: curName,
       },
-      name: curName
-    }, {
-      $set: {
-        name: newName
-      }
-    }, {
-      session,
-      collation: { locale: "vi", strength: 2 },
-    })
-
+      {
+        $set: {
+          name: newName,
+        },
+      },
+      {
+        session,
+        collation: { locale: 'vi', strength: 2 },
+      },
+    );
   }
 
-  async isUserHaveTag(DTO:{
-    userId:string,
-    tagNames:string[],
-    session:ClientSession
-  }):Promise<ITagWithId[]>{
-    const {session,tagNames,userId} = DTO
+  async isUserHaveTag(
+    DTO: {
+      userId: string;
+      tagNames: string[];
+    },
+    session: ClientSession,
+  ): Promise<ITagWithId[]> {
+    const {tagNames, userId } = DTO;
     const doc = await this.db.Tag.find({
-      user:userId,
-      name:{
-        $in:tagNames
-      }
-    }).session(session??null)
+      user: userId,
+      name: {
+        $in: tagNames,
+      },
+    }).session(session ?? null);
 
-    
-    return doc.map((doc)=>this.TagMapper.toDomain(doc))
+    return doc.map((doc) => this.TagMapper.toDomain(doc));
   }
-
 }
-
-

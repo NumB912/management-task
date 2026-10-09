@@ -26,7 +26,7 @@ export const listApi = {
   },
 
   update: async (id: string, name:string): Promise<IListModel> => {
-    const res = await axiosInstance.put<{
+    const res = await axiosInstance.patch<{
       list:IListModel
     }>(`/lists/${id}`, {name:name});
     return res.data.list;

@@ -10,10 +10,8 @@ function clearTimer() {
 
 function tick() {
   if (endTime === null) return;
-
   const remaining = Math.max(endTime - Date.now(), 0);
   self.postMessage({ type: "TICK", remaining });
-
   if (remaining <= 0) {
     clearTimer();
     self.postMessage({ type: "DONE" });

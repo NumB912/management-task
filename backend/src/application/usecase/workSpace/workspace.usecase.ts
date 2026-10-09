@@ -13,7 +13,7 @@ interface WorkSpaceDTO {
     userId: string;
 }
 
-interface WorkSpaceResult {
+export interface WorkSpaceResult {
     tags: Partial<ITagWithId>[];
     lists: IList[];
     filters: Partial<IFilter>[];
@@ -34,8 +34,9 @@ export class WorkSpaceUsecase implements IUsecase<WorkSpaceResult> {
                 this.TagRepostitory.findMany({ filter: { user: userId } }),
                 this.FilterRepositoy.findMany({ filter: { user: userId } }),
             ]);
+            
             return {
-                lists: listData.lists ?? [],
+                lists:  listData.lists ?? [],
                 tags: tags ?? [],
                 filters: filters ?? [],
             };

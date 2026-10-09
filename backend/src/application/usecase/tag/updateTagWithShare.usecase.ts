@@ -43,28 +43,28 @@ export class UpdateTagUsecase implements IUsecase<
         currentName: tagCur.name,
         newName: name,
         listIds: listIds,
+        session
       })
         , this.RuleRepository.updateRuleTag({
           currentName: tagCur.name,
           newName: name,
-          ruleIds: ruleIds
+          ruleIds: ruleIds,
+          session
         })
       ])
 
       await this.TagRepository.updateByName({
         name: tagCur.name,
         userId: userId,
-        session: session,
         data: {
           name: name
         }
-      })
+      },session)
 
       await this.addTagsForMember.execute({
         newTags: [tagCur.name],
         listIds: listIds,
-        session,
-      })
+      },session)
 
       await this.unitWork.commitTransaction()
       return true

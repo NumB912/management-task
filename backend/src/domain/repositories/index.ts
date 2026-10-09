@@ -5,6 +5,6 @@ export type {ISectionRepository} from "./ISection.repository.js"
 export type {IUserRepository} from "./IUser.repository.js"
 export type {ITagRepository} from "./ITag.repository.js"
 export type {ITaskRepository} from "./ITask.repository.js"
-export type {IPromodoRepository} from "./IPromodo.repository.js"
+export type {IPomodoroRepository} from "./IPomodoro.repository.js"
 export type {IRepository} from "./IRepository.js"
 

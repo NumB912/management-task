@@ -67,9 +67,12 @@ export abstract class BaseRepository<TDocument, TEntity, ID = string> implements
   }
   async deleteBy(data: Partial<TEntity>, session?: ClientSession): Promise<boolean> {
     const result = await this.model.deleteOne(
-      { ...data },
+      { ...this.toPresistencePartial(data) },
       { session }
     );
+    console.log(result)
+    console.log(
+    this.toPresistencePartial(data))
     return result.deletedCount > 0;
   }
 
@@ -79,10 +82,11 @@ export abstract class BaseRepository<TDocument, TEntity, ID = string> implements
     session?: ClientSession
   ): Promise<boolean> {
     const result = await this.model.updateMany(
-      filter as DomainFilter<TDocument>,
+      {...this.toPresistencePartial(filter)} as QueryFilter<TDocument>,
       { $set: this.toPresistencePartial(data) },
       { session }
     );
+
     return result.modifiedCount > 0;
   }
 
@@ -127,7 +131,7 @@ export abstract class BaseRepository<TDocument, TEntity, ID = string> implements
   async findMany(DTO: {
     filter: DomainFilter<TEntity>, select?: DomainSelect<TEntity>, session?: ClientSession
   }): Promise<Partial<TEntity>[]> {
-    const docs = await this.model.find({ ...(DTO.filter as QueryFilter<TDocument>), deleted_at: null }, null)
+    const docs = await this.model.find({ ...(this.toPresistencePartial(DTO.filter) as QueryFilter<TDocument>), deleted_at: null }, null)
       .select(DTO.select as any ?? {})
       .session(DTO.session ?? null)
       .lean<TDocument[]>();

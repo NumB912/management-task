@@ -1,27 +1,20 @@
-import { toast } from "sonner"; // đổi lại nếu bạn dùng lib toast khác
-import { ITaskModel } from "../../model";
-import { ICreateTaskDTO } from "../../model/DTO/task.DTO";
-import { useCreateTask, useCreateTaskWithSection } from "./useTaskMutation.hook";
+import { toast } from "sonner"; 
+import { IRuleModel, ITaskModel } from "../../model";
 import ObjectID from "bson-objectid";
 
-const ACTIVE_TAG_REGEX = /#([^\s]*)$/;
-const ACTIVE_priority = /P([1-4])\s$/;
 const ALL_ACTIVE_TAG_REGEX = /#([^\s#]+)/g;
-const ACTIVE_LIST_REGEX = /@([^\s]*)/;
-
 
 interface UseCreateTaskSubmitProps {
   listId: string;
-  sectionId: string;
+  sectionId?: string;
   confirmList: string;
   inputRef: React.RefObject<HTMLDivElement>;   
   value: string | null;
-  confirmedRule: Pick<ITaskModel["rule"], "end_date" | "start_date" | "repeat" | "timer"|"priority"|"tags">;
+  confirmedRule: IRuleModel;
   onHandleSubmit:(task:ITaskModel)=>void;
 }
 
 export const useCreateTaskSubmit = ({
-  listId,
   sectionId,
   confirmList,
   value,
@@ -39,10 +32,8 @@ const buildTask = (): ITaskModel | null => {
   if (!value) return null;
   const el = inputRef.current;
   if (!el) return null;
-
   const inlineTags = Array.from(value.matchAll(ALL_ACTIVE_TAG_REGEX)).map((m) => m[1]);
   const allTags = Array.from(new Set([...confirmedRule.tags, ...inlineTags]));
-
   const cleanName = getCleanTaskName(el);
   if (cleanName.length === 0) return null;
   const TempIdTask = new ObjectID().toString();
@@ -76,6 +67,7 @@ const buildTask = (): ITaskModel | null => {
       toast.error("Tên task không hợp lệ.");
       return;
     }
+    console.log(task)
    onHandleSubmit(task)
   };
 

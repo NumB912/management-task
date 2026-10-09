@@ -5,7 +5,7 @@ export type IStatusTask  ="done"|"won't do"|"pending"
 export interface ITask {
   id: string
   name: string
-  section:string
+  section?:string|null
   rule?:IRule
   description?:string
   list:string,

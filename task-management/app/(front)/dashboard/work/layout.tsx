@@ -73,7 +73,6 @@ import { de } from "date-fns/locale";
 import useUserState from "../../states/user/user.state";
 import { IRoleMember } from "../../model/member.model";
 import useExitMemberHook from "../../feature/hook/useExitMember.hook";
-import { useProfile } from "../../states/profile.state";
 const layout = ({ children }: { children: React.ReactNode }) => {
   const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
 

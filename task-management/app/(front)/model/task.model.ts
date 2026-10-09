@@ -3,7 +3,7 @@ import {IRuleModel } from "./rule/rule.model";
 export interface ITaskModel {
   id: string
   name: string
-  section:string
+  section?:string
   rule:IRuleModel
   description?:string
   list:string,

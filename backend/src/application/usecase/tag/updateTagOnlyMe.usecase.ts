@@ -43,11 +43,10 @@ export class UpdateTagOnlyMeUsecase implements IUsecase<
       await this.TagRepository.updateByName({
         name: tagCur.name,
         userId: userId,
-        session: session,
         data: {
           name: name
         },
-      })
+      },session)
       if (isShareForAnyList) {
         await this.TagRepository.create({
           name: tagCur.name,

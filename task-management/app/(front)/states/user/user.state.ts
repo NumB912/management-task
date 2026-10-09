@@ -20,7 +20,7 @@ interface UserState {
   hasHydrated: boolean;
   setHasHydrated: (v: boolean) => void;
   setUser:(user:Partial<Pick<IUserModel,"avatar"|"name">>)=>void
-  fetchUser: () => Promise<void>;
+  fetchUser: () => Promise<IUserModel|undefined>;
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
   reset: () => void;
@@ -38,11 +38,13 @@ const useUserState = create<UserState>()(
         if (get().status === "loading") return;
         set({ status: "loading" });
         try {
-          const { data } = await axiosInstance.get<{ user: IUserModel }>("/user/me");
-          set({ user: data.user, status: "authenticated" });
+          const { data } = await axiosInstance.get<{ profile: IUserModel }>("/user/me/profile");
+          set({ user: data.profile, status: "authenticated" });
+          return data.profile
         } catch (err) {
           if (axios.isAxiosError(err) && err.response?.status === 401) {
             set({ user: null, status: "unauthenticated" });
+            
           } else {
             set({ status: "error" });
           }
@@ -63,6 +65,7 @@ const useUserState = create<UserState>()(
           set({ user: data.user, status: "authenticated" });
         } catch (err) {
           set({ user: null, status: "unauthenticated" });
+                 useUserState.persist.clearStorage()
           throw err; 
         }
       },

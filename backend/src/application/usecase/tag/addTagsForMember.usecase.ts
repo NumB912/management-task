@@ -9,10 +9,9 @@ export class AddTagsForMemberUsecase implements IUsecase<void> {
     async execute(DTO: {
         newTags: string[],
         listIds: string[],
-        session?: unknown
-    }): Promise<void> {
+    },        session?: unknown): Promise<void> {
         try {
-            const { listIds, newTags, session } = DTO
+            const { listIds, newTags } = DTO
             const listMember = await this.memberRepository.getMembersInLists(listIds,session)
             const userIds =listMember.flatMap((list)=>list.members.filter((member)=>!!member.user).map((member)=>member.user!))
             await this.SynsMemberTag.execute({

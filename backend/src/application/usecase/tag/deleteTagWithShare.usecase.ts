@@ -10,7 +10,7 @@ export class DeleteTagWithShareUsecase implements IUsecase<boolean> {
       user: userId
     })
     if (!tag) {
-      throw new AppError("ERROR", "KhÃ´ng cÃ³ dá»¯ liá»‡u", 400)
+      throw new AppError("ERROR", "Không tìm thấy tag", 400)
     }
     try {
       await this.unitWork.startTransaction()

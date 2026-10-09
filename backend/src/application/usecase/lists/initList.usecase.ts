@@ -3,6 +3,7 @@
     AppError,
     IListRepository,
     ISectionRepository,
+    IUserRepository,
 } from "@/domain";
 import { IListWithId } from "@/domain/entities/list.entity";
 import { IMemberRepository } from "@/domain/repositories/IMember.repository";
@@ -12,6 +13,7 @@ export class InitListUsecase
     constructor(
         private readonly listRepository: IListRepository,
         private readonly sectionRepository: ISectionRepository,
+        private readonly userRepository:IUserRepository,
         private readonly memberRepository: IMemberRepository,
     ) { }
 
@@ -29,10 +31,12 @@ export class InitListUsecase
                 user: data.user,
             }, session);
 
+            const findUser = await this.userRepository.findById(data.user,session)
+
             if (isExistName) {
                 throw new AppError(
                     "CONFLICT",
-                    "TrÃ¹ng tÃªn vá»›i list khÃ¡c, vui lÃ²ng dÃ¹ng tÃªn khÃ¡c",
+                    "Lỗi đã tồn tại list có tên như thế rồi",
                     409
                 );
             }
@@ -56,7 +60,7 @@ export class InitListUsecase
                 this.sectionRepository.create(
                     {
                         list: createList.id,
-                        name: "Máº·c Ä‘á»‹nh",
+                        name: "Mặc định",
                         path: `/list-${createList.id}`,
                         order: 0,
                     },
@@ -67,6 +71,7 @@ export class InitListUsecase
                         list: createList.id,
                         user: data.user,
                         role: "owner",
+                        email:findUser?.email,
                         status: "accept",
                     },
                     session,

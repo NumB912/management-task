@@ -7,6 +7,7 @@ import { IList, IListWithId } from "@/domain/entities/index.js";
 import { Types } from "mongoose";
 import { Inject, Injectable } from "@nestjs/common";
 import { TYPES } from "../types/dependency.type.js";
+import { TaskMapper } from "./task.mapper.js";
 
 @Injectable()
 export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopulateDocument, IList> {
@@ -15,6 +16,8 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     private readonly memberMapper: MemberMapper,
         @Inject(TYPES.SectionMapper)
     private readonly sectionMapper: SectionMapper,
+            @Inject(TYPES.TaskMapper)
+    private readonly taskMapper: TaskMapper,
   ) { }
 
   toDomain(doc: IListDocument): IListWithId {
@@ -23,6 +26,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
       name: doc.name,
       order: doc.order,
       path: doc.path,
+      tasks:doc.tasks?.map((task)=>task._id.toString())??[],
       user: doc.user.toString(),
       isShareList:doc.isShareList,
       sections: doc.sections?.map((section) => section._id.toString()) ?? [],
@@ -44,6 +48,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     if (doc.members) partial.members = doc.members?.map((member) => member.toString())
     if (doc.isShareList) partial.isShareList = doc.isShareList
     if (doc.sections) partial.sections = doc.sections.map((section) => section.toString())
+    if (doc.tasks) partial.tasks = doc.tasks?.map((task)=>task.toString())
     if (doc.shared_tags) partial.shared_tags = doc.shared_tags.map((tag)=>tag.toString())
     if (doc.created_at) partial.created_at = doc.created_at;
     if (doc.updated_at) partial.updated_at = doc.updated_at ?? undefined;
@@ -62,6 +67,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
       members: doc.members?.map((member) => this.memberMapper.toDomainPopulate(member)) ?? [],
       sections: doc.sections?.map(section => this.sectionMapper.toDomainPopulate(section)) ?? [],
       shared_tags: doc.shared_tags ? doc.shared_tags?.map((tag)=>tag.toString()) : [],
+      tasks:doc.tasks?.map((task)=>this.taskMapper.toDomainPopulate(task))??[],
       created_at: doc.created_at,
       deleted_at: doc.deleted_at ?? undefined,
       updated_at: doc.updated_at ?? undefined,
@@ -77,6 +83,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     if (doc.user) partial.user = doc.user.toString();
     if (doc.sections) partial.sections = doc.sections.map((section) => this.sectionMapper.toDomainPopulate(section));
     if (doc.members) partial.members = doc.members.map((member) => this.memberMapper.toDomainPopulate(member));
+    if (doc.tasks) partial.tasks = doc.tasks?.map((task) => this.taskMapper.toDomainPopulate(task));
     if (doc.shared_tags!==undefined) partial.shared_tags = doc.shared_tags.map((tag)=>tag.toString())
     if (doc.isShareList) partial.isShareList = doc.isShareList
     if (doc.created_at) partial.created_at = doc.created_at;
@@ -100,6 +107,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
       path: list.path,
       order: list.order ?? 0,
       user: new Types.ObjectId(list.user),
+      tasks:list.tasks?.map(s => new Types.ObjectId(s)) ?? [],
       sections: list.sections?.map(s => new Types.ObjectId(s)) ?? [],
       members: list.members.map((member) => new Types.ObjectId(member)) ?? [],
       isShareList:list.isShareList,
@@ -118,9 +126,11 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     if (list.order) update.order = list.order;
     if (list.user) update.user = new Types.ObjectId(list.user);
     if (list.isShareList) update.isShareList = list.isShareList
+    if (list.tasks) update.tasks = list.tasks.map(s => new Types.ObjectId(s));
     if (list.sections) update.sections = list.sections.map(s => new Types.ObjectId(s));
     if (list.members) update.members = list.members.map(s => new Types.ObjectId(s));
     if (list.shared_tags) update.shared_tags = list.shared_tags.map((s) => s.toString());
+    console.log(update)
     return update;
   }
 

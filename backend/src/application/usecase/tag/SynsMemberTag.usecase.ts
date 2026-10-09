@@ -18,7 +18,7 @@ export class SyncMemberTagsUseCase {
 
     async execute(input: SyncMemberTagsInput): Promise<SyncMemberTagsOutput> {
         const { userIds, tags,session } = input;
-        const userTags =  await this.tagRepository.findTagsByUsers({userIds,session})
+        const userTags =  await this.tagRepository.findTagsByUsers({userIds},session)
         const userNameTags =  userTags.map((userTag)=>{
             return {
                 userId:userTag.userId,

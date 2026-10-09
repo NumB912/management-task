@@ -2,6 +2,7 @@
   IUsecase,
   ITaskRepository,
   ISectionRepository,
+  IListRepository,
   AppError,
 } from "@/domain";
 import { IUnitWork } from "@/domain/entities/unitwork.entity";
@@ -9,112 +10,123 @@ import { IUnitWork } from "@/domain/entities/unitwork.entity";
 interface MoveToSectionDTO {
   taskId: string;
   listId: string;
-  sectionId?: string; 
+  sectionId?: string | null;
 }
 
 export class MoveToSectionUsecase implements IUsecase<void> {
   constructor(
     private readonly TaskRepository: ITaskRepository,
     private readonly SectionRepository: ISectionRepository,
+    private readonly ListRepository: IListRepository,
     private readonly unitWork: IUnitWork,
-  ) { }
+  ) {}
 
   async run(DTO: MoveToSectionDTO, session?: unknown): Promise<void> {
     const { taskId, listId, sectionId } = DTO;
 
     if (!taskId || !listId) {
-      throw new AppError("NOT_FOUND", "Thiáº¿u taskId hoáº·c listId", 404);
+      throw new AppError("NOT_FOUND", "Thiếu taskId hoặc listId", 404);
     }
 
-    const taskCur = await this.TaskRepository.findById(taskId, session);
-    if (!taskCur) {
-      throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y task Ä‘á»ƒ di chuyá»ƒn", 404);
+    const task = await this.TaskRepository.findById(taskId, session);
+    if (!task) {
+      throw new AppError("NOT_FOUND", "Không tìm thấy task để di chuyển", 404);
     }
+    const currentSection = await this.SectionRepository.findByTaskId(
+      taskId,
+      session,
+    );
+    const currentListId = String(task.list);
+    let targetSectionId: string | null = null;
+    let targetPath = `list-${listId}`;
 
 
-    const currentSection = await this.SectionRepository.findByTaskId(taskId, session);
 
-    let targetSectionId = sectionId;
-    let sectionPath = ""
-    if (targetSectionId) {
-      const section = await this.SectionRepository.findById(targetSectionId, session);
-      sectionPath = section?.path??""
-      if (section?.list.toString() !== listId) {
-        targetSectionId = undefined;
-        sectionPath=""
+    if (sectionId) {
+      const section = await this.SectionRepository.findById(sectionId, session);
+      if (!section) {
+        throw new AppError("NOT_FOUND", "Không tìm thấy section đích", 404);
       }
-    }
-
-    if (!targetSectionId) {
-      const sections = await this.SectionRepository.findMany({
-        filter: {
-          list: listId
-        },
-        session: session
-      });
-      if (!sections || sections.length === 0) {
+      if (String(section.list) !== String(listId)) {
         throw new AppError(
-          "NOT_FOUND",
-          "List khÃ´ng cÃ³ section nÃ o Ä‘á»ƒ chuyá»ƒn task vÃ o",
-          404,
+          "BAD_REQUEST",
+          "Section đích không thuộc list này",
+          400,
         );
       }
-      targetSectionId = sections[0].id!.toString();
-      sectionPath = sections[0].path!
+      targetSectionId = String(sectionId);
+      targetPath = `${section.path ?? ""}/${targetSectionId}`;
     }
 
+    console.log(targetSectionId)
     
-
-    if (currentSection?.id.toString() === targetSectionId) {
+    if (targetSectionId) {
+      if (currentSection && String(currentSection.id) === targetSectionId) {
+        return;
+      }
+    } else if (!currentSection && currentListId === String(listId)) {
       return;
     }
 
-    try {
-      await this.TaskRepository.update(
-        taskId,
-        {
-          section: targetSectionId,
-          list: listId,
-          path:sectionPath+`/${targetSectionId}`,
-        },
-        session,
-      );
-      if (currentSection) {
+    await this.TaskRepository.update(
+      taskId,
+      {
+        section: targetSectionId,
+        list: listId,
+        path: targetPath,
+      },
+      session,
+    );
+    if (currentSection) {
       await this.SectionRepository.pullTaskFromSection({
-          id: currentSection.id.toString(),
-          tasks: [taskId],
-          session,
-        });
-      }
+        id: String(currentSection.id),
+        tasks: [taskId],
+      },session);
+    } else {
+      await this.ListRepository.pullTasksOutOfList({
+        taskIds: [taskId],
+        listId: currentListId,
+        session,
+      });
+    }
+    if (targetSectionId) {
       await this.SectionRepository.pushTaskIntoSection({
         id: targetSectionId,
         tasks: [taskId],
+      },session);
+    } else {
+      console.log("jadlkajsdl")
+      await this.ListRepository.pushTasksIntoList({
+        tasksId: [taskId],
+        listId,
         session,
       });
-
-    } catch (error: any) {
-      console.error(error);
-      if (error instanceof AppError) throw error;
-      throw new AppError(
-        error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lá»—i trong quÃ¡ trÃ¬nh di chuyá»ƒn task sang section khÃ¡c",
-        error.status ?? 500,
-      );
     }
   }
+
   async execute(DTO: MoveToSectionDTO): Promise<void> {
+    let committed = false;
     try {
       await this.unitWork.startTransaction();
-      const session = await this.unitWork.getSession();
+      const session = this.unitWork.getSession();
       await this.run(DTO, session);
       await this.unitWork.commitTransaction();
+      committed = true;
     } catch (error: any) {
       console.error(error);
-      await this.unitWork.rollBackTransaction();
+
+      if (!committed) {
+        try {
+          await this.unitWork.rollBackTransaction();
+        } catch (rollbackError) {
+          console.error("Rollback thất bại:", rollbackError);
+        }
+      }
+
       if (error instanceof AppError) throw error;
       throw new AppError(
         error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lá»—i trong quÃ¡ trÃ¬nh di chuyá»ƒn task sang section khÃ¡c",
+        error.message ?? "Lỗi trong quá trình di chuyển task",
         error.status ?? 500,
       );
     }

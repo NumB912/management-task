@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { IListModelState, IRuleModel, ISectionModel, ISectionModelState } from "../../model";
+import {
+  IListModelState,
+  IRuleModel,
+  ISectionModel,
+  ISectionModelState,
+} from "../../model";
 import { useWorkspaceStore } from "../../states/workspace.state";
 
 const ACTIVE_TAG_REGEX = /#([^\s]*)$/;
@@ -8,21 +13,36 @@ const ACTIVE_LIST_REGEX = /@([^\s]*)$/;
 
 interface UseTaskInputEditorProps {
   listId: string;
+  sectionId?:string;
   defaultConfirmRule?: Partial<IRuleModel>;
 }
 
-export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEditorProps) => {
-
-    const buildDefaultRule = (override?: Partial<IRuleModel>): Pick<IRuleModel,"end_date"|"priority"|"repeat"|"start_date"|"tags"|"timer"> => {
-      return ({
+export const useTaskInputEditor = ({
+  listId,
+  sectionId,
+  defaultConfirmRule,
+}: UseTaskInputEditorProps) => {
+  const buildDefaultRule = (
+    override?: Partial<IRuleModel>,
+  ): Pick<
+    IRuleModel,
+    "end_date" | "priority" | "repeat" | "start_date" | "tags" | "timer"
+  > => {
+    return {
       priority: override?.priority ?? 4,
-      repeat: override?.repeat ?? { mode: "none", dates: [], days: [], every: 0, specificDays: [] },
+      repeat: override?.repeat ?? {
+        mode: "none",
+        dates: [],
+        days: [],
+        every: 0,
+        specificDays: [],
+      },
       end_date: override?.end_date ?? undefined,
       start_date: override?.start_date ?? undefined,
       tags: override?.tags ?? [],
       timer: override?.timer ?? undefined,
-    })
     };
+  };
 
   const refDivInput = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState<string | null>(null);
@@ -32,12 +52,19 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
   const [tags, setTags] = useState<string[]>([]);
   const [tag, setTag] = useState<string>("");
   const [confirmSection, setConfirmSection] = useState<string | undefined>(
-    undefined,
+   sectionId
   );
+
   const [confirmList, setConfirmList] = useState<string>(listId);
-  const [confirmRule, setConfirmRule] = useState<Partial<IRuleModel>>(
-    () => buildDefaultRule(defaultConfirmRule)
-  );
+  const [confirmRule, setConfirmRule] = useState<IRuleModel>(() => {
+    return {
+      ...buildDefaultRule(defaultConfirmRule),
+      ...defaultConfirmRule,
+      id: defaultConfirmRule?.id ?? "",
+      task: defaultConfirmRule?.task ?? "",
+      list: defaultConfirmRule?.list ?? listId,
+    } as IRuleModel;
+  });
   const [isOpenList, setIsOpenList] = useState<boolean>(false);
   const [allLists, setAllLists] = useState<
     Pick<IListModelState, "id" | "isShareList" | "sections" | "name" | "user">[]
@@ -50,13 +77,13 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     setValue(null);
     setTags([]);
     setTag("");
-    setConfirmRule((prev=>{
+    setConfirmRule((prev) => {
       return {
         ...prev,
-      priority: undefined,
-      tags: [],
-    }
-    }));
+        priority: undefined,
+        tags: [],
+      };
+    });
     setConfirmSection(undefined);
     setIsOpenAddTag(false);
     setIsEmpty(true);
@@ -154,10 +181,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     list,
     section,
   }: {
-    list: Pick<
-      IListModelState,
-      "id"| "sections" | "name"
-    > | null;
+    list: Pick<IListModelState, "id" | "sections" | "name"> | null;
     section?: { id: string; name: string };
   }) => {
     const refInput = refDivInput.current;
@@ -314,17 +338,16 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
   };
 
   const handleAddpriorityBehind = (priorityDigit: string) => {
-
     const el = refDivInput.current;
     if (!el || !priorityDigit) return;
 
     const chipCurrent = el.querySelector<HTMLElement>(".priority-chip");
 
-     if (Number(priorityDigit) === 4) {
-    setConfirmRule((prev) => ({ ...prev, priority: 4 }));
-    setValue(el.innerText);
-    return;
-  }
+    if (Number(priorityDigit) === 4) {
+      setConfirmRule((prev) => ({ ...prev, priority: 4 }));
+      setValue(el.innerText);
+      return;
+    }
 
     if (chipCurrent) {
       const nextNode = chipCurrent.nextSibling;
@@ -347,11 +370,11 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     el.append(chip);
     el.append(document.createTextNode("\u00A0"));
 
-    setConfirmRule((prev) =>{
+    setConfirmRule((prev) => {
       return {
-      ...prev,
-      priority: Number(priorityDigit) as 1 | 2 | 3 | 4,
-    }
+        ...prev,
+        priority: Number(priorityDigit) as 1 | 2 | 3 | 4,
+      };
     });
     setValue(el.innerText);
   };
@@ -363,6 +386,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
     list: Pick<IListModelState, "id" | "sections" | "name">;
     section?: ISectionModelState;
   }) => {
+    console.log(list,section)
     const el = refDivInput.current;
     if (!el || !list) return;
     const chipCurrent = el.querySelector<HTMLElement>(".list-chip");
@@ -390,7 +414,7 @@ export const useTaskInputEditor = ({ listId,defaultConfirmRule }: UseTaskInputEd
   };
 
   const buildListChipElement = (
-    list: Pick<IListModelState, "id"| "sections" | "name" >,
+    list: Pick<IListModelState, "id" | "name">,
     section?: ISectionModelState,
   ): HTMLSpanElement => {
     const chip = document.createElement("span");

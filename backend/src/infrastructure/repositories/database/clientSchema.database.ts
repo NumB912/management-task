@@ -5,7 +5,7 @@ import {
   IListDocument,
   IMemberDocument,
   INotificationDocument,
-  PromodoDocument,
+  pomodoroDocument,
   RuleDocument,
   ISectionDocument,
   TagDocument,
@@ -17,7 +17,7 @@ import {
   ListSchema,
   MemberSchema,
   NotificationSchema,
-  PromodoSchema,
+  pomodoroSchema,
   RuleSchema,
   SectionSchema,
   TagSchema,
@@ -28,7 +28,7 @@ import { ITaskDocument } from "./schema/task.schema.js";
 import { IRuleDocument } from "./schema/rule.schema.js";
 import { ITagDocument } from "./schema/tag.schema.js";
 import { IUserDocument } from "./schema/user.schema.js";
-import { IPromodoDocument } from "./schema/promodo.schema.js";
+import { IpomodoroDocument } from "./schema/pomodoro.schema.js";
 import { AppError } from "@/domain/index.js";
 
 
@@ -42,7 +42,7 @@ export class DatabaseModels {
   readonly Tag: Model<ITagDocument>;
   readonly User: Model<IUserDocument>;
   readonly Member: Model<IMemberDocument>;
-  readonly Promodo:Model<IPromodoDocument>
+  readonly pomodoro:Model<IpomodoroDocument>
   readonly Notification:Model<INotificationDocument>
 
   private constructor(client: Mongoose) {
@@ -58,7 +58,7 @@ export class DatabaseModels {
     this.Tag = this.getOrCreate<TagDocument>(client, "tag", TagSchema);
     this.User = this.getOrCreate<IUserDocument>(client, "user", UserSchema)
     this.Member = this.getOrCreate<IMemberDocument>(client, "member", MemberSchema)
-    this.Promodo = this.getOrCreate<IPromodoDocument>(client, "promodo", PromodoSchema)
+    this.pomodoro = this.getOrCreate<IpomodoroDocument>(client, "pomodoro", pomodoroSchema)
     this.Notification = this.getOrCreate<INotificationDocument>(client,"notification",NotificationSchema)
   }
 

@@ -25,7 +25,7 @@ import { useWorkspaceStore } from "../../states/workspace.state";
 import AppDrawer from "../../components/appDrawer.component";
 import CreateEventForm from "../../components/calendar/newTaskDrawer.component";
 import { ICreateTaskModel, IRuleModel } from "../../model";
-import {useCreateTaskWithSectionObject } from "../../feature/hook/useTaskMutation.hook";
+import {useCreateTask, useCreateTaskWithSectionObject } from "../../feature/hook/useTaskMutation.hook";
 import { useShallow } from "zustand/react/shallow";
 import { DEFAULT_COLORS } from "../../model/mod/color.config";
 import { formatDate, formatDateVi } from "../../utils/getDayOfMonth.utils";
@@ -39,7 +39,6 @@ const Page = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const { mutate: createTask } = useCreateTaskWithSectionObject()
   const addTaskStore = useWorkspaceStore((state)=>state.addTask)
-  const changeIdTaskStore = useWorkspaceStore((state)=>state.changeIdTask)
   const removeTaskStore = useWorkspaceStore((state)=>state.removeTask)
   const [ruleDefault, setRuleDefault] = useState<Omit<IRuleModel,"id"|"task">>({
     list: inbox ?? "",
@@ -97,11 +96,11 @@ const Page = () => {
       id:idTemp,
       rule:{
         ...data.rule,
-        id:idRuleTemp
+        id:idRuleTemp,
+        task:idTemp
       }
     },{
       onSuccess(data, variables, onMutateResult, context) {
-        changeIdTaskStore(idTemp,data.id)
       },
       onError(error, variables, onMutateResult, context) {
         removeTaskStore(idTemp)

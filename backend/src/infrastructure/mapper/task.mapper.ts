@@ -29,7 +29,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       done_at: doc.done_at,
       order: doc.order,
       rule: doc.rule?.toString(),
-      section: doc.section.toString(),
+      section: doc.section?.toString()??null,
       status: doc.status as IStatusTask,
     };
   }
@@ -69,7 +69,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       done_at: doc.done_at,
       order: doc.order,
       rule: doc.rule ? this.ruleMapper.toDomainPopulate(doc.rule) : undefined,
-      section: doc.section.toString(),
+      section: doc.section?.toString()??null,
       status: doc.status as IStatusTask,
     };
   }
@@ -109,7 +109,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       children: entity.children
         ? entity.children?.map((child) => new Types.ObjectId(child))
         : [],
-      section: new Types.ObjectId(entity.section),
+      section: entity.section?new Types.ObjectId(entity?.section):undefined,
       parent: entity.parent ? new Types.ObjectId(entity.parent) : undefined,
       order: entity.order,
       path: entity.path,
@@ -134,11 +134,11 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       update.description = entity.description;
     if (entity.status) update.status = entity.status;
     if (entity.order) update.order = entity.order;
-  
+
     if (entity.done_at) update.done_at = entity.done_at;
 
-    if (entity.section) {
-      update.section = new Types.ObjectId(entity.section);
+    if (entity.section!==undefined) {
+      update.section = entity.section?new Types.ObjectId(entity.section):null;
     }
 
     if (entity.parent) {
@@ -186,7 +186,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       done_at: entity.done_at,
       order: entity.order,
       rule: entity.rule ? this.ruleMapper.toPersistencePopulate(entity.rule) : undefined,
-      section: new Types.ObjectId(entity.section),
+      section: entity.section?new Types.ObjectId(entity?.section):undefined,
       status: entity.status,
     };
   }

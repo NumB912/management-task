@@ -1,4 +1,4 @@
-import { IPromodoroModel } from "../model/promodo.model"
+import { IPomodoroModel } from "../model/pomodoro.model"
 
 export function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -15,6 +15,6 @@ export function formatTimer(seconds: number): string {
     return `${String(Math.floor(h%12==0?12:h%12)).padStart(2, "0")}:${String(m).padStart(2, "0")} ${h >= 12?"PM":"AM"}`;
 }
 
-export function getTotalPauseDuration(progress: IPromodoroModel["progress"]): number {
+export function getTotalPauseDuration(progress: IPomodoroModel["progress"]): number {
   return progress.reduce((sum, p) => sum + p.duration, 0)
 }

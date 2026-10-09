@@ -14,6 +14,7 @@ export interface IListModel{
 }
 
 
-export interface IListModelState extends Omit<IListModel,"sections">{
+export interface IListModelState extends Omit<IListModel,"sections"|"tasks">{
     sections:string[]
+    tasks:string[]
 }

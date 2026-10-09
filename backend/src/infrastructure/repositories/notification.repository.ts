@@ -1,7 +1,7 @@
 
 
 import { Inject, Injectable } from "@nestjs/common";
-import { ClientSession } from "mongoose";
+import { ClientSession, Types } from "mongoose";
 import { BaseRepository } from "./base.repository.js";
 import { INotificationRepository } from "@/domain/repositories/INotification.repository.js";
 import { INotification } from "@/domain/entities/notification.entity.js";
@@ -24,6 +24,7 @@ export class NotificationRepository
     return this.NotificationMapper.toPersistencePartial(doc)
   }
   protected toPresistencePartial(doc: Partial<INotification>): Partial<INotificationDocument> {
+
     return this.NotificationMapper.toPersistencePartial(doc)
   }
   constructor(
@@ -37,14 +38,22 @@ export class NotificationRepository
 
   async updateNotificationInviteMemberStatus(DTO:{listId:string,userId:string,status:IStatusMember},session?:ClientSession):Promise<boolean>{
     const {listId,status,userId} = DTO
+
     const update = await this.db.Notification.updateOne({
       event:"invite-member",
       "data.listId":listId,
-      user:userId,
+      user:new Types.ObjectId(userId),
     },{
       "data.status":status
     },session??null)
-
     return update.modifiedCount > 0
+  }
+
+  async getNotificationByUser(DTO:{userId:string},session?:ClientSession):Promise<INotification[]>{
+    const {userId} = DTO
+    const docs = await this.db.Notification.find({
+      user:new Types.ObjectId(userId)
+    }).session(session??null).lean()
+    return docs.map((doc)=>this.NotificationMapper.toDomain(doc))
   }
 }

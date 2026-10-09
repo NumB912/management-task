@@ -54,7 +54,6 @@ export function useTimerWorker({ status, isWork, endTime, onTick, onDone }: UseT
 
     return () => {
       worker.terminate();
-      document.title = DEFAULT_TITLE;
     };
   }, []);
 
@@ -68,8 +67,6 @@ export function useTimerWorker({ status, isWork, endTime, onTick, onDone }: UseT
       if (status === "progress") {
         const remainingMs = useTimerStore.getState().totalSeconds-1 * 1000;
         updateTitle(remainingMs);
-      } else {
-        document.title = DEFAULT_TITLE;
       }
     }
   }, [status, endTime]);

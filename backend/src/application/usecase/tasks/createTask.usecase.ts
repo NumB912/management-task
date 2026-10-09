@@ -2,7 +2,6 @@
   IUsecase,
   ITaskRepository,
   AppError,
-  ISectionRepository,
   ITagRepository,
   IListRepository,
   ITaskWithId,
@@ -22,10 +21,15 @@ interface CreateTaskProp {
   data: ICreateTaskDTO;
 }
 
+interface TaskCreateEvent {
+  userIds: string[];
+  data: unknown;
+  event: "task-create";
+}
+
 export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> {
   constructor(
     private readonly TaskRepository: ITaskRepository,
-    private readonly SectionRepository: ISectionRepository,
     private readonly TagRepository: ITagRepository,
     private readonly ListRepository: IListRepository,
     private readonly MemberRepository: IMemberRepository,
@@ -40,142 +44,141 @@ export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> 
   ): Promise<Partial<ITaskWithId> | null> {
     const { data, listId, userId } = createTaskDTO;
     const rule = data.rule;
+    let committed = false;
+    let createdTask: Partial<ITaskWithId> | null = null;
+    let sseEvent: TaskCreateEvent | null = null;
+
     try {
       await this.unitWork.startTransaction();
       const session = this.unitWork.getSession();
       const list = await this.getListOrThrow(listId, session);
-      let Createtask: Partial<ITaskWithId> | null = {};
-      const HaveTag = await this.TagRepository.isUserHaveTag({
-        userId: userId,
+      const haveTag = await this.TagRepository.isUserHaveTag({
+        userId,
         tagNames: rule.tags,
-        session,
-      });
-      if (!list.sections[0]) {
-        throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y section", 404);
-      }
-
-      const section = await this.getSectionOrThrow(
-        createTaskDTO.data.section,
-        session,
-      );
-      const path = `${section.path}/section-${section.id}`;
+      
+      },session);
+      const path = `list-${listId}`;
       const task = await this.TaskRepository.create(
         {
           name: data.name,
-          section: section.id,
-          path: path,
+          path,
           list: listId,
-          id:data.id
+          id: data.id,
+          rule:data.rule.id
         },
         session,
       );
 
-      const getTagsInList = await this.ListRepository.findById(listId, session);
-      const listTag = getTagsInList?.shared_tags.map((tag) => tag.toString()) ?? [];
-      const ShareTag = HaveTag.map((tag) => tag.name) ?? [];
-      const tagNotInList =
-        ShareTag.filter((tag) =>
-          listTag?.every((tagList) => tagList !== tag),
-        ) ?? [];
-      const TagInlist =
-        listTag.filter((tagList) => ShareTag.includes(tagList)) ?? [];
-      let tagCreateList: string[] = [];
-      if (tagNotInList.length > 0) {
-        tagCreateList = tagNotInList;
-      }
-      const [ruleCreate] = await Promise.all([
-        this.CreateRuleUsecase.execute({
-          taskId: task.id,
-          rule: {
-            ...rule,
-            color: rule.color ?? pickRandomColor(),
-            tags: [...tagCreateList, ...TagInlist],
-            task: task.id,
-            path: path,
-            list: listId,
-          },
-          session: session,
-        }),
-        this.ListRepository.pushTagsIntoList({
-          listId: listId,
-          share_tags: tagCreateList.map((tag) => {
-            return {
-              created_by: userId,
-              tag: tag,
-            };
-          }),
-          session: session,
-        }),
-      ]);
+      const listTags = (list.shared_tags ?? []).map((tag) => tag.toString());
+      const userTags = haveTag.map((tag) => tag.name);
+      const tagCreateList = userTags.filter((tag) => !listTags.includes(tag));
+      const tagInList = listTags.filter((tag) => userTags.includes(tag));
+      const ruleCreate = await this.CreateRuleUsecase.execute({
+        taskId: task.id,
+        rule: {
+          ...rule,
+          color: rule.color ?? pickRandomColor(),
+          tags: [...tagCreateList, ...tagInList],
+          task: task.id,
+          path,
+          list: listId,
+        },
+        session,
+      });
 
-      Createtask = await this.TaskRepository.update(
+      if (tagCreateList.length > 0) {
+        await this.ListRepository.pushTagsIntoList({
+          listId,
+          share_tags: tagCreateList.map((tag) => ({
+            created_by: userId,
+            tag,
+          })),
+          session,
+        });
+      }
+
+      createdTask = await this.TaskRepository.update(
         task.id,
         { rule: ruleCreate.rule.id },
         session,
       );
 
-      if (!Createtask) {
-        throw new AppError("INTERNAL_SERVER", "Cáº­p nháº­t task tháº¥t báº¡i", 500);
+      if (!createdTask) {
+        throw new AppError("INTERNAL_SERVER", "Cập nhật task thất bại", 500);
       }
+
+      await this.ListRepository.pushTasksIntoList({
+        tasksId:[data.id],
+        listId:listId,
+        session:session
+      })
 
       if (list.isShareList) {
         await this.AddTagsForMemberUsecase.execute({
           listIds: [list.id],
-          newTags: ShareTag,
-          session: session,
-        });
-      }
+          newTags: userTags,
+          
+        },session);
 
-      await this.SectionRepository.pushTaskIntoSection({
-        id: section.id,
-        tasks: [task.id],
-        session,
-      });
-
-      if (list.isShareList) {
         const members = await this.MemberRepository.findManyByIds(
           list.members,
           session,
         );
-        const users = members
-          .map((member) => member.user)
-          .filter((user) => user != userId);
-        await this.publisher.pub("Task.exchange", "Task.create", "direct", {
-          userids: users,
-          data: {
-            ...Createtask,
-            ...ruleCreate,
-          },
-          event: "task-create",
-        });
+const userIds: string[] = members
+  .filter((member) => !!member.user && String(member.user) !== String(userId))
+  .map((member) => String(member.user));
+        if (userIds.length > 0) {
+          sseEvent = {
+            userIds,
+            data: { ...createdTask, ...ruleCreate },
+            event: "task-create",
+          };
+        }
       }
 
       await this.unitWork.commitTransaction();
-      return Createtask;
+      committed = true;
     } catch (error: any) {
       console.error(error);
-      await this.unitWork.rollBackTransaction();
+
+      if (!committed) {
+        try {
+          await this.unitWork.rollBackTransaction();
+        } catch (rollbackError) {
+          console.error("Rollback thất bại:", rollbackError);
+        }
+      }
+
       throw new AppError(
         error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lá»—i trong quÃ¡ trÃ¬nh táº¡o task",
+        error.message ?? "Lỗi trong quá trình tạo task",
         error.status ?? 500,
       );
     }
-  }
 
-  private async getSectionOrThrow(sectionId: string, session?: unknown) {
-    const section = await this.SectionRepository.findById(sectionId, session);
-    if (!section) {
-      throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y section", 404);
+    // Gửi SSE sau khi commit để không báo cho dữ liệu có thể bị rollback.
+    // Lỗi gửi không làm hỏng việc tạo task.
+    if (sseEvent) {
+      try {
+        await this.publisher.pub(
+          "Task.exchange",
+          "Task.create",
+          "direct",
+          sseEvent,
+        );
+      } catch (publishError) {
+        console.error("Gửi SSE task-create thất bại:", publishError);
+      }
     }
-    return section;
+
+    return createdTask;
   }
 
   private async getListOrThrow(listId: string, session?: unknown) {
     const list = await this.ListRepository.findById(listId, session);
 
     if (!list) {
-      throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y list", 404);
+      throw new AppError("NOT_FOUND", "Không tìm thấy list", 404);
     }
 
     return list;

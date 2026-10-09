@@ -11,7 +11,7 @@ export type IModeRepeat = "week" | "day"| "none"|"month"|"specificday"
 
 export interface IRule {
   id: string;
-  task?: string|null,
+  task: string,
   path: string;
   start_date?: Date|null;
   list:string,

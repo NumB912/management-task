@@ -1,14 +1,17 @@
-
-import { BaseRepository } from "./base.repository.js";
-import { IList, IListWithId } from "@/domain/entities/list.entity.js";
-import { IListRepository } from "@/domain/repositories/index.js";
-import { Inject, Injectable } from "@nestjs/common";
-import { IListDocument, IListPopulateDocument } from "./database/schema/list.schema.js";
-import { TYPES } from "../types/dependency.type.js";
-import { DatabaseModels } from "./database/clientSchema.database.js";
-import { ListMapper } from "../mapper/list.mapper.js";
-import { ClientSession, Types } from "mongoose";
-import { IMemberDocument } from "./database/schema/member.schema.js";
+import { BaseRepository } from './base.repository.js';
+import { IList, IListWithId } from '@/domain/entities/list.entity.js';
+import { IListRepository } from '@/domain/repositories/index.js';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  IListDocument,
+  IListPopulateDocument,
+} from './database/schema/list.schema.js';
+import { TYPES } from '../types/dependency.type.js';
+import { DatabaseModels } from './database/clientSchema.database.js';
+import { ListMapper } from '../mapper/list.mapper.js';
+import { ClientSession, Types } from 'mongoose';
+import { IMemberDocument } from './database/schema/member.schema.js';
+import { TaskMapper } from '../mapper/task.mapper.js';
 
 @Injectable()
 export class ListRepository
@@ -33,6 +36,7 @@ export class ListRepository
   constructor(
     @Inject(TYPES.DatabaseType) private readonly db: DatabaseModels,
     @Inject(TYPES.ListMapper) private readonly ListMapper: ListMapper,
+    @Inject(TYPES.TaskMapper) private readonly taskMapper: TaskMapper,
   ) {
     super(db.List);
   }
@@ -50,197 +54,141 @@ export class ListRepository
     userId: string,
     session?: ClientSession,
   ): Promise<{
-    lists:IList[]
+    lists: IList[];
   }> {
     const member =
       (
-        await this.db.Member.find({ user: userId })
+        await this.db.Member.find({ user: new Types.ObjectId(userId),status:"accept" })
           .session(session ?? null)
-          .select("_id")
+          .select('_id')
           .lean()
       ).map((m) => m._id) ?? [];
-
+      
     const userObjectId = new Types.ObjectId(userId);
     const baseAccessMatch = {
       deleted_at: null,
       $or: [{ user: userObjectId }, { members: { $in: member } }],
     };
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(todayStart);
-    todayEnd.setHours(23, 59, 59, 999);
-    const next7DaysStart = new Date(todayStart);
-    next7DaysStart.setDate(next7DaysStart.getDate());
-    next7DaysStart.setHours(0, 0, 0, 0);
-    const next7DaysEnd = new Date(todayStart);
-    next7DaysEnd.setDate(next7DaysEnd.getDate() + 7);
-    next7DaysEnd.setHours(23, 59, 59, 999);
-    const lists = await this.db.List.aggregate([
-      { $match: { ...baseAccessMatch } },
-      { $addFields: { sectionIds: "$sections" } },
-      { $addFields: { memberIds: "$members" } },
+    const lists = await this.db.List.find(baseAccessMatch)
+    .session(session ?? null)
+    .populate({
+      path: 'sections',
+      populate: { path: 'tasks', populate: { path: 'rule' } },
+    })
+    .populate({
+      path: 'members',
+      populate: { path: 'user', select: '_id name email role avatar' },
+    })
+    .populate({
+      path:'tasks',
+      populate: {path:'rule'},
+    })
+    .lean<IListPopulateDocument[]>();
+
+    return {
+      lists: lists.map((doc) =>{
+        return {
+          ...this.ListMapper.toDomainPopulate(doc as any),
+        }
+      })
+    }
+    
+  }
+
+  async findByIdPopulate(
+    id: string,
+    session?: ClientSession,
+  ): Promise<IList | null> {
+    if (!Types.ObjectId.isValid(id)) return null;
+
+    const [list] = await this.db.List.aggregate([
+      { $match: { _id: new Types.ObjectId(id) } },
+      { $limit: 1 },
+
+      { $addFields: { sectionIds: '$sections', memberIds: '$members' } },
       {
         $lookup: {
-          from: "sections",
-          let: { ids: "$sectionIds" },
+          from: 'sections',
+          let: { ids: '$sectionIds' },
           pipeline: [
-            { $match: { $expr: { $in: ["$_id", "$$ids"] } } },
-            {
-              $addFields: {
-                order: { $indexOfArray: ["$$ids", "$_id"] },
-              },
-            },
+            { $match: { $expr: { $in: ['$_id', '$$ids'] } } },
+            { $addFields: { order: { $indexOfArray: ['$$ids', '$_id'] } } },
             { $sort: { order: 1 } },
             {
               $lookup: {
-                from: "tasks",
-                foreignField: "section",
-                localField: "_id",
-                as: "tasks",
+                from: 'tasks',
+                foreignField: 'section',
+                localField: '_id',
+                as: 'tasks',
                 pipeline: [
                   {
                     $lookup: {
-                      from: "rules",
-                      foreignField: "task",
-                      localField: "_id",
-                      as: "rules",
+                      from: 'rules',
+                      foreignField: 'task',
+                      localField: '_id',
+                      as: 'rules',
                     },
                   },
-                  {
-                    $set: {
-                      rule: { $arrayElemAt: ["$rules", 0] },
-                    },
-                  },
-                  { $unset: "rules" },
+                  { $set: { rule: { $arrayElemAt: ['$rules', 0] } } },
+                  { $unset: 'rules' },
                 ],
               },
             },
           ],
-          as: "sections",
+          as: 'sections',
         },
       },
       {
         $lookup: {
-          from: "members",
-          let: { ids: "$memberIds" },
+          from: 'members',
+          let: { ids: '$memberIds' },
           pipeline: [
-            { $match: { $expr: { $in: ["$_id", "$$ids"] } } },
+            { $match: { $expr: { $in: ['$_id', '$$ids'] } } },
             {
               $lookup: {
-                from: "users",
-                foreignField: "_id",
-                localField: "user",
-                as: "userData",
-                pipeline: [{ $project: { _id: 1, name: 1, email: 1,role:1 } }],
+                from: 'users',
+                foreignField: '_id',
+                localField: 'user',
+                as: 'userData',
+                pipeline: [
+                  {
+                    $project: { _id: 1, name: 1, email: 1, avatar: 1, role: 1 },
+                  },
+                ],
               },
             },
-            { $set: { user: { $arrayElemAt: ["$userData", 0] } } },
-            { $unset: "userData" },
+            { $set: { user: { $arrayElemAt: ['$userData', 0] } } },
+            { $unset: 'userData' },
           ],
-          as: "members",
+          as: 'members',
         },
       },
-      { $unset: "sectionIds" },
-      { $unset: "memberIds" },
+      { $unset: ['sectionIds', 'memberIds'] },
     ]).session(session ?? null);
 
-    return {
-      lists: lists.map((doc) => this.ListMapper.toDomainPopulate(doc)),
-    };
+    return list ? this.ListMapper.toDomainPopulate(list) : null;
   }
-
-async findByIdPopulate(
-  id: string,
-  session?: ClientSession,
-): Promise<IList | null> {
-  if (!Types.ObjectId.isValid(id)) return null;
-
-  const [list] = await this.db.List.aggregate([
-    { $match: { _id: new Types.ObjectId(id) } },
-    { $limit: 1 },
-
-    { $addFields: { sectionIds: "$sections", memberIds: "$members" } },
-    {
-      $lookup: {
-        from: "sections",
-        let: { ids: "$sectionIds" },
-        pipeline: [
-          { $match: { $expr: { $in: ["$_id", "$$ids"] } } },
-          { $addFields: { order: { $indexOfArray: ["$$ids", "$_id"] } } },
-          { $sort: { order: 1 } },
-          {
-            $lookup: {
-              from: "tasks",
-              foreignField: "section",
-              localField: "_id",
-              as: "tasks",
-              pipeline: [
-                {
-                  $lookup: {
-                    from: "rules",
-                    foreignField: "task",
-                    localField: "_id",
-                    as: "rules",
-                  },
-                },
-                { $set: { rule: { $arrayElemAt: ["$rules", 0] } } },
-                { $unset: "rules" },
-              ],
-            },
-          },
-        ],
-        as: "sections",
-      },
-    },
-    {
-      $lookup: {
-        from: "members",
-        let: { ids: "$memberIds" },
-        pipeline: [
-          { $match: { $expr: { $in: ["$_id", "$$ids"] } } },
-          {
-            $lookup: {
-              from: "users",
-              foreignField: "_id",
-              localField: "user",
-              as: "userData",
-              pipeline: [
-                { $project: { _id: 1, name: 1, email: 1, avatar: 1, role: 1 } },
-              ],
-            },
-          },
-          { $set: { user: { $arrayElemAt: ["$userData", 0] } } },
-          { $unset: "userData" },
-        ],
-        as: "members",
-      },
-    },
-    { $unset: ["sectionIds", "memberIds"] },
-  ]).session(session ?? null);
-
-  return list ? this.ListMapper.toDomainPopulate(list) : null;
-}
   async findListByUser(userId: string): Promise<Partial<IList>[]> {
     const docs = await this.db.List.aggregate([
       {
         $lookup: {
-          from: "members",
-          let: { listId: "$_id" },
+          from: 'members',
+          let: { listId: '$_id' },
           pipeline: [
             {
               $match: {
                 $expr: {
                   $and: [
-                    { $eq: ["$list", "$$listId"] },
-                    { $eq: ["$user", new Types.ObjectId(userId)] },
-                    { $eq: ["$status", "accept"] },
+                    { $eq: ['$list', '$$listId'] },
+                    { $eq: ['$user', new Types.ObjectId(userId)] },
+                    { $eq: ['$status', 'accept'] },
                   ],
                 },
               },
             },
           ],
-          as: "membership",
+          as: 'membership',
         },
       },
       {
@@ -279,6 +227,23 @@ async findByIdPopulate(
     );
   }
 
+    async pushTasksIntoList(DTO: {
+    tasksId: string[];
+    listId: string;
+    session?: ClientSession;
+  }): Promise<void> {
+    const { tasksId, listId, session } = DTO;
+    await this.db.List.updateOne(
+      { _id: listId },
+      {
+        $addToSet: {
+          tasks: { $each: tasksId },
+        },
+      },
+      { session },
+    );
+  }
+
   async pullSectionsOutOfList(DTO: {
     sectionIds: string[];
     listId: string;
@@ -293,6 +258,22 @@ async findByIdPopulate(
       },
     }).session(session ?? null);
   }
+
+    async pullTasksOutOfList(DTO: {
+    taskIds: string[];
+    listId: string;
+    session?: ClientSession;
+  }) {
+    const { listId, taskIds, session } = DTO;
+    await this.db.List.findByIdAndUpdate(listId, {
+      $pull: {
+        tasks: {
+          $in: taskIds.map((task) => new Types.ObjectId(task)),
+        },
+      },
+    }).session(session ?? null);
+  }
+
 
   async pushMembersIntoList(DTO: {
     memberIds: string[];
@@ -318,12 +299,11 @@ async findByIdPopulate(
   }): Promise<void> {
     const { listId, memberIds, session } = DTO;
     await this.db.List.findByIdAndUpdate(listId, {
-        $pull: {
-          members:{
-             $in: memberIds.map((memberIds) => new Types.ObjectId(memberIds)),
-          }
-
-        }
+      $pull: {
+        members: {
+          $in: memberIds.map((memberIds) => new Types.ObjectId(memberIds)),
+        },
+      },
     }).session(session ?? null);
   }
 
@@ -365,7 +345,7 @@ async findByIdPopulate(
           shared_tags: { tag: { $in: nameTags } },
         },
       },
-      { session, collation: { locale: "vi", strength: 2 } },
+      { session, collation: { locale: 'vi', strength: 2 } },
     );
   }
 
@@ -379,7 +359,7 @@ async findByIdPopulate(
       .session(session ?? null)
       .select({
         shared_tags: true,
-      })
+      });
 
     if (!doc) {
       return null;
@@ -404,7 +384,7 @@ async findByIdPopulate(
       .session(session ?? null)
       .populate([
         {
-          path: "members",
+          path: 'members',
           select: {
             _id: true,
             user: true,
@@ -439,15 +419,15 @@ async findByIdPopulate(
     const getLists = await this.db.List.aggregate([
       {
         $lookup: {
-          from: "members",
-          localField: "members",
-          foreignField: "_id",
-          as: "membersData",
+          from: 'members',
+          localField: 'members',
+          foreignField: '_id',
+          as: 'membersData',
         },
       },
       {
         $match: {
-          "membersData.user": new Types.ObjectId(userId),
+          'membersData.user': new Types.ObjectId(userId),
         },
       },
     ]);
@@ -464,21 +444,21 @@ async findByIdPopulate(
       [
         {
           $lookup: {
-            from: "members",
-            localField: "members",
-            foreignField: "_id",
-            as: "membersData",
+            from: 'members',
+            localField: 'members',
+            foreignField: '_id',
+            as: 'membersData',
           },
         },
         {
           $match: {
-            "membersData.user": new Types.ObjectId(userId),
-            "shared_tags.tag": { $in: tagName },
+            'membersData.user': new Types.ObjectId(userId),
+            'shared_tags.tag': { $in: tagName },
           },
         },
       ],
       {
-        collation: { locale: "vi", strength: 2 },
+        collation: { locale: 'vi', strength: 2 },
       },
     );
 
@@ -495,15 +475,15 @@ async findByIdPopulate(
     await this.db.List.updateMany(
       {
         _id: { $in: listIds.map((listId) => new Types.ObjectId(listId)) },
-        "shared_tags.tag": currentName.toLocaleLowerCase(),
+        'shared_tags.tag': currentName.toLocaleLowerCase(),
       },
       {
-        $set: { "shared_tags.$[elem].tag": newName },
+        $set: { 'shared_tags.$[elem].tag': newName },
       },
       {
         session,
-        collation: { locale: "vi", strength: 2 },
-        arrayFilters: [{ "elem.tag": currentName.toLocaleLowerCase() }],
+        collation: { locale: 'vi', strength: 2 },
+        arrayFilters: [{ 'elem.tag': currentName.toLocaleLowerCase() }],
       },
     );
   }
@@ -531,7 +511,7 @@ async findByIdPopulate(
     return docs.map((doc) => {
       return {
         listId: doc._id.toString(),
-        tags: doc.shared_tags.map((shareTag:string) => shareTag.toString()),
+        tags: doc.shared_tags.map((shareTag: string) => shareTag.toString()),
       };
     });
   }
@@ -545,7 +525,7 @@ async findByIdPopulate(
       tags: string[];
       members: {
         id: string;
-        userId?: string|null;
+        userId?: string | null;
       }[];
     }[]
   > {
@@ -553,14 +533,14 @@ async findByIdPopulate(
     const docs = (await this.db.List.aggregate([
       {
         $lookup: {
-          from: "members",
-          foreignField: "_id",
-          localField: "members",
-          as: "membersData",
+          from: 'members',
+          foreignField: '_id',
+          localField: 'members',
+          as: 'membersData',
           pipeline: [
             {
               $match: {
-                status: "accept",
+                status: 'accept',
               },
             },
           ],
@@ -592,7 +572,7 @@ async findByIdPopulate(
         members: doc.membersData.map((member) => {
           return {
             id: member._id.toString(),
-            userId: member.user?.toString()??null,
+            userId: member.user?.toString() ?? null,
           };
         }),
         tags: doc.shared_tags.map((shareTag) => shareTag.tag),
@@ -604,15 +584,15 @@ async findByIdPopulate(
     const { userId } = DTO;
     const doc = (await this.db.List.findOne({
       user: userId,
-      name: "Inbox",
+      name: 'Inbox',
     }).populate({
-      path: "sections",
+      path: 'sections',
       populate: [
         {
-          path: "tasks",
+          path: 'tasks',
           populate: [
             {
-              path: "rule",
+              path: 'rule',
             },
           ],
         },
@@ -643,15 +623,15 @@ async findByIdPopulate(
   async getListAndSection(DTO: {
     userId: string;
     session?: ClientSession;
-  }): Promise<{ lists: Pick<IList, "name" | "id" | "sections">[] }> {
+  }): Promise<{ lists: Pick<IList, 'name' | 'id' | 'sections'>[] }> {
     const { userId, session } = DTO;
     const docs = await this.db.List.aggregate([
       {
         $lookup: {
-          from: "members",
-          localField: "members",
-          foreignField: "_id",
-          as: "membersData",
+          from: 'members',
+          localField: 'members',
+          foreignField: '_id',
+          as: 'membersData',
         },
       },
       {
@@ -659,8 +639,8 @@ async findByIdPopulate(
           membersData: {
             $elemMatch: {
               user: new Types.ObjectId(userId),
-              role: { $ne: "read only" },
-              status: "accept",
+              role: { $ne: 'read only' },
+              status: 'accept',
             },
           },
         },
@@ -673,11 +653,11 @@ async findByIdPopulate(
       },
     ]).session(session ?? null);
     return {
-      lists: docs.map((doc:any) => {
+      lists: docs.map((doc: any) => {
         return {
           id: doc._id.toString(),
           name: doc.name,
-          sections:doc.sections
+          sections: doc.sections,
         };
       }),
     };

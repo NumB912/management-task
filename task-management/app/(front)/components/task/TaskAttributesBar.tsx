@@ -79,7 +79,9 @@ const TaskAttributesBar = ({
               <DropdownMenuItem
                 key={p.id}
                 className="flex gap-3 items-center cursor-pointer border-b p-2 rounded-none"
-                onSelect={() => onSelectList({ list: p })}
+                onSelect={() => {
+                  onSelectList({ list: p,section:undefined })
+                }}
               >
                 <Folder className={cn("size-3")} />
                 {p.name}

@@ -20,7 +20,6 @@ export const filterApi = {
 
   create: async (data: IFilterModel): Promise<IFilterModel> => {
     const res = await axiosInstance.post<{ filter: IFilterModel }>('/filters', data);
-
     return res.data.filter;
   },
 

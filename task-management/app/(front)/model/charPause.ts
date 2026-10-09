@@ -1,4 +1,4 @@
-import { IPomodoro } from "./promodo.model"
+import { IPomodoro } from "./pomodoro.model"
 
 export interface PauseChartPoint {
   label: string  

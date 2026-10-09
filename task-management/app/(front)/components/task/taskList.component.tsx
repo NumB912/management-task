@@ -26,7 +26,6 @@ export const TaskList = memo(({ tasks,className="" }: TaskSectionProp) => {
   const [openSeeMore, setOpenSeeMore] = useState(false);
   const [openCollapsible, setOpenCollapsible] = useState(true);
   const parentRef = useRef<HTMLDivElement>(null);
-
   const taskData = useWorkspaceStore(
     useShallow((state) =>
       tasks

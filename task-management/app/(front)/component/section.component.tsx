@@ -17,7 +17,6 @@ import { useUpdateSection } from "../feature/hook/useSectionMutation.hook";
 import { useWorkspace } from "../feature/hook/useWorkSpaceQuery.hook";
 import { useWorkspaceStore } from "../states/workspace.state";
 import { useShallow } from "zustand/react/shallow";
-import { useCreateTask } from "../feature/hook/useTaskMutation.hook";
 import { useAddTask } from "../feature/hook/task/addTask.hook";
 
 interface SectionProp {
@@ -58,7 +57,7 @@ const Section = ({
   const taskIds = useWorkspaceStore(
     useShallow((state) => state.sectionIndex[sectionId]?.tasks ?? []),
   );
-  const addTaskHandle = useAddTask(listId, sectionId);
+  const addTaskHandle = useAddTask();
   const sectionExists = useWorkspaceStore(
     (state) => !!state.sectionIndex[sectionId],
   );

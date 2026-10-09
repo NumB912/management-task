@@ -3,8 +3,38 @@ import {
   HttpMethod,
   PermissionMethodMap,
 } from '@/domain/entities/permission.entity';
-import { ForbiddenException } from '@nestjs/common';
+import { TYPES } from '@/infrastructure/types/dependency.type';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  mixin,
+  NestMiddleware,
+  Type,
+} from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
+
+export function CheckPermissionSectionMiddleware(
+  permissionAndMethod: PermissionMethodMap,
+): Type<NestMiddleware> {
+  @Injectable()
+  class CheckPermissionSectionMiddlewareClass implements NestMiddleware {
+    private readonly handler: ReturnType<typeof checkPermissionSection>;
+
+    constructor(
+      @Inject(TYPES.CheckPermissionSectionUsecase)
+      usecase: CheckPermissionSectionUsecase,
+    ) {
+      this.handler = checkPermissionSection(usecase, permissionAndMethod);
+    }
+
+    use(req: Request, res: Response, next: NextFunction) {
+      return this.handler(req, res, next);
+    }
+  }
+
+  return mixin(CheckPermissionSectionMiddlewareClass);
+}
 
 export function checkPermissionSection(
   usecase: CheckPermissionSectionUsecase,

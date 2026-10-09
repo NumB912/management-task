@@ -48,8 +48,7 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
       const HaveTag = await this.TagRepository.isUserHaveTag({
         userId: userId,
         tagNames: rule.tags,
-        session,
-      });
+              },session);
       if (!list.sections[0]) {
         throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y section", 404);
       }
@@ -62,7 +61,8 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
           section: section.id,
           path: path,
           list: listId,
-          id:data.id
+          id:data.id,
+          rule:data.rule.id
         },
         session,
       );
@@ -119,15 +119,13 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
         await this.AddTagsForMemberUsecase.execute({
           listIds: [list.id],
           newTags: ShareTag,
-          session: session,
-        });
+        },session);
       }
 
       await this.SectionRepository.pushTaskIntoSection({
         id: section.id,
         tasks: [task.id],
-        session,
-      });
+      },session);
       if (list.isShareList) {
         const members = await this.MemberRepository.findManyByIds(
           list.members,
@@ -140,7 +138,6 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
           userIds: users,
           data: {
             ...Createtask,
-
             ...ruleCreate,
           },
           event: "task-create",

@@ -1,12 +1,12 @@
-
 import { Toaster } from "sonner";
 import QueryProvider from "./(front)/providers/query.provider";
 import "./globals.css";
-import { Roboto } from 'next/font/google'
+import { Roboto } from "next/font/google";
+import { AudioProvider } from "./(front)/providers/audio.provider";
 
 const font = Roboto({
-  subsets: ['vietnamese', 'latin'],
-  weight: '400',
+  subsets: ["vietnamese", "latin"],
+  weight: "400",
 });
 
 export default function RootLayout({
@@ -15,10 +15,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={font.className}>
-        <QueryProvider>
-         {children}
-        </QueryProvider>
-          <Toaster visibleToasts={1}/>
+          <QueryProvider>{children}</QueryProvider>
+        <Toaster visibleToasts={1} />
       </body>
     </html>
   );

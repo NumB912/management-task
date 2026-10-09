@@ -6,15 +6,12 @@ import {
   IListWithId,
   IPublisher,
   IUserRepository,
-} from "@/domain";
-import { IRealtimeNotifier } from "@/domain/message";
-import {
-  IMemberWithId,
-  IStatusMember,
-} from "@/domain/entities/member.entity";
-import { IMemberRepository } from "@/domain/repositories/IMember.repository";
-import { SyncMemberTagsUseCase } from "../tag/index";
-import { INotificationRepository } from "@/domain/repositories/INotification.repository";
+} from '@/domain';
+import { IRealtimeNotifier } from '@/domain/message';
+import { IMemberWithId, IStatusMember } from '@/domain/entities/member.entity';
+import { IMemberRepository } from '@/domain/repositories/IMember.repository';
+import { SyncMemberTagsUseCase } from '../tag/index';
+import { INotificationRepository } from '@/domain/repositories/INotification.repository';
 
 interface IStatusMemberInviteInput {
   email: string;
@@ -26,12 +23,12 @@ interface IStatusMemberInviteInput {
 interface PublishContext {
   userIds: string[];
   member: Record<string, unknown>;
-  actor: { id: string; name?: string; avatar?: string|null };
+  actor: { id: string; name?: string; avatar?: string | null };
   email?: string;
   list: IListWithId;
 }
 
-const VALID_STATUSES: Set<IStatusMember> = new Set(["accept", "deny"]);
+const VALID_STATUSES: Set<IStatusMember> = new Set(['accept', 'deny']);
 
 export class StatusInviteUsecase implements IUsecase<boolean> {
   constructor(
@@ -51,43 +48,15 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
       const session = await this.unitWork.getSession();
       this.validateInput(data);
       const { email, userId, status, listId } = data;
-
       const list = await this.listRepository.findById(listId, session);
       const member = await this.memberRepository.findOne(
         {
           list: listId,
-          status: "pending",
+          status: 'pending',
           email: email,
         },
         session,
       );
-
-      if (status == "deny" && (!member || !list)) {
-        await this.notificationRepository.updateNotificationInviteMemberStatus(
-          {
-            listId: listId,
-            userId: userId,
-            status: "deny",
-          },
-          session,
-        );
-        await this.unitWork.commitTransaction();
-        return true;
-      }
-
-      if (!list) {
-        throw new AppError("NOT_FOUND", "Không tồn tại danh sách", 404);
-      }
-
-      this.validateMember({ member, userId });
-      if (status === "accept") {
-        await this.acceptInvite({
-          list,
-          memberId: member!.id,
-          session,
-          userId,
-        });
-      }
 
       const updated = await this.memberRepository.updateBy(
         {
@@ -97,6 +66,33 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
         { status, updated_at: new Date(), expired_at: undefined },
         session,
       );
+
+      if (status == 'deny' && (!member || !list)) {
+        await this.notificationRepository.updateNotificationInviteMemberStatus(
+          {
+            listId: listId,
+            userId: userId,
+            status: 'deny',
+          },
+          session,
+        );
+        await this.unitWork.commitTransaction();
+        return true;
+      }
+
+      if (!list) {
+        throw new AppError('NOT_FOUND', 'Không tồn tại danh sách', 404);
+      }
+
+      this.validateMember({ member, userId });
+      if (status === 'accept') {
+        await this.acceptInvite({
+          list,
+          memberId: member!.id,
+          session,
+          userId,
+        });
+      }
 
       await this.notificationRepository.updateNotificationInviteMemberStatus(
         {
@@ -119,8 +115,8 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
       console.log(error);
       await this.unitWork.rollBackTransaction();
       throw new AppError(
-        error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lỗi khi cập nhật trạng thái lời mời",
+        error.code ?? 'INTERNAL_SERVER',
+        error.message ?? 'Lỗi khi cập nhật trạng thái lời mời',
         error.status ?? 500,
       );
     }
@@ -147,7 +143,7 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
       const actorId = String(userId);
 
       const recipients = new Set(
-        members.filter((m) => m.status === "accept").map((m) => String(m.user)),
+        members.filter((m) => m.status === 'accept').map((m) => String(m.user)),
       );
       if (list.user) recipients.add(list.user);
       recipients.delete(actorId);
@@ -169,13 +165,11 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
         email: user.email,
         list,
       });
-
-    console.log("[notify] status =", status, "routingKey =", `${status}.member`);
       const results = await Promise.allSettled([
         this.publisher.pub(
-          "memberExchange",
+          'memberExchange',
           `${status}.member`,
-          "direct",
+          'direct',
           payload,
         ),
         this.realtimeNotifier.push(userIds, `${status}-member-notification`, {
@@ -187,9 +181,9 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
       ]);
 
       results.forEach((r, i) => {
-        if (r.status === "rejected") {
+        if (r.status === 'rejected') {
           console.error(
-            `[${status}-member] ${i === 0 ? "publish data" : "notification"} failed`,
+            `[${status}-member] ${i === 0 ? 'publish data' : 'notification'} failed`,
             r.reason,
           );
         }
@@ -202,10 +196,10 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
   private validateInput(data: IStatusMemberInviteInput): void {
     const { email, userId, status } = data;
     if (!email || !userId || !status) {
-      throw new AppError("BAD_REQUEST", "Thiếu thông tin cần thiết", 400);
+      throw new AppError('BAD_REQUEST', 'Thiếu thông tin cần thiết', 400);
     }
     if (!VALID_STATUSES.has(status)) {
-      throw new AppError("BAD_REQUEST", "Trạng thái không hợp lệ", 400);
+      throw new AppError('BAD_REQUEST', 'Trạng thái không hợp lệ', 400);
     }
   }
 
@@ -229,28 +223,27 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
   private validateMember(DTO: {
     member: Pick<
       IMemberWithId,
-      "email" | "expired_at" | "status" | "user"
+      'email' | 'expired_at' | 'status' | 'user'
     > | null;
     userId: string;
   }): void {
     const { member, userId } = DTO;
 
     if (!member) {
-      throw new AppError("NOT_FOUND", "Không tìm thấy lời mời", 404);
+      throw new AppError('NOT_FOUND', 'Không tìm thấy lời mời', 404);
     }
     if (member.user?.toString() != userId?.toString()) {
-      console.log(member.user, userId);
       throw new AppError(
-        "FORBIDDEN",
-        "Bạn không có quyền thay đổi lời mời này",
+        'FORBIDDEN',
+        'Bạn không có quyền thay đổi lời mời này',
         403,
       );
     }
     if ((member.expired_at?.getTime() ?? Date.now()) <= Date.now()) {
-      throw new AppError("TIME_OUT", "Hết hạn chấp nhận", 410);
+      throw new AppError('TIME_OUT', 'Hết hạn chấp nhận', 410);
     }
-    if (member.status !== "pending") {
-      throw new AppError("BAD_REQUEST", "Lời mời đã được xử lý", 400);
+    if (member.status !== 'pending') {
+      throw new AppError('BAD_REQUEST', 'Lời mời đã được xử lý', 400);
     }
   }
 
@@ -268,7 +261,9 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
     });
     const tagsInList = await this.listRepository.findById(list.id, session);
     await this.syncMemberTag.execute({
-      tags: tagsInList?.shared_tags?.map((shared_tag) => shared_tag.toString()) ?? [],
+      tags:
+        tagsInList?.shared_tags?.map((shared_tag) => shared_tag.toString()) ??
+        [],
       userIds: [userId],
       session,
     });

@@ -6,12 +6,11 @@ import { ICreateRuleDTO, IUpdateRuleDTO } from "../../model/DTO/rule.DTO";
 import TaskInputEditor from "./TaskInputEditor";
 import TaskAttributesBar from "./TaskAttributesBar";
 import TaskActions from "./taskAction";
-import { useWorkspaceStore } from "../../states/workspace.state";
-
 interface EditTaskProp {
   isEditing: boolean;
   setIsEditing: (isEditing: boolean) => void;
   task: ITaskModel;
+  sectionId?:string;
   listId: string;
   onUpdateTask: (id:string,task: Partial<ITaskModel>) => void;
 }
@@ -29,16 +28,17 @@ const buildRuleFromTask = (task: ITaskModel): IUpdateRuleDTO => ({
 const EditTask = ({
   isEditing,
   setIsEditing,
+  sectionId,
   task,
   listId,
   onUpdateTask,
 }: EditTaskProp) => {
   const [hydrated, setHydrated] = useState(false);
-  const editor = useTaskInputEditor({ listId });
+  const editor = useTaskInputEditor({ listId,sectionId:sectionId });
   useEffect(() => {
     if (!isEditing || hydrated || editor.lists.length === 0) return;
     editor.hydrateFromTask(task);
-    editor.setConfirmRule(buildRuleFromTask(task));
+    editor.setConfirmRule((prev) => ({ ...prev, ...buildRuleFromTask(task) }));
     setHydrated(true);
   }, [isEditing, hydrated, editor.lists.length, task, listId]);
 
@@ -53,7 +53,7 @@ const EditTask = ({
     confirmedSection: editor.confirmSection,
     confirmList: editor.confirmList,
     value: editor.value,
-    confirmedRule: editor.confirmRule as Pick<IRuleModel, "end_date" | "start_date" | "repeat" | "timer"|"tags"|"priority">,
+    confirmedRule: editor.confirmRule,
     inputRef: editor.refDivInput as React.RefObject<HTMLDivElement>,
     onUpdateTask,
     onSubmitSuccess: () => {
@@ -62,7 +62,7 @@ const EditTask = ({
   });
 
   const handleClose = () => {
-    editor.setConfirmRule(buildRuleFromTask(task));
+    editor.setConfirmRule((prev) => ({ ...prev, ...buildRuleFromTask(task) }));
     editor.hydrateFromTask(task);
     setIsEditing(false);
     editor.setIsEmpty(false)

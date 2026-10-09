@@ -1,28 +1,28 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ICreateTaskDTO, ICreateTaskWithSectionDTO, IUpdateTaskDTO } from '../../model/DTO/task.DTO';
 import { taskApi } from '../api/task/task.api';
-import { listKeys } from './useListQuery.hook';
-import { taskKeys } from './useTaskQuery.hook';
-import { AxiosError } from 'axios';
-import { ApiErrorResponse } from './apiErrorResponse.type';
 import { IRuleModel } from '../../model/rule/rule.model';
-import { useWorkspaceStore } from '../../states/workspace.state';
-import { todayKeys } from './useToday.hook';
-import { inboxKeys } from './useInbox.hook';
-import { IListModel, ITaskModel } from '../../model';
-import { useShallow } from 'zustand/react/shallow';
 import { IStatus } from '../../model/type/type';
 
-export const useCreateTask = (listId: string) => {
-  return useMutation({
-    mutationFn: (data: ICreateTaskDTO) => taskApi.create(data, listId),
-  });
-};
+type CreateTaskInput = ICreateTaskDTO | ICreateTaskWithSectionDTO;
 
-export const useCreateTaskWithSection = (listId: string, sectionId: string) => {
+export const useCreateTask = () => {
   return useMutation({
-    mutationFn: (data: ICreateTaskWithSectionDTO) =>
-      taskApi.createTaskWithSection(data, data.list??listId, data.section??sectionId),
+    mutationFn: (data: CreateTaskInput) => {
+      const section =
+        ("section" in data ? data.section : undefined);
+      const list = ("list" in data ? data.list : undefined);
+
+      if (section && list) {
+        return taskApi.createTaskWithSection(
+          data as ICreateTaskWithSectionDTO,
+          list,
+          section,
+        );
+      }
+      
+      return taskApi.create(data as ICreateTaskDTO, list!);
+    },
   });
 };
 

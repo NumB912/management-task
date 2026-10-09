@@ -1,5 +1,6 @@
 import { IMember } from "./member.entity.js"
 import { ISection } from "./section.entity.js"
+import { ITask } from "./task.entity.js"
 
 
 export interface IList {
@@ -10,6 +11,7 @@ export interface IList {
     path: string,
     user: string,
     order: number,
+    tasks:ITask[],
     isShareList:boolean,
     shared_tags: string[]
     created_at: Date,
@@ -17,9 +19,10 @@ export interface IList {
     deleted_at?: Date
 }
 
-export interface IListWithId extends Omit<IList, "sections" | "members"> {
+export interface IListWithId extends Omit<IList, "sections" | "members"|"tasks"> {
     sections: string[]
     members: string[]
+    tasks:string[]
 }
 
 export interface IListPartial extends Partial<Omit<IList,"sections"|"members">>{

@@ -3,12 +3,14 @@ import { HydratedDocument, Types } from 'mongoose';
 import { BaseSchema } from './base.schema.js';
 import { IMemberPopulateDocument } from './member.schema.js';
 import { ISectionPopulateDocument } from './section.schema.js';
+import { ITaskPopulateDocument } from './task.schema.js';
 
 export type IListDocument = HydratedDocument<List>;
 
-export interface IListPopulateDocument extends Omit<IListDocument,"sections"|"members">{
+export interface IListPopulateDocument extends Omit<IListDocument,"sections"|"members"|"tasks">{
   sections:ISectionPopulateDocument[],
-  members:IMemberPopulateDocument[]
+  members:IMemberPopulateDocument[],
+  tasks:ITaskPopulateDocument[]
 } 
 
 @Schema()
@@ -31,6 +33,9 @@ export class List extends BaseSchema {
 
   @Prop({ type: [String] })
   shared_tags: string[];
+
+  @Prop({type:[{type:Types.ObjectId,ref:'task'}],require:false})
+  tasks:Types.ObjectId[]
 
   @Prop({ type: Types.ObjectId, ref: 'user', required: true })
   user: Types.ObjectId;

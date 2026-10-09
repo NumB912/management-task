@@ -10,36 +10,45 @@ const useExitMemberHook = () => {
   const router = useRouter();
   const params = useParams<{ listId?: string }>();
   const qc = useQueryClient();
-  const lists = useWorkspaceStore(useShallow((state)=>state.listIndex))
+  const getList = useWorkspaceStore((state) => state.getListModel);
   const { mutate: exitMember, isPending } = useExitMember();
   const addList = useWorkspaceStore((state) => state.addList);
   const removeList = useWorkspaceStore((state) => state.removelistIndex);
   const handleExitMember = useCallback(
     (listId: string) => {
-      if (!listId || isPending) return; 
-      const prev = lists[listId]
-      removeList(listId)
-      exitMember({
-        listId:listId
-      }, {
-        onSuccess: () => {
-          if (params?.listId === listId) {
-            router.replace("/dashboard");
-          }
-          toast.success("Đã rời khỏi danh sách");
+      if (!listId || isPending) return;
+      const prev = getList(listId);
+
+      removeList(listId);
+      exitMember(
+        {
+          listId: listId,
         },
-        onError: (error: any) => {
-          toast.error(error?.message ?? "Không thể rời khỏi danh sách");
-          addList({
-            id:prev.id,
-            members:prev.members,
-            name:prev.name,
-            sections:prev.sections,
-            isShareList:prev.isShareList,
-            user:prev.user
-          })
+        {
+          onSuccess: () => {
+            if (params?.listId === listId) {
+              router.replace("/dashboard");
+            }
+            toast.success("Đã rời khỏi danh sách");
+          },
+          onError: (error: any) => {
+            toast.error(error?.message ?? "Không thể rời khỏi danh sách");
+            if (prev) {
+              addList({
+                id: prev.id,
+                members: prev.members,
+                name: prev.name,
+                sections: prev.sections,
+                isShareList: prev.isShareList,
+                user: prev.user,
+                order: prev.order,
+                shared_tags: prev.shared_tags,
+                tasks: prev.tasks,
+              });
+            }
+          },
         },
-      });
+      );
     },
     [exitMember, isPending, removeList, qc, router, params?.listId],
   );

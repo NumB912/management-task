@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useMutation } from "@tanstack/react-query"
 import { Button } from "@/app/(front)/components/ui/button"
 import { Input } from "@/app/(front)/components/ui/input"
 import { Label } from "@/app/(front)/components/ui/label"
@@ -11,34 +12,60 @@ import { Mail, Lock, AlertCircle, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import useUserState from "../../states/user/user.state"
 
+function getLoginErrorMessage(error: unknown): string {
+  const err = error as {
+    status?: number
+    response?: { status?: number; data?: { message?: string } }
+    message?: string
+  }
+  const status = err?.response?.status ?? err?.status
+
+  if (status === 400 || status === 401 || status === 404) {
+    return "Email hoặc mật khẩu không chính xác"
+  }
+  if (status === 429) {
+    return "Bạn thử quá nhiều lần, vui lòng đợi một lúc rồi thử lại"
+  }
+  if (status && status >= 500) {
+    return "Máy chủ đang gặp sự cố, vui lòng thử lại sau"
+  }
+  if (err?.message === "Network Error" || err?.message === "Failed to fetch") {
+    return "Không thể kết nối tới máy chủ, kiểm tra lại mạng của bạn"
+  }
+  return err?.response?.data?.message ?? "Đăng nhập thất bại, vui lòng thử lại"
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState("")
 
-  const fetchUser = useUserState((state)=>state.fetchUser)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsSubmitting(true)
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      })
-      if (!response.ok) throw new Error("Invalid credentials")
+  const fetchUser = useUserState((state) => state.fetchUser)
+  const loginFn = useUserState((state) => state.login)
+  const {
+    mutate: login,
+    isPending,
+    error,
+    isError,
+    reset,
+  } = useMutation({
+    mutationFn: (payload: { email: string; password: string }) => loginFn(payload),
+    onSuccess: async () => {
       await fetchUser()
-      router.push("/dashboard") 
-    } catch {
-      setError("Email hoặc mật khẩu không chính xác")
-    } finally {
-      setIsSubmitting(false)
-    }
+      router.replace("/dashboard")
+    },
+    onError: (err) => {
+      console.error("[Login] error:", err)
+    },
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    login({ email: email.trim(), password })
+  }
+
+  const clearError = () => {
+    if (isError) reset()
   }
 
   return (
@@ -52,10 +79,13 @@ export default function LoginPage() {
         </CardHeader>
 
         <CardContent className="space-y-4 pt-5 px-10">
-          {error && (
-            <div className={cn("flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg")}>
+          {isError && (
+            <div
+              role="alert"
+              className={cn("flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg")}
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
+              <span>{getLoginErrorMessage(error)}</span>
             </div>
           )}
 
@@ -69,11 +99,14 @@ export default function LoginPage() {
                   type="email"
                   placeholder="nhap@email.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    clearError()
+                  }}
                   className="p-5 pl-9"
                   required
                   autoComplete="email"
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 />
               </div>
             </div>
@@ -92,17 +125,25 @@ export default function LoginPage() {
                   type="password"
                   placeholder="••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    clearError()
+                  }}
                   className="p-5 pl-9"
                   required
                   autoComplete="current-password"
-                  disabled={isSubmitting}
+                  disabled={isPending}
                 />
               </div>
             </div>
 
-            <Button type="submit" className="w-full p-5 focus:transition-all focus:scale-95" size="lg" disabled={isSubmitting}>
-              {isSubmitting ? (
+            <Button
+              type="submit"
+              className="w-full p-5 focus:transition-all focus:scale-95"
+              size="lg"
+              disabled={isPending}
+            >
+              {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Đang đăng nhập...

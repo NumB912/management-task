@@ -23,13 +23,11 @@ export function CheckPermissionListMiddleware(
 
     async use(req: Request, _res: Response, next: NextFunction) {
       try {
-        console.log("hello")
         const { listId } = req.params as { listId?: string };
         const user = req.user as { id: string } | undefined;
         if (!user || !listId) {
           throw new ForbiddenException('Không có quyền truy cập');
         }
-        console.log("helaslkaldj")
         const method = req.method as permissionEntity.HttpMethod;
         const allowed = await this.usecase.execute(
           user.id,

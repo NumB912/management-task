@@ -93,8 +93,8 @@ export class Rule extends BaseSchema {
   @Prop({ type: String, required: true })
   color: string;
 
-  @Prop({ type: Types.ObjectId, required: false, ref: 'task' })
-  task?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, required: true, ref: 'task' })
+  task: Types.ObjectId;
 }
 
 export const RuleSchema = SchemaFactory.createForClass(Rule);

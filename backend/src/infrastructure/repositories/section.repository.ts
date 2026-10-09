@@ -42,7 +42,8 @@ export class SectionRepository
   }
   async findSectionByList(listId: string, userId: string): Promise<Partial<ISection>[]> {
     const docs = await this.db.Section.find({
-      list: listId,
+      list: new Types.ObjectId(listId),
+      userId:new Types.ObjectId(userId),
       deleted_at:null
     }).populate<ISectionPopulateDocument>({
       path: "tasks",
@@ -59,7 +60,7 @@ export class SectionRepository
 
   async pushTaskIntoSection(DTO:{id:string,tasks:string[],session?:ClientSession}):Promise<void>{
     const {id,tasks,session}  = DTO
-    const doc = await this.db.Section.updateOne({
+    await this.db.Section.updateOne({
       _id:id,
     },{
       $addToSet:{

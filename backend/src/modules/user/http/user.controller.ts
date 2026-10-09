@@ -1,6 +1,10 @@
 import { GetProfileUsecase, PutProfileUsecase } from '@/application';
 import { DeleteAvatarUsecase } from '@/application/usecase/user/avatarDel.usecase';
 import { PutAvatarUsecase } from '@/application/usecase/user/avatarPut.usecase';
+import {
+  GetNotificationsUsecase,
+  ReadedNotificationUsecase,
+} from '@/application/usecase/notifications/index.js';
 import { IUser, IUserWithouPassword } from '@/domain';
 import { ZodValidationPipe } from '@/infrastructure/pipe/zod.pipe';
 import { TYPES } from '@/infrastructure/types/dependency.type';
@@ -22,7 +26,27 @@ export class UserController {
     private readonly putAvatarUC:PutAvatarUsecase,
     @Inject(TYPES.deleteAvatarUsecase)
     private readonly deleteAvatarUC:DeleteAvatarUsecase,
+    @Inject(TYPES.getNotification)
+    private readonly getNotificationUC: GetNotificationsUsecase,
+    @Inject(TYPES.readNotification)
+    private readonly readNotificationUC: ReadedNotificationUsecase,
   ) {}
+
+  @Get('me/notification')
+  async getNotification(
+    @Req() req: Request & { user: { id: string; role: string; email: string } },
+  ) {
+    const notification = await this.getNotificationUC.execute(req.user.id);
+    return { notification };
+  }
+
+  @Patch('me/notification')
+  async readNotification(
+    @Req() req: Request & { user: { id: string; role: string; email: string } },
+  ) {
+    const success = await this.readNotificationUC.execute(req.user.id);
+    return { success };
+  }
 
   @Get('me/profile')
   async profile(

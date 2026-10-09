@@ -45,11 +45,15 @@ export class DeleteTaskUsecase implements IUsecase<ITaskWithId | null> {
       }
 
       await this.RuleRepository.deleteBy({ id: task.rule }, session);
-      await this.SectionRepository.pullTaskFromSection({
+
+      if(task.section){
+        await this.SectionRepository.pullTaskFromSection({
         id: task.section,
         tasks: [id],
-        session,
-      });
+      
+      },session);
+      }
+
       if (list?.isShareList) {
         const members = await this.MemberRepository.findManyByIds(
           list.members,

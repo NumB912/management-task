@@ -47,6 +47,7 @@ export class UpdateTaskUsecase implements IUsecase<void> {
     let notify: (() => Promise<void>) | undefined;
 
     try {
+      
       await this.unitWork.startTransaction();
       const session = await this.unitWork.getSession();
 
@@ -59,7 +60,6 @@ export class UpdateTaskUsecase implements IUsecase<void> {
       if (!oldList) {
         throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u", 404);
       }
-      // TODO: kiá»ƒm tra userId cÃ³ quyá»n trÃªn oldList
 
       const patch = {
         ...(data.name !== undefined && { name: data.name }),
@@ -68,12 +68,9 @@ export class UpdateTaskUsecase implements IUsecase<void> {
       if (Object.keys(patch).length) {
         await this.TaskRepository.update(id, patch, session);
       }
-
       const isListChanged =
         data.list !== undefined && String(data.list) !== String(taskCur.list);
-      const isSectionChanged =
-        data.section !== undefined &&
-        String(data.section) !== String(taskCur.section);
+      const isSectionChanged = String(data.section) !== String(taskCur.section);
 
       if (data.rule) {
         const rulePayload = {
@@ -83,7 +80,7 @@ export class UpdateTaskUsecase implements IUsecase<void> {
         await this.UpdateRuleUsecase.run(id, rulePayload, userId, session);
       }
 
-      if (isListChanged || isSectionChanged) {
+      if ((isListChanged || isSectionChanged)) {
         await this.MoveToSectionUsecase.run(
           {
             taskId: id,
@@ -91,7 +88,10 @@ export class UpdateTaskUsecase implements IUsecase<void> {
             sectionId: data.section,
           },
           session,
+
+          
         );
+                  console.log(data.section)
       }
 
       const updated = await this.TaskRepository.findByIdPopulate(id, session);

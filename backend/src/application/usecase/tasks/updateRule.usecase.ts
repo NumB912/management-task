@@ -95,8 +95,8 @@ export class UpdateRuleUsecase implements IUsecase<void> {
         await this.AddMemberTags.execute({
           listIds: [taskCur.list],
           newTags: [...tagsNotInList],
-          session,
-        });
+        
+        },session);
       }
     }
 

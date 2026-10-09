@@ -10,15 +10,16 @@ export const TYPES = {
   WorkSpaceUsecase:Symbol.for("WorkSpaceUsecase"),
   RealTimeNotifier:Symbol.for("RealTimeNotifier"),
 
-
+  DeletePomodoroUsecase:Symbol.for("DeletePomodoroUsecase"),
   logoutUsecase:Symbol.for("logoutUsecase"),
   ChangePasswordUsecase:Symbol.for("ChangePasswordUsecase"),
   DeleteTagWithShareUsecase:Symbol.for("DeleteTagWithShareUsecase"),
   exitFromList:Symbol.for("exitFromList"),
   readNotification:Symbol.for("readNotification"),
   getNotification:Symbol.for("NotificationUsecase"),
-  createPromodoUsecase:Symbol.for("createPromodoUsecase"),
-  getPromodoUsecase:Symbol.for("getPromodoUsecase"),
+  createpomodoroUsecase:Symbol.for("createpomodoroUsecase"),
+  GetPomodoroUsecase:Symbol.for("GetPomodoroUsecase"),
+  updatePomodoUsecase:Symbol.for("updatePomodoUsecase"),
   notificationRepository:Symbol.for("notificationRepository"),
 
   deleteAvatarUsecase:Symbol.for("deleteAvatarUsecase"),
@@ -94,7 +95,7 @@ export const TYPES = {
   DeleteFilterUsecase: Symbol.for("DeleteFilterUsecase"),
   UpdateTagsInFilterUsecase:Symbol.for("UpdateTagsInFilterUsecase"),
 
-  PromodoRepository: Symbol.for("PromodoRepository"),
+  pomodoroRepository: Symbol.for("pomodoroRepository"),
 
   UserRepository:Symbol.for("UserRepository"),
   RegisterEmailUsecase:Symbol.for("RegisterUserCase"),
@@ -120,7 +121,7 @@ export const TYPES = {
   ListMapper:Symbol.for("ListMapper"),
   FilterMapper:Symbol.for("FilterMapper"),
   TaskMapper:Symbol.for("TaskMapper"),
-  PromodoMapper:Symbol.for("PromodoMapper"),
+  pomodoroMapper:Symbol.for("pomodoroMapper"),
   NotificationMapper:Symbol.for("NotificationMapper"),
 
 

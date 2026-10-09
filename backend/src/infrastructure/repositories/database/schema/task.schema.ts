@@ -17,8 +17,8 @@ export class Task extends BaseSchema {
   @Prop({ type: String })
   name: string;
 
-  @Prop({ type: Types.ObjectId, required: true, ref: 'section' })
-  section: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, required: false, ref: 'section' })
+  section?: Types.ObjectId|null;
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'task' }], required: false })
   children: Types.ObjectId[];
