@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   ChevronDown,
@@ -20,6 +20,7 @@ import {
 } from "../../ui/dropdown-menu";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
 import { ISectionModelState, ITaskModel } from "@/app/(front)/model";
+import { useDebouncedCallback } from "@/app/(front)/feature/hook/useDebounce.hook";
 
 type TaskComboboxProps = {
   disabled?: boolean;
@@ -47,16 +48,19 @@ function TaskGroup({
   selectedId,
   onSelect,
 }: Readonly<TaskGroupProps>) {
-
   return (
     <div className="mb-2">
       {section && tasks.length > 0 ? (
         <div className="px-2 py-1 text-xs font-semibold text-muted-foreground tracking-wide">
           {section.name}
         </div>
-      ): (tasks.length > 0 && (<div className="px-2 py-1 text-xs font-semibold text-muted-foreground tracking-wide">
-          Không có thành phần
-        </div>))}
+      ) : (
+        tasks.length > 0 && (
+          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground tracking-wide">
+            Không có thành phần
+          </div>
+        )
+      )}
 
       {tasks.map((task) => {
         const selected = selectedId === task.id;
@@ -97,16 +101,21 @@ export function ListCombobox({
   const taskIndex = useWorkspaceStore((s) => s.taskIndex);
   const [activeListId, setActiveListId] = useState<string | null>(inbox);
   const lists = useMemo(() => Object.values(listIndex), [listIndex]);
-  const getTaskModel = useWorkspaceStore((state)=>state.getTaskModel)
+  const getTaskModel = useWorkspaceStore((state) => state.getTaskModel);
   const activeList = activeListId ? listIndex[activeListId] : null;
-
-  const tasksNotSection = useMemo(() => activeList?.tasks.map((task) => {
-    const taskModel = getTaskModel(task);
-    return {
-      id: taskModel?.id!,
-      name: taskModel?.name!,
-    };
-  }) ?? [], [activeList, getTaskModel]);
+  const tasksNotSection = useMemo(
+    () =>
+      activeList?.tasks.map((task) => {
+        const taskModel = getTaskModel(task);
+        return {
+          id: taskModel?.id!,
+          name: taskModel?.name!,
+        };
+      }) ?? [],
+    [activeList, getTaskModel],
+  );
+  const [debouncedSelect] = useDebouncedCallback(onSelect, 400);
+  const [selected, setSelected] = useState(value);
   const groupedSections = useMemo<GroupedSection[]>(() => {
     if (!activeList) return [];
     return activeList.sections.flatMap((sectionId) => {
@@ -133,11 +142,12 @@ export function ListCombobox({
   }, [groupedSections, search]);
 
   const hasAnyTask = filteredSections.some((g) => g.tasks.length > 0);
-  const resetAndClose = () => {
-    setSearch("");
-    setOpen(false);
-  };
 
+  const handleSelect = (task: TaskItem) => {
+    setSelected(task);
+    debouncedSelect(task);
+  };
+  useEffect(() => setSelected(value), [value]);
   const renderListLabel = (id: string | null, name?: string) =>
     id === inbox ? (
       <>
@@ -171,7 +181,7 @@ export function ListCombobox({
           variant="ghost"
           className="text-sm focus:bg-transparent! focus:outline-0! text-neutral-400 hover:bg-transparent! disabled:opacity-100"
         >
-          {value ? value.name : "thêm nhiệm vụ"}
+          {selected ? selected.name : "Thêm nhiệm vụ"}
           <ChevronRight className="w-4 h-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -230,20 +240,22 @@ export function ListCombobox({
             </div>
           ) : (
             <>
-              {tasksNotSection.length > 0 &&
+              {tasksNotSection.length > 0 && (
                 <TaskGroup
-                  onSelect={onSelect}
+                  key={value?.id}
+                  onSelect={handleSelect}
                   section={undefined}
-                  selectedId={value?.id}
-                  tasks={tasksNotSection??[]}
+                  selectedId={selected?.id}
+                  tasks={tasksNotSection ?? []}
                 />
-              }
+              )}
               {filteredSections.map(({ section, tasks }) => (
                 <TaskGroup
-                  onSelect={onSelect}
+                  key={section.id}
+                  onSelect={handleSelect}
                   section={section}
                   tasks={tasks}
-                  selectedId={value?.id}
+                  selectedId={selected?.id}
                 />
               ))}
             </>

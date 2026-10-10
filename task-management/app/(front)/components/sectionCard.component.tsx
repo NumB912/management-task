@@ -9,7 +9,7 @@ import { Plus } from "lucide-react";
 interface CollapsibleCardProp {
   title: string;
   count: number;
-  onPlusClick: (e: React.MouseEvent) => void;
+  onPlusClick?: (e: React.MouseEvent) => void;
   children: React.ReactNode;
 }
 
@@ -22,7 +22,8 @@ export const SectionCard = ({ title, count, onPlusClick, children }: Collapsible
                 <span className="flex items-center">{title}</span>
                 <span className={cn("text-neutral-400 font-normal")}>{count}</span>
               </span>
-              <Button
+            {
+              onPlusClick && (       <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   onPlusClick(e);
@@ -31,7 +32,8 @@ export const SectionCard = ({ title, count, onPlusClick, children }: Collapsible
                 className="rounded hover:bg-gray-200 p-1 text-nessutral-600 cursor-pointer relative bg-transparent"
               >
                 <Plus className="w-4 h-4" />
-              </Button>
+              </Button>)
+            }
             </CardHeader>
             <CardContent
               className={cn(

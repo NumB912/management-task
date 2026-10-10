@@ -13,6 +13,7 @@ import { AudioProvider, useAudio } from "../providers/audio.provider";
 import { useTimerWorker } from "../feature/store/useTimerWork";
 import { useTimerStore } from "../feature/store/timer.store";
 import { useTimer } from "../feature/hook/pomodoro/pomodoroTimer.hook";
+import { toast } from "sonner";
 
 type Props = { children: React.ReactNode; modal: React.ReactNode };
 
@@ -24,7 +25,6 @@ function DashboardContent({ children, modal }: Props) {
   const { isWork, status: statusPromodo, tick } = useTimer();
   const { playTick } = useAudio();
   const route = useRouter();
-
   const endTime = useTimerStore((s) =>
     s.tickStartedAt !== null
       ? s.tickStartedAt + s.tickInitialSeconds * 1000
@@ -38,6 +38,9 @@ function DashboardContent({ children, modal }: Props) {
     onTick: () => tick(),
     onDone: () => {
       playTick();
+      toast.info("Xong nhiệm vụ rồi nghỉ ngơi chút thôi",{
+        position:"top-right"
+      }) 
     },
   });
 

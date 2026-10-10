@@ -18,3 +18,5 @@ export { pomodoroSchema, pomodoro } from "./pomodoro.schema.js";
 export type { pomodoroDocument } from "./pomodoro.schema.js";
 export { NotificationSchema, Notification } from "./notification.schema.js";
 export type { INotificationDocument } from "./notification.schema.js";
+export { ColorSchema, Color } from "./color.schema.js";
+export type { IColorDocument } from "./color.schema.js";

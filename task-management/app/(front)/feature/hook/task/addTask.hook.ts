@@ -1,5 +1,5 @@
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner"; 
 import { ITaskModel } from "@/app/(front)/model";
 import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
@@ -9,11 +9,11 @@ import { useCreateTask } from "../useTaskMutation.hook";
 export function useAddTask() {
   const addTask = useWorkspaceStore((s) => s.addTask);
   const removeTask = useWorkspaceStore((s) => s.removeTask);
+  const [isAddTask,setIsAddTask] = useState<boolean>(false)
   const { mutateAsync } = useCreateTask();
-  return useCallback(
+  const handleAddTask = useCallback(
     async (task: ITaskModel) => {
       const id = new ObjectID().toString();
-      console.log(task)
       addTask({ ...task, id: id }); 
       try {
         await mutateAsync({
@@ -29,4 +29,10 @@ export function useAddTask() {
     },
     [addTask, removeTask, mutateAsync],
   );
+
+  return {
+    handleAddTask,
+    isAddTask,
+    setIsAddTask
+  }
 }

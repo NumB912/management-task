@@ -1,6 +1,6 @@
 import { ITaskModel } from "@/app/(front)/model";
 import { IPomodoroModel } from "@/app/(front)/model/pomodoro.model";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type TimeRange = "today" | "week" | "month";
 export type TimeOfDayPeriod = "morning" | "afternoon" | "evening" | "night";
@@ -66,6 +66,12 @@ export interface ChartPoint {
   sessions: number;
 }
 
+export interface TodayStats {
+  sessions: number;
+  focusHours: string;
+  pauseMinutes: number;
+}
+
 export interface PomodoroStatsSummary {
   timeRange: TimeRange;
   totalFocusMinutes: number;
@@ -77,6 +83,8 @@ export interface PomodoroStatsSummary {
   focusEfficiency: number;
   dailyGoalSessions: number;
   goalCompletionRate: number;
+  /** Số liệu hôm nay, không phụ thuộc timeRange / Today's numbers, independent of timeRange */
+  today: TodayStats;
   chartData: ChartPoint[];
   timeOfDayStats: TimeOfDayStats[];
   hourlyDistribution: HourlyFocusPoint[];
@@ -98,9 +106,30 @@ export interface OverallTimelineData {
   timeOfDayStats: TimeOfDayStats[];
   days: DayTimelineSummary[];
 }
+
+/* ============================================================
+ * Constants
+ * ============================================================ */
+
 const WEEKDAY_NAMES = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 const WEEKDAY_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
+const PERIOD_CONFIGS: Record<
+  TimeOfDayPeriod,
+  { label: string; timeRange: string; icon: TimeOfDayStats["icon"]; color: string }
+> = {
+  morning: { label: "Buổi sáng", timeRange: "06:00 - 12:00", icon: "sunrise", color: "#f59e0b" },
+  afternoon: { label: "Buổi chiều", timeRange: "12:00 - 18:00", icon: "sun", color: "#3b82f6" },
+  evening: { label: "Buổi tối", timeRange: "18:00 - 23:00", icon: "sunset", color: "#8b5cf6" },
+  night: { label: "Ban đêm", timeRange: "23:00 - 06:00", icon: "moon", color: "#06b6d4" },
+};
+
+/* ============================================================
+ * Date helpers
+ * ============================================================ */
+
+// Helper cho mock data. Nếu không dùng ở production, hãy chuyển sang file test/fixtures.
+// Mock-data helpers. If unused in production, move them to test fixtures.
 export function daysAgo(days: number, h = 9, m = 0, s = 0): Date {
   const d = new Date();
   d.setDate(d.getDate() - days);
@@ -114,9 +143,16 @@ export function todayAt(h: number, m: number, s = 0): Date {
 
 const toMs = (d: Date | string) => new Date(d).getTime();
 
+/** Date → "YYYY-MM-DD" theo giờ local / in local time */
 export function toDateKey(date: Date | string): string {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** "YYYY-MM-DD" → Date local lúc 12:00 (tránh lệch DST/timezone) / local Date at noon */
+export function fromDateKey(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d, 12, 0, 0, 0);
 }
 
 function formatHours(totalMinutes: number): string {
@@ -130,19 +166,9 @@ function calcEfficiency(focusMinutes: number, pauseMinutes: number): number {
   return gross > 0 ? Math.round((focusMinutes / gross) * 100) : 100;
 }
 
-function getRangeStart(range: TimeRange, now = new Date()): Date {
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  if (range === "week") start.setDate(start.getDate() - 6);
-  if (range === "month") start.setDate(start.getDate() - 29);
-  return start;
-}
-
-export function filterSessionsByRange(sessions: IPomodoroModel[], range: TimeRange): IPomodoroModel[] {
-  const startMs = getRangeStart(range).getTime();
-  return sessions.filter((s) => toMs(s.start) >= startMs);
-}
-
-
+/* ============================================================
+ * Session helpers
+ * ============================================================ */
 
 export function getSessionFocusMinutes(session: IPomodoroModel): number {
   const total = (session.progress ?? []).reduce((sum, cur) => sum + cur.duration, 0);
@@ -161,13 +187,15 @@ export function getSessionPauseSeconds(session: IPomodoroModel): number {
   return Math.max(0, pauseMs / 1000);
 }
 
-
-export function getTimeOfDayPeriod(date: Date | string): TimeOfDayPeriod {
-  const hour = new Date(date).getHours();
+function getPeriodByHour(hour: number): TimeOfDayPeriod {
   if (hour >= 6 && hour < 12) return "morning";
   if (hour >= 12 && hour < 18) return "afternoon";
   if (hour >= 18 && hour < 23) return "evening";
   return "night";
+}
+
+export function getTimeOfDayPeriod(date: Date | string): TimeOfDayPeriod {
+  return getPeriodByHour(new Date(date).getHours());
 }
 
 export function getTimeOfDayPeriodLabel(period: TimeOfDayPeriod): string {
@@ -183,20 +211,34 @@ export function getTimeOfDayPeriodLabel(period: TimeOfDayPeriod): string {
   }
 }
 
-const PERIOD_CONFIGS: Record<
-  TimeOfDayPeriod,
-  { label: string; timeRange: string; icon: TimeOfDayStats["icon"]; color: string }
-> = {
-  morning: { label: "Buổi sáng", timeRange: "06:00 - 12:00", icon: "sunrise", color: "#f59e0b" },
-  afternoon: { label: "Buổi chiều", timeRange: "12:00 - 18:00", icon: "sun", color: "#3b82f6" },
-  evening: { label: "Buổi tối", timeRange: "18:00 - 23:00", icon: "sunset", color: "#8b5cf6" },
-  night: { label: "Ban đêm", timeRange: "23:00 - 06:00", icon: "moon", color: "#06b6d4" },
-};
+/* ============================================================
+ * Range filter
+ * ============================================================ */
+
+function getRangeStart(range: TimeRange, now: Date = new Date()): Date {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (range === "week") start.setDate(start.getDate() - 6);
+  if (range === "month") start.setDate(start.getDate() - 29);
+  return start;
+}
+
+export function filterSessionsByRange(
+  sessions: IPomodoroModel[],
+  range: TimeRange,
+  now: Date = new Date(),
+): IPomodoroModel[] {
+  const startMs = getRangeStart(range, now).getTime();
+  return sessions.filter((s) => toMs(s.start) >= startMs);
+}
+
+/* ============================================================
+ * Stats calculators
+ * ============================================================ */
 
 export function calculateTimeOfDayStats(sessions: IPomodoroModel[]): TimeOfDayStats[] {
   const periods: TimeOfDayPeriod[] = ["morning", "afternoon", "evening", "night"];
   const buckets = Object.fromEntries(
-    periods.map((p) => [p, { focusMinutes: 0, sessionsCount: 0, pauseSeconds: 0 }])
+    periods.map((p) => [p, { focusMinutes: 0, sessionsCount: 0, pauseSeconds: 0 }]),
   ) as Record<TimeOfDayPeriod, { focusMinutes: number; sessionsCount: number; pauseSeconds: number }>;
 
   sessions.forEach((s) => {
@@ -229,17 +271,13 @@ export function calculateTimeOfDayStats(sessions: IPomodoroModel[]): TimeOfDaySt
 }
 
 export function calculateHourlyDistribution(sessions: IPomodoroModel[]): HourlyFocusPoint[] {
-  const buckets: HourlyFocusPoint[] = Array.from({ length: 24 }, (_, hour) => {
-    const d = new Date();
-    d.setHours(hour, 0, 0, 0);
-    return {
-      hour,
-      hourLabel: `${String(hour).padStart(2, "0")}:00`,
-      period: getTimeOfDayPeriod(d),
-      focusMinutes: 0,
-      sessionsCount: 0,
-    };
-  });
+  const buckets: HourlyFocusPoint[] = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    hourLabel: `${String(hour).padStart(2, "0")}:00`,
+    period: getPeriodByHour(hour),
+    focusMinutes: 0,
+    sessionsCount: 0,
+  }));
 
   sessions.forEach((s) => {
     const h = new Date(s.start).getHours();
@@ -250,10 +288,9 @@ export function calculateHourlyDistribution(sessions: IPomodoroModel[]): HourlyF
   return buckets;
 }
 
-
 function calculateTodayChartData(sessions: IPomodoroModel[]): ChartPoint[] {
   const slots = [
-    { label: "08:00", from: 0, to: 9 },
+    { label: "≤09:00", from: 0, to: 9 },
     { label: "10:00", from: 9, to: 11 },
     { label: "12:00", from: 11, to: 13 },
     { label: "14:00", from: 13, to: 15 },
@@ -278,9 +315,9 @@ function calculateTodayChartData(sessions: IPomodoroModel[]): ChartPoint[] {
 function calculateDailyChartData(
   sessions: IPomodoroModel[],
   days: number,
-  labelMode: "weekday" | "date"
+  labelMode: "weekday" | "date",
+  now: Date,
 ): ChartPoint[] {
-  const now = new Date();
   const buckets = new Map<string, ChartPoint>();
 
   for (let i = days - 1; i >= 0; i--) {
@@ -303,22 +340,27 @@ function calculateDailyChartData(
   return Array.from(buckets.values());
 }
 
-export function calculateChartData(sessions: IPomodoroModel[], timeRange: TimeRange): ChartPoint[] {
+export function calculateChartData(
+  sessions: IPomodoroModel[],
+  timeRange: TimeRange,
+  now: Date = new Date(),
+): ChartPoint[] {
   switch (timeRange) {
     case "today":
       return calculateTodayChartData(sessions);
     case "week":
-      return calculateDailyChartData(sessions, 7, "weekday");
+      return calculateDailyChartData(sessions, 7, "weekday", now);
     case "month":
-      return calculateDailyChartData(sessions, 30, "date");
+      return calculateDailyChartData(sessions, 30, "date", now);
   }
 }
 
-export function calculateStreakDays(sessions: IPomodoroModel[]): number {
+export function calculateStreakDays(sessions: IPomodoroModel[], now: Date = new Date()): number {
   const activeDays = new Set(sessions.map((s) => toDateKey(s.start)));
-  const now = new Date();
   const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+  // Hôm nay chưa có phiên nào thì tính streak từ hôm qua
+  // If nothing today yet, count the streak from yesterday
   if (!activeDays.has(toDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
 
   let streak = 0;
@@ -338,10 +380,50 @@ export function calculateBestDay(sessions: IPomodoroModel[]): string {
   return max > 0 ? WEEKDAY_NAMES[totals.indexOf(max)] : "Chưa có";
 }
 
+/**
+ * Số liệu hôm nay tính từ danh sách phiên (dùng cho màn hình thống kê).
+ * Today's numbers computed from raw sessions (used by the stats screen).
+ */
+export function calculateTodayStats(sessions: IPomodoroModel[], now: Date = new Date()): TodayStats {
+  const todayKey = toDateKey(now);
+  let focusMinutes = 0;
+  let pauseSeconds = 0;
+  let count = 0;
+
+  for (const s of sessions) {
+    if (toDateKey(s.start) !== todayKey) continue;
+    focusMinutes += getSessionFocusMinutes(s);
+    pauseSeconds += getSessionPauseSeconds(s);
+    count += 1;
+  }
+
+  return {
+    sessions: count,
+    focusHours: formatHours(focusMinutes),
+    pauseMinutes: Math.round(pauseSeconds / 60),
+  };
+}
+
+/**
+ * Số liệu hôm nay lấy từ danh sách ngày đã nhóm (dùng cho PomodoroTimelineView).
+ * Today's numbers taken from grouped days (used by PomodoroTimelineView).
+ */
+export function getTodayStats(days: DayTimelineSummary[], todayKey: string): TodayStats {
+  const day = days.find((d) => d.dateKey === todayKey);
+  if (!day) return { sessions: 0, focusHours: "0m", pauseMinutes: 0 };
+
+  return {
+    sessions: day.totalSessions,
+    focusHours: day.totalFocusHours,
+    pauseMinutes: day.totalPauseMinutes,
+  };
+}
+
 export function calculatePomodoroStats(
   sessions: IPomodoroModel[],
   timeRange: TimeRange = "week",
-  allSessions: IPomodoroModel[] = sessions
+  allSessions: IPomodoroModel[] = sessions,
+  now: Date = new Date(),
 ): PomodoroStatsSummary {
   let totalFocusMinutes = 0;
   let totalPauseSeconds = 0;
@@ -370,11 +452,14 @@ export function calculatePomodoroStats(
     totalSessions,
     totalPauseMinutes,
     averagePauseMinutes,
-    streakDays: calculateStreakDays(allSessions),
+    streakDays: calculateStreakDays(allSessions, now),
     focusEfficiency: calcEfficiency(totalFocusMinutes, totalPauseMinutes),
     dailyGoalSessions,
     goalCompletionRate,
-    chartData: calculateChartData(sessions, timeRange),
+    // Dùng allSessions để không phụ thuộc tab đang chọn
+    // Use allSessions so it doesn't depend on the selected tab
+    today: calculateTodayStats(allSessions, now),
+    chartData: calculateChartData(sessions, timeRange, now),
     timeOfDayStats,
     hourlyDistribution: calculateHourlyDistribution(sessions),
     productivityInsight: {
@@ -394,13 +479,16 @@ export function calculatePomodoroStats(
 
 export function getDayTimelineData(
   sessions: IPomodoroModel[],
-  targetDate: Date = new Date()
+  targetDate: Date = new Date(),
+  now: Date = new Date(),
 ): DayTimelineSummary {
   const targetKey = toDateKey(targetDate);
 
   const daySessions = sessions
     .filter((s) => toDateKey(s.start) === targetKey)
     .sort((a, b) => toMs(a.start) - toMs(b.start));
+
+  const timeFmt: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
 
   const timelineSessions: DayTimelineSession[] = daySessions.map((s) => {
     const progress = s.progress ?? [];
@@ -414,12 +502,15 @@ export function getDayTimelineData(
       : new Date(startTime.getTime() + 5 * 60 * 1000);
     const period = getTimeOfDayPeriod(startTime);
     const startMinutes = startTime.getHours() * 60 + startTime.getMinutes();
-    const durationMinutes = Math.max(Math.round((endTime.getTime() - startTime.getTime()) / 60000), focusMins);
+    const durationMinutes = Math.max(
+      Math.round((endTime.getTime() - startTime.getTime()) / 60000),
+      focusMins,
+    );
     const startPercent = Math.max(0, Math.min(100, (startMinutes / 1440) * 100));
     const widthPercent = Math.max(2, Math.min(100 - startPercent, (durationMinutes / 1440) * 100));
     const gross = focusMins * 60 + pauseSeconds;
     const efficiency = gross > 0 ? Math.round(((focusMins * 60) / gross) * 100) : 100;
-    const timeFmt: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+
     return {
       id: s.id,
       task: s.task ? { id: s.task.id, name: s.task.name } : undefined,
@@ -445,7 +536,6 @@ export function getDayTimelineData(
   const timeOfDayStats = calculateTimeOfDayStats(daySessions);
   const peak = timeOfDayStats.find((p) => p.isPeak);
 
-  const now = new Date();
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
 
@@ -464,18 +554,22 @@ export function getDayTimelineData(
     totalSessions: timelineSessions.length,
     totalPauseMinutes,
     efficiency: calcEfficiency(totalFocusMinutes, totalPauseMinutes),
-    peakPeriod: peak && peak.focusMinutes > 0 ? `${peak.label} (${peak.totalHoursFormatted})` : "Chưa có",
+    peakPeriod:
+      peak && peak.focusMinutes > 0 ? `${peak.label} (${peak.totalHoursFormatted})` : "Chưa có",
     sessions: timelineSessions,
     timeOfDayStats,
     hourlyDistribution: calculateHourlyDistribution(daySessions),
   };
 }
 
-export function getGroupedTimelineData(sessions: IPomodoroModel[]): OverallTimelineData {
+export function getGroupedTimelineData(
+  sessions: IPomodoroModel[],
+  now: Date = new Date(),
+): OverallTimelineData {
   const dateMap = new Map<string, Date>();
 
-  const today = new Date();
-  dateMap.set(toDateKey(today), new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+  // Luôn có "hôm nay" theo `now` / Always include "today" based on `now`
+  dateMap.set(toDateKey(now), new Date(now.getFullYear(), now.getMonth(), now.getDate()));
 
   sessions.forEach((s) => {
     const d = new Date(s.start);
@@ -485,7 +579,7 @@ export function getGroupedTimelineData(sessions: IPomodoroModel[]): OverallTimel
 
   const days = Array.from(dateMap.entries())
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([, d]) => getDayTimelineData(sessions, d));
+    .map(([, d]) => getDayTimelineData(sessions, d, now));
 
   let totalFocusMinutes = 0;
   let totalPauseSeconds = 0;
@@ -504,40 +598,83 @@ export function getGroupedTimelineData(sessions: IPomodoroModel[]): OverallTimel
     totalSessions: sessions.length,
     totalPauseMinutes,
     efficiency: calcEfficiency(totalFocusMinutes, totalPauseMinutes),
-    peakPeriod: peak && peak.focusMinutes > 0 ? `${peak.label} (${peak.totalHoursFormatted})` : "Chưa có",
+    peakPeriod:
+      peak && peak.focusMinutes > 0 ? `${peak.label} (${peak.totalHoursFormatted})` : "Chưa có",
     timeOfDayStats,
     days,
   };
 }
 
-interface usePomodoroStatsOptions {
+/* ============================================================
+ * Hooks
+ * ============================================================ */
+
+/**
+ * Trả về key "hôm nay" (YYYY-MM-DD) và tự đổi khi qua nửa đêm.
+ * Returns today's key (YYYY-MM-DD) and updates itself after midnight.
+ */
+export function useTodayKey(): string {
+  const [todayKey, setTodayKey] = useState(() => toDateKey(new Date()));
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
+    const scheduleNextMidnight = () => {
+      const now = new Date();
+      const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+      timer = setTimeout(() => {
+        setTodayKey(toDateKey(new Date()));
+        scheduleNextMidnight();
+      }, next.getTime() - now.getTime());
+    };
+    scheduleNextMidnight();
+
+    // Máy sleep / tab bị throttle thì timer có thể trễ → kiểm tra lại khi tab hiện lại
+    // Timers can drift on sleep / throttled tabs → re-check when the tab becomes visible
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setTodayKey(toDateKey(new Date()));
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  return todayKey;
+}
+
+interface UsePomodoroStatsOptions {
   initialRange?: TimeRange;
   initialDate?: Date;
 }
 
 export function usePomodoroStats(
   sessions: IPomodoroModel[] = [],
-  { initialRange = "week", initialDate }: usePomodoroStatsOptions = {}
+  { initialRange = "week", initialDate }: UsePomodoroStatsOptions = {},
 ) {
   const [timeRange, setTimeRange] = useState<TimeRange>(initialRange);
   const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate ?? new Date());
-
+  const todayKey = useTodayKey();
+  const now = useMemo(() => fromDateKey(todayKey), [todayKey]);
+  
   const filteredSessions = useMemo(
-    () => filterSessionsByRange(sessions, timeRange),
-    [sessions, timeRange]
+    () => filterSessionsByRange(sessions, timeRange, now),
+    [sessions, timeRange, now],
   );
 
   const stats = useMemo(
-    () => calculatePomodoroStats(filteredSessions, timeRange, sessions),
-    [filteredSessions, timeRange, sessions]
+    () => calculatePomodoroStats(filteredSessions, timeRange, sessions, now),
+    [filteredSessions, timeRange, sessions, now],
   );
 
   const dayTimeline = useMemo(
-    () => getDayTimelineData(sessions, selectedDate),
-    [sessions, selectedDate]
+    () => getDayTimelineData(sessions, selectedDate, now),
+    [sessions, selectedDate, now],
   );
 
-  const groupedTimeline = useMemo(() => getGroupedTimelineData(sessions), [sessions]);
+  const groupedTimeline = useMemo(() => getGroupedTimelineData(sessions, now), [sessions, now]);
 
   const shiftDay = useCallback((delta: number) => {
     setSelectedDate((d) => {
@@ -550,7 +687,6 @@ export function usePomodoroStats(
   const goToPrevDay = useCallback(() => shiftDay(-1), [shiftDay]);
   const goToNextDay = useCallback(() => shiftDay(1), [shiftDay]);
   const goToToday = useCallback(() => setSelectedDate(new Date()), []);
-
   return {
     timeRange,
     setTimeRange,

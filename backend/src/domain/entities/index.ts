@@ -1,4 +1,5 @@
 export type * from "./filter.entity"
+export type * from "./color.entity"
 export type * from "./tag.entity"
 export type * from "./task.entity"
 export type * from "./section.entity"

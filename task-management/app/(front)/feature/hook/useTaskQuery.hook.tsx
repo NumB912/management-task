@@ -1,5 +1,5 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { taskApi } from '../api/task/task.api';
 
 
@@ -13,5 +13,13 @@ export const useTask = (id: string) => {
     queryKey: taskKeys.detail(id),
     queryFn: () => taskApi.getById(id),
     enabled: !!id,
+  });
+};
+
+
+export const useTaskWithIds = () => {
+  return useMutation({
+    mutationFn: ({ ids, listId }: { ids: string[]; listId: string }) =>
+      taskApi.getTaskWithIds(ids, listId),
   });
 };

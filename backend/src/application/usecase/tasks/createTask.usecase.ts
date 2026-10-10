@@ -130,7 +130,7 @@ const userIds: string[] = members
         if (userIds.length > 0) {
           sseEvent = {
             userIds,
-            data: { ...createdTask, ...ruleCreate },
+            data: {listId:createdTask.list,ids:[createdTask.id]},
             event: "task-create",
           };
         }

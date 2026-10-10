@@ -1,5 +1,5 @@
 import { axiosInstance } from "@/app/(front)/lib/axios";
-import { ICreatepomodoroDTO } from "@/app/(front)/model/DTO/pomodoro.DTO";
+import { ICreatepomodoroDTO, IUpdatePomodoroDTO } from "@/app/(front)/model/DTO/pomodoro.DTO";
 import { IPomodoroModel } from "@/app/(front)/model/pomodoro.model";
 export const pomodoroApi = {
   getAll: async (): Promise<IPomodoroModel[]> => {
@@ -14,7 +14,7 @@ export const pomodoroApi = {
   },
   update: async (
     id: string,
-    data: Pick<IPomodoroModel, "id" | "task">,
+    data: IUpdatePomodoroDTO,
   ): Promise<boolean> => {
     const res = await axiosInstance.patch<boolean>(`/pomodoro/${id}`, data);
     return res.data;

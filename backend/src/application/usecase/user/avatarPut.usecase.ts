@@ -38,12 +38,11 @@ export class PutAvatarUsecase implements IUsecase<void> {
     }
     const ext = path.extname(file.originalName).toLowerCase();
     const fileName = `avatar-${Date.now()}${ext}`;
-    const newAvatar = `/uploads/avatars/${userId}/${fileName}`;
+    const newAvatar = `/avatars/${userId}/${fileName}`;
     await this.unitwork.startTransaction();
     try {
       const session = this.unitwork.getSession();
       const user = await this.userRepository.findById(userId, session);
-
       if (!user) {
         throw new AppError('NOT_FOUND', 'Người dùng không tồn tại', 404);
       }
@@ -60,7 +59,7 @@ export class PutAvatarUsecase implements IUsecase<void> {
         buffer: file.buffer.toString('base64'),
         mimeType: file.mimetype,
         originalName: file.originalName,
-        fileName,
+        fileName:`uploads/${fileName}`,
         size: file.size,
       },
     });

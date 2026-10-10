@@ -60,6 +60,8 @@ export const TYPES = {
   updateTaskStatusUsecase:Symbol.for("UpdateTaskCompleteUsecase"),
   MoveToSectionUsecase:Symbol.for("MoveToSectionUsecase"),
 
+  GetAllTasksWithIdsUsecase:Symbol.for("GetAllTasksWithIdsUsecase"),
+
   RuleRepository: Symbol.for("RuleRepository"),
   GetAllRuleUsecase: Symbol.for("GetAllRuleUsecase"),
   GetRuleByIdUsecase: Symbol.for("GetRuleByIdUsecase"),
@@ -96,6 +98,7 @@ export const TYPES = {
   UpdateTagsInFilterUsecase:Symbol.for("UpdateTagsInFilterUsecase"),
 
   pomodoroRepository: Symbol.for("pomodoroRepository"),
+  ColorRepository: Symbol.for("ColorRepository"),
 
   UserRepository:Symbol.for("UserRepository"),
   RegisterEmailUsecase:Symbol.for("RegisterUserCase"),
@@ -123,6 +126,7 @@ export const TYPES = {
   TaskMapper:Symbol.for("TaskMapper"),
   pomodoroMapper:Symbol.for("pomodoroMapper"),
   NotificationMapper:Symbol.for("NotificationMapper"),
+  ColorMapper:Symbol.for("ColorMapper"),
 
 
   ValidateLogin:Symbol.for("ValidateLogin")

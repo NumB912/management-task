@@ -68,8 +68,6 @@ import { AddFilterDialog } from "../../components/filters/addFilter.filters";
 import { EditFilterDialog } from "../../components/filters/editFilter.filters";
 import { IFilterModel } from "../../model/filter.model";
 import { DeleteFilterDialog } from "../../components/filters/deleteFilter";
-import NotificationBell from "../../components/notifier/notificationBell";
-import { de } from "date-fns/locale";
 import useUserState from "../../states/user/user.state";
 import { IRoleMember } from "../../model/member.model";
 import useExitMemberHook from "../../feature/hook/useExitMember.hook";

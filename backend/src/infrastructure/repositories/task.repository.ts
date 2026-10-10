@@ -1,14 +1,20 @@
-
-import { ITask, ITaskWithId } from "@/domain/entities/task.entity.js";
-import { BaseRepository } from "./base.repository.js";
-import { DatabaseModels } from "./database/clientSchema.database.js";
-import { ITaskDocument, ITaskPopulateDocument } from "./database/schema/task.schema.js";
-import { ITaskRepository } from "@/domain/repositories/ITask.repository.js";
-import { TaskMapper } from "../mapper/task.mapper.js";
-import { ClientSession, Types } from "mongoose";
-import { IPriority, ISpecials, IStatus } from "@/domain/entities/filter.entity.js";
-import { Inject, Injectable } from "@nestjs/common";
-import { TYPES } from "../types/dependency.type.js";
+import { ITask, ITaskWithId } from '@/domain/entities/task.entity.js';
+import { BaseRepository } from './base.repository.js';
+import { DatabaseModels } from './database/clientSchema.database.js';
+import {
+  ITaskDocument,
+  ITaskPopulateDocument,
+} from './database/schema/task.schema.js';
+import { ITaskRepository } from '@/domain/repositories/ITask.repository.js';
+import { TaskMapper } from '../mapper/task.mapper.js';
+import { ClientSession, Types } from 'mongoose';
+import {
+  IPriority,
+  ISpecials,
+  IStatus,
+} from '@/domain/entities/filter.entity.js';
+import { Inject, Injectable } from '@nestjs/common';
+import { TYPES } from '../types/dependency.type.js';
 
 @Injectable()
 export class TaskRepository
@@ -36,8 +42,30 @@ export class TaskRepository
   ) {
     super(db.Task);
   }
-  async deleteByPath(path: string, session?:ClientSession): Promise<boolean> {
-    const escapedPath = path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  async findTasksByIds(
+    DTO: { ids: string[]; list: string; user: string },
+    session?: ClientSession,
+  ): Promise<ITask[]> {
+    const { ids, list, user } = DTO;
+    const isMember = await this.db.Member.exists({
+      user: new Types.ObjectId(user),
+      list: new Types.ObjectId(list),
+      status: 'accept',
+    }).session(session ?? null);
+
+    if (!isMember) return [];
+      const docs = await this.db.Task.find({
+        _id: {
+          $in: ids.map((id) => new Types.ObjectId(id)),
+        },
+        list: new Types.ObjectId(list)
+      })
+      .populate('rule')
+      .lean<ITaskPopulateDocument[]>();
+    return docs.map((doc) => this.TaskMapper.toDomainPopulate(doc));
+  }
+  async deleteByPath(path: string, session?: ClientSession): Promise<boolean> {
+    const escapedPath = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     const doc = await this.db.Task.deleteMany({
       path: { $regex: `^${escapedPath}(/|$)` },
@@ -57,15 +85,20 @@ export class TaskRepository
     return update ? this.TaskMapper.toDomain(update) : null;
   }
 
-  async findByIdPopulate(id: string,session?:ClientSession): Promise<ITask | null> {
-    const task = await this.db.Task.findOne({
+  async findByIdPopulate(
+    id: string,
+    session?: ClientSession,
+  ): Promise<ITask | null> {
+    const task = (await this.db.Task.findOne({
       _id: new Types.ObjectId(id),
       deleted_at: null,
-    }).session(session??null).populate("rule").lean() as unknown as ITaskPopulateDocument;
+    })
+      .session(session ?? null)
+      .populate('rule')
+      .lean()) as unknown as ITaskPopulateDocument;
 
     return this.TaskMapper.toDomainPopulate(task);
   }
-
 
   async findTasksByTagForUser(DTO: {
     tagName: string;
@@ -77,10 +110,10 @@ export class TaskRepository
     const docs = await this.db.Task.aggregate([
       {
         $lookup: {
-          from: "rules",
-          foreignField: "_id",
-          localField: "rule",
-          as: "ruleData",
+          from: 'rules',
+          foreignField: '_id',
+          localField: 'rule',
+          as: 'ruleData',
           pipeline: [
             {
               $match: { tags: tagName },
@@ -90,17 +123,17 @@ export class TaskRepository
       },
       {
         $lookup: {
-          from: "lists",
-          foreignField: "_id",
-          localField: "list",
-          as: "listData",
+          from: 'lists',
+          foreignField: '_id',
+          localField: 'list',
+          as: 'listData',
           pipeline: [
             {
               $lookup: {
-                from: "members",
-                foreignField: "_id",
-                localField: "members",
-                as: "memberData",
+                from: 'members',
+                foreignField: '_id',
+                localField: 'members',
+                as: 'memberData',
                 pipeline: [
                   {
                     $match: { user: new Types.ObjectId(userId) },
@@ -109,10 +142,10 @@ export class TaskRepository
               },
             },
             {
-              $match: { "memberData.0": { $exists: true } },
+              $match: { 'memberData.0': { $exists: true } },
             },
             {
-              $unset: ["memberData"],
+              $unset: ['memberData'],
             },
             {
               $project: {
@@ -126,21 +159,21 @@ export class TaskRepository
       },
       {
         $match: {
-          "listData.0": { $exists: true },
-          "ruleData.0": { $exists: true },
+          'listData.0': { $exists: true },
+          'ruleData.0': { $exists: true },
         },
       },
       {
         $set: {
-          rule: { $arrayElemAt: ["$ruleData", 0] },
+          rule: { $arrayElemAt: ['$ruleData', 0] },
         },
       },
       {
-        $unset: ["listData", "ruleData"],
+        $unset: ['listData', 'ruleData'],
       },
     ])
       .session(session ?? null)
-      .collation({ locale: "vi", strength: 2 });
+      .collation({ locale: 'vi', strength: 2 });
 
     return docs.map((doc) => this.TaskMapper.toDomainPartialPopulate(doc));
   }
@@ -199,14 +232,14 @@ export class TaskRepository
       startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
 
       switch (filter.specials) {
-        case "today":
+        case 'today':
           ruleMatch.start_date = {
             $gte: startOfToday,
             $lte: startOfTomorrow,
           };
           break;
 
-        case "next 7 days": {
+        case 'next 7 days': {
           const next7 = new Date(startOfToday);
           next7.setDate(next7.getDate() + 7);
           ruleMatch.start_date = {
@@ -216,9 +249,9 @@ export class TaskRepository
           break;
         }
 
-        case "overdue":
+        case 'overdue':
           ruleMatch.start_date = { $lt: startOfToday };
-          taskMatch.status = { $ne: "done" };
+          taskMatch.status = { $ne: 'done' };
           break;
         default:
           break;
@@ -228,10 +261,10 @@ export class TaskRepository
     const docs = await this.db.Task.aggregate([
       {
         $lookup: {
-          from: "rules",
-          foreignField: "_id",
-          localField: "rule",
-          as: "ruleData",
+          from: 'rules',
+          foreignField: '_id',
+          localField: 'rule',
+          as: 'ruleData',
           pipeline: [
             {
               $match: ruleMatch,
@@ -241,17 +274,17 @@ export class TaskRepository
       },
       {
         $lookup: {
-          from: "lists",
-          foreignField: "_id",
-          localField: "list",
-          as: "listData",
+          from: 'lists',
+          foreignField: '_id',
+          localField: 'list',
+          as: 'listData',
           pipeline: [
             {
               $lookup: {
-                from: "members",
-                foreignField: "_id",
-                localField: "members",
-                as: "memberData",
+                from: 'members',
+                foreignField: '_id',
+                localField: 'members',
+                as: 'memberData',
                 pipeline: [
                   {
                     $match: { user: new Types.ObjectId(userId) },
@@ -260,10 +293,10 @@ export class TaskRepository
               },
             },
             {
-              $match: { "memberData.0": { $exists: true } },
+              $match: { 'memberData.0': { $exists: true } },
             },
             {
-              $unset: ["memberData"],
+              $unset: ['memberData'],
             },
             {
               $project: {
@@ -277,22 +310,22 @@ export class TaskRepository
       },
       {
         $match: {
-          "listData.0": { $exists: true },
-          "ruleData.0": { $exists: true },
+          'listData.0': { $exists: true },
+          'ruleData.0': { $exists: true },
           ...taskMatch,
         },
       },
       {
         $set: {
-          rule: { $arrayElemAt: ["$ruleData", 0] },
+          rule: { $arrayElemAt: ['$ruleData', 0] },
         },
       },
       {
-        $unset: ["listData", "ruleData"],
+        $unset: ['listData', 'ruleData'],
       },
     ])
       .session(session ?? null)
-      .collation({ locale: "vi", strength: 2 });
+      .collation({ locale: 'vi', strength: 2 });
     return docs.map((doc) => this.TaskMapper.toDomainPartialPopulate(doc));
   }
   private async getAccessibleMemberIds(
@@ -302,7 +335,7 @@ export class TaskRepository
     return (
       await this.db.Member.find({ user: userId })
         .session(session ?? null)
-        .select("_id")
+        .select('_id')
         .lean()
     ).map((m) => m._id);
   }
@@ -315,20 +348,20 @@ export class TaskRepository
     return [
       {
         $lookup: {
-          from: "rules",
-          localField: "rule",
-          foreignField: "_id",
-          as: "ruleData",
+          from: 'rules',
+          localField: 'rule',
+          foreignField: '_id',
+          as: 'ruleData',
           pipeline: [{ $match: ruleDateMatch }],
         },
       },
-      { $match: { "ruleData.0": { $exists: true }, deleted_at: null } },
+      { $match: { 'ruleData.0': { $exists: true }, deleted_at: null } },
       {
         $lookup: {
-          from: "lists",
-          localField: "list",
-          foreignField: "_id",
-          as: "listData",
+          from: 'lists',
+          localField: 'list',
+          foreignField: '_id',
+          as: 'listData',
           pipeline: [
             {
               $match: {
@@ -339,10 +372,10 @@ export class TaskRepository
           ],
         },
       },
-      { $match: { "listData.0": { $exists: true } } },
+      { $match: { 'listData.0': { $exists: true } } },
       {
         $addFields: {
-          rule: { $arrayElemAt: ["$ruleData", 0] },
+          rule: { $arrayElemAt: ['$ruleData', 0] },
         },
       },
       { $project: { listData: 0, ruleData: 0 } },
@@ -364,7 +397,7 @@ export class TaskRepository
       ...this.buildTaskDateQuery(userObjectId, member, {
         start_date: { $gte: today, $lte: end7Days },
       }),
-      { $match: { status: "pending" } },
+      { $match: { status: 'pending' } },
       { $sort: { start_date: 1 } },
     ]).session(session ?? null);
 
@@ -404,7 +437,7 @@ export class TaskRepository
       ...this.buildTaskDateQuery(userObjectId, member, {
         start_date: { $lt: todayStart },
       }),
-      { $match: { status: "pending" } },
+      { $match: { status: 'pending' } },
     ]).session(session ?? null);
 
     return docs.map((doc) => this.TaskMapper.toDomainPartialPopulate(doc));

@@ -73,7 +73,7 @@ const Page = () => {
   const getOverdueTasks = useWorkspaceStore(
     useShallow((s) => s.getOverdueTasks()),
   );
-  const addTaskMutate = useAddTask(inbox!);
+  const {handleAddTask} = useAddTask();
   useEffect(() => {
     setTitle("Sắp tới");
   }, []);
@@ -95,13 +95,6 @@ const Page = () => {
   }, [nextTasks]);
   const hasNothingToShow =
     sortedGroups.length === 0 && (!overdueTasks || overdueTasks.length === 0);
-  const handleAddTask = (task: ITaskModel) => {
-    const task_temp_id = `temp-task-id-${Date.now()}`;
-    addTaskMutate({
-      ...task,
-      id: task_temp_id,
-    });
-  };
   return (
     <div className="flex gap-3 py-3">
       {hasNothingToShow ? (

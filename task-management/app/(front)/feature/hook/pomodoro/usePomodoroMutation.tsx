@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { ApiErrorResponse } from "../apiErrorResponse.type";
 import { pomodoroApi } from "../../api/pomodoro/pomodoro.api";
-import { ICreatepomodoroDTO } from "@/app/(front)/model/DTO/pomodoro.DTO";
+import { ICreatepomodoroDTO, IUpdatePomodoroDTO } from "@/app/(front)/model/DTO/pomodoro.DTO";
 import { IPomodoroModel } from "@/app/(front)/model";
 
 export const KEY_POMODORO = ["pomodoro"];
@@ -43,7 +43,7 @@ export const useEditPomodoro = () => {
   return useMutation<
     boolean,
     AxiosError<ApiErrorResponse>,
-    { id: string; data: Pick<IPomodoroModel,"id"|"task"> },
+    { id: string; data: IUpdatePomodoroDTO },
     Ctx
   >({
     mutationFn: ({ id, data }) => pomodoroApi.update(id, data),
@@ -52,7 +52,15 @@ export const useEditPomodoro = () => {
       const previous = queryClient.getQueryData<IPomodoroModel[]>(KEY_POMODORO);
 
       queryClient.setQueryData<IPomodoroModel[]>(KEY_POMODORO, (old = []) =>
-        old.map((item) => (item.id === id ? { ...item, ...data } : item))
+        old.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                ...data,
+                task: typeof data.task === "string" ? item.task : data.task ?? item.task,
+              }
+            : item
+        )
       );
 
       return { previous };

@@ -12,6 +12,7 @@ import {
 import NotificationBell from "../components/notifier/notificationBell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "../utils/actor.utils";
+import { FileConfig } from "../config/file.config";
 
 const Side = () => {
   const apiUrl = `${process.env.NEXT_PUBLIC_NOTIFICATION_URL}/notifications/stream`;
@@ -49,7 +50,7 @@ const Side = () => {
         >
           <div className="profile  aspect-square w-11 ">
             <Avatar className="w-11 h-11 ">
-              <AvatarImage src={user?.avatar} />
+              <AvatarImage src={`${FileConfig.FILE_URL}${user?.avatar}`} />
               <AvatarFallback>{getInitials(user?.name ?? "")}</AvatarFallback>
             </Avatar>
           </div>
@@ -58,7 +59,7 @@ const Side = () => {
           <DropdownMenuItem className="p-3 rounded-none! h-fit border-b border-gray-200" onClick={()=>setOpen(!open)}>
               <div className="flex items-center gap-2">
                               <Avatar className="w-11 h-11 ">
-              <AvatarImage src={user?.avatar} />
+              <AvatarImage src={`${FileConfig.FILE_URL}${user?.avatar}`} />
               <AvatarFallback>{getInitials(user?.name ?? "")}</AvatarFallback>
             </Avatar>
                   <div className=" flex flex-col">

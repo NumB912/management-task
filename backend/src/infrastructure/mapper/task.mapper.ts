@@ -64,7 +64,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       created_at: doc.created_at,
       updated_at: doc.updated_at ?? undefined,
       deleted_at: doc.deleted_at ?? undefined,
-      list:doc.list.toString(),
+      list:doc.list?.toString(),
       description: doc.description,
       done_at: doc.done_at,
       order: doc.order,

@@ -30,25 +30,21 @@ interface TagColumnProps {
 }
 
 function TagColumn({ listId, listName, sectionId, taskIds, tagName }: Readonly<TagColumnProps>) {
-  const [isAdding, setIsAdding] = useState(false);
-  const handleAddTask = useAddTask(listId,sectionId??"")
+  const {handleAddTask,isAddTask,setIsAddTask} = useAddTask()
   return (  
     <SectionCard
       count={taskIds.length}
-      onPlusClick={() => setIsAdding((p) => !p)}
+      onPlusClick={() => setIsAddTask(!isAddTask)}
       title={listName}
     >
-      {sectionId && isAdding && (
+      {sectionId && isAddTask && (
         <AddTask
-          isCreate={isAdding}
-          setIsCreate={setIsAdding}
+          isCreate={isAddTask}
+          setIsCreate={setIsAddTask}
           sectionId={sectionId}
           listId={listId}
           defaultConfirmRule={{ tags: [tagName] }}
-          onHandle={(task) => {
-            handleAddTask(task)
-            setIsAdding(false);
-          }}
+          onHandle={handleAddTask}
         />
       )}
       <TaskList tasks={taskIds} />

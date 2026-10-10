@@ -14,7 +14,8 @@ export const useTimer = () => {
     start,
     pause,
     reset,
-    end,
+    stop,
+    next,
     confirmEnd,
     setMinutes,
     setSeconds,
@@ -49,15 +50,7 @@ export const useTimer = () => {
     isBreak: mode == "break",
     status,
     totalSeconds,
-    next: () => {
-      reset();
-      if (mode == "work") {
-        end();
-        switchMode("break");
-      } else {
-        switchMode("work");
-      }
-    },
+    next,
     totalDurationWork: startDurations.reduce(
       (prev, cur) => prev + cur.duration,
       0,
@@ -72,7 +65,7 @@ export const useTimer = () => {
     toggle,
     start,
     setOnComplete,
-    end,
+    stop,
     confirmEnd,
     setIsOpenEnd,
     setSeconds,

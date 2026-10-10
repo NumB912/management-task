@@ -22,6 +22,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
       specials: doc.specials as ISpecials,
       status: doc.status as IStatus,
       created_at: doc.created_at,
+
       updated_at: doc.updated_at ?? undefined,
       deleted_at: doc.deleted_at ?? undefined,
     };

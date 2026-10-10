@@ -55,7 +55,7 @@ class RabbitMQ {
         return;
       }
       console.warn("[RabbitMQ] Mất kết nối — sẽ reconnect...");
-      this.connecting = this.reconnectWithBackoff()
+      this.connecting = this.reconnectWithBackoff(3)
         .then((channel) => {
           this.channel = channel;
           return channel;

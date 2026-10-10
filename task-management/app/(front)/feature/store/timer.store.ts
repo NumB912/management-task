@@ -28,7 +28,7 @@ interface TimerState {
   tickInitialSeconds: number;
 
   setTaskFocus: (task: ITaskModel) => void;
-  calculateElapsedWorkMinutes: () => number;
+  calculateElapsedWorkSeconds: () => {seconds:number,minutes:number};
   switchMode: (mode: TimerMode) => void;
   setMinutes: (minutes: number) => void;
   setSeconds: (seconds: number) => void;
@@ -39,7 +39,8 @@ interface TimerState {
   ) => void;
   pause: () => void;
   reset: () => void;
-  end: () => void;
+  stop: () => void;
+  next:()=>void;
   setIsOpenEnd: (isOpenEnd: boolean) => void;
   confirmEnd: () => void;
   tick: () => void;
@@ -161,14 +162,12 @@ export const useTimerStore = create<TimerState>()(
         set({ taskFocus: task });
       },
 
-      calculateElapsedWorkMinutes() {
+      calculateElapsedWorkSeconds() {
         const { startDurations, mode, status } = get();
         let totalElapsed = 0;
-
         for (const entry of startDurations) {
           totalElapsed += entry.duration;
         }
-
         if (
           status === "progress" &&
           mode === "work" &&
@@ -182,7 +181,7 @@ export const useTimerStore = create<TimerState>()(
         const minutes = Math.floor(totalElapsed / 60000);
         const seconds = Math.floor((totalElapsed % 60000) / 1000);
         set({ elapsedWorkMinutes: minutes, elapsedWorkSeconds: seconds });
-        return minutes;
+        return {minutes,seconds};
       },
 
       setSeconds(secondsArg) {
@@ -260,7 +259,8 @@ export const useTimerStore = create<TimerState>()(
         set({ isConfirmEndOpen: open });
       },
       reset: () => {
-        const { minutes, seconds } = get();
+        const { minutes, seconds,intervalId } = get();
+        if (intervalId) clearInterval(intervalId);
         set({
           status: "end",
           intervalId: null,
@@ -320,11 +320,22 @@ export const useTimerStore = create<TimerState>()(
           get().tick();
         }
       },
-
-      end() {
-        const { calculateElapsedWorkMinutes,confirmEnd } = get();
-        const elapsedMinutes = calculateElapsedWorkMinutes();
-        if (elapsedMinutes >= 5) {
+    next: () => {
+      const {switchMode,mode,reset,confirmEnd} = get()
+      if (mode == "work") {
+        confirmEnd()
+        switchMode("break");
+      } else {
+        switchMode("work");
+      }
+      reset();
+    },
+      stop() {
+        const { calculateElapsedWorkSeconds,confirmEnd,totalSeconds } = get();
+        const minute = calculateElapsedWorkSeconds().minutes
+        const second = calculateElapsedWorkSeconds().seconds
+        const clapTotalSecond = second+minute*60
+        if (minute <= 5 || clapTotalSecond<=totalSeconds) {
           set({ isConfirmEndOpen: true });
           return;
         }
@@ -338,9 +349,9 @@ export const useTimerStore = create<TimerState>()(
           minutes,
           seconds,
           startDurations,
-          calculateElapsedWorkMinutes,
+          calculateElapsedWorkSeconds,
         } = get();
-        const elapsedMinutes = calculateElapsedWorkMinutes();
+        const elapsedMinutes = calculateElapsedWorkSeconds().minutes;
         if (intervalId) clearInterval(intervalId);
         if (elapsedMinutes >= 5) {
           onComplete?.(startDurations);

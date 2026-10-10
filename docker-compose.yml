@@ -59,7 +59,20 @@ services:
   #     - /app/node_modules
   #     - /app/.next             
   #   networks: [tm-network]
-
+  stalwart:
+    image: stalwartlabs/stalwart:latest  
+    container_name: stalwart
+    hostname: mail.example.com
+    ports:
+      - "25:25"     # SMTP
+      - "587:587"   # Submission
+      - "465:465"   # SMTPS
+      - "993:993"   # IMAPS
+      - "443:443"   # HTTPS / JMAP
+      - "8080:8080" # Web admin
+    volumes:
+      - ./stalwart-data:/opt/stalwart   
+    restart: always
   mongodb:
     image: mongo:7
     container_name: task-management-mongodb

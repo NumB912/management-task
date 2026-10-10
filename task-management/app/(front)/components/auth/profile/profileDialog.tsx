@@ -19,6 +19,7 @@ import { useUpdateProfile } from "@/app/(front)/feature/hook/useUpdateProfile.Mu
 import useUserState from "@/app/(front)/states/user/user.state";
 import { MAX_VALUE_REG } from "recharts/types/util/ChartUtils";
 import AvatarEditor from "../../avatar.component";
+import { FileConfig } from "@/app/(front)/config/file.config";
 export function getInitials(name: string, email: string) {
   const parts = (name.trim() || email).split(/\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();

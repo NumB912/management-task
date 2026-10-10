@@ -69,10 +69,16 @@ export const PomodoroDetailDialog = ({
   deletepomodoro,
   editTask,
 }: Props) => {
+
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingTask, setIsSavingTask] = useState(false);
   const [taskPodoromo,setTaskPodoromo] = useState(session?.task)
+  useEffect(()=>{
+    setTaskPodoromo(session?.task)
+  },[session?.task])
+
+
   if (!session) {
     return <Dialog open={false} onOpenChange={onClose} />;
   }
@@ -100,7 +106,6 @@ export const PomodoroDetailDialog = ({
   });
 
   const busy = isDeleting || isSavingTask;
-
   const handleSelectTask = async (task: Pick<ITaskModel,"id"|"name"> | undefined) => {
     if (!task || !session.id || isSavingTask) return;
     if (task.id === session.task?.id) {
@@ -153,7 +158,7 @@ export const PomodoroDetailDialog = ({
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <div className="min-w-0 flex-1 max-w-xs">
                         <ListCombobox
-                          value={taskPodoromo as ITaskModel | undefined}
+                          value={taskPodoromo}
                           onSelect={handleSelectTask}
                         />
                       </div>

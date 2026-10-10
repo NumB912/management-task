@@ -1,4 +1,4 @@
-import { AppError, IPomodoroRepository, IPomodoroWithId, IUnitWork, IUsecase } from "@/domain";
+import { AppError, Ipomodoro, IPomodoroRepository, IPomodoroWithId, IUnitWork, IUsecase } from "@/domain";
 
 
 export class UpdatePomodoroUsecase
@@ -11,7 +11,7 @@ export class UpdatePomodoroUsecase
   async execute(
     id:string,
     userId:string,
-    data:Pick<IPomodoroWithId,"task">
+    data:Pick<Ipomodoro,"task">
   ): Promise<void> {
     try {
       await this.unitWork.startTransaction();
@@ -19,7 +19,7 @@ export class UpdatePomodoroUsecase
       await this.pomodoroRepository.updateTaskToPomodoro({
         userId:userId,
         id:id,
-        task:data.task
+        task:data.task?.id
       },session)
 
       await this.unitWork.commitTransaction();

@@ -61,7 +61,7 @@ export class SectionRepository
   async pushTaskIntoSection(DTO:{id:string,tasks:string[],session?:ClientSession}):Promise<void>{
     const {id,tasks,session}  = DTO
     await this.db.Section.updateOne({
-      _id:id,
+      _id:new Types.ObjectId(id),
     },{
       $addToSet:{
         tasks:{

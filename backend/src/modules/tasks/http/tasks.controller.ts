@@ -5,6 +5,7 @@ import {
   UpdateStatusUsecase,
   UpdateTaskUsecase,
 } from '@/application';
+import { GetAllTasksWithIdsUsecase } from '@/application/usecase/tasks/findManyWithIds.usecase';
 import { GetTodayUsecase } from '@/application/usecase/tasks/today.usecase.js';
 import { GetUpcomingUsecase } from '@/application/usecase/tasks/upComming.usecase.js';
 import { TYPES } from '@/infrastructure/types/dependency.type';
@@ -17,18 +18,16 @@ import {
   Inject,
   Param,
   Patch,
+  Post,
   Req,
 } from '@nestjs/common';
 
 type UpdateTaskBody = Parameters<UpdateTaskUsecase['execute']>[0]['data'];
 type UpdateRuleBody = Parameters<UpdateRuleUsecase['execute']>[1];
 type UpdateStatusBody = Parameters<UpdateStatusUsecase['execute']>[0]['data'];
-
 @Controller('tasks')
 export class TasksController {
   constructor(
-    @Inject(TYPES.GetTaskByIdUsecase)
-    private readonly getTaskByIdUC: GetTaskByIdUsecase,
     @Inject(TYPES.UpdateTaskUsecase)
     private readonly updateTaskUC: UpdateTaskUsecase,
     @Inject(TYPES.DeleteTaskUsecase)
@@ -40,11 +39,11 @@ export class TasksController {
   ) {}
 
 
-  @Get(':taskId')
-  async getById(@Param('taskId') taskId: string) {
-    const task = await this.getTaskByIdUC.execute(taskId);
-    return { message: 'Thành công', task };
-  }
+  // @Get(':taskId')
+  // async getById(@Param('taskId') taskId: string) {
+  //   const task = await this.getTaskByIdUC.execute(taskId);
+  //   return { message: 'Thành công', task };
+  // }
 
   @Patch(':taskId')
   async update(

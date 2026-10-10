@@ -16,6 +16,8 @@ import { SectionCard } from "../components/sectionCard.component";
 import AddTask from "../components/task/addTask";
 import { TaskList } from "../components/task/taskList.component";
 import { useShallow } from "zustand/react/shallow";
+import { useTask } from "../feature/hook/task/task.hook";
+import { useAddTask } from "../feature/hook/task/addTask.hook";
 
 const SectionList = React.memo(
   ({
@@ -37,10 +39,11 @@ const SectionList = React.memo(
     const tasks = useWorkspaceStore(
       useShallow((state) => state.listIndex[listId]?.tasks ?? []),
     );
-
+    const {handleAddTask,isAddTask,setIsAddTask} =  useAddTask()
     useEffect(() => {
       setSections(sectionsData);
     }, [sectionsData]);
+
     const reorderSnapshotRef = useRef<string[] | null>(null);
     const removeSnapshotRef = useRef<string[] | null>(null);
     const changePosition = useCallback((startId: string, changeId: string) => {
@@ -170,19 +173,19 @@ const SectionList = React.memo(
 
     return (
       <div className="flex gap-3 py-3 h-fit">
-        {tasks.length > 0 && (
+        {sections.length == 0 || tasks.length > 0 &&  (
           <SectionCard
             count={0}
-            onPlusClick={() => {}}
+            onPlusClick={()=>setIsAddTask(true)}
             title="Không có thành phần"
           >
-            {listId && (
+            {listId && isAddTask && (
               <AddTask
-                isCreate={false}
-                setIsCreate={() => {}}
+                isCreate={isAddTask}
+                setIsCreate={setIsAddTask}
                 sectionId={undefined}
                 listId={listId}
-                onHandle={() => {}}
+                onHandle={handleAddTask}
               />
             )}
             <TaskList tasks={tasks} />

@@ -35,7 +35,6 @@ const Section = ({
   listId,
   removeSection,
 }: SectionProp) => {
-  const [isCreateTask, setIsCreateTask] = useState<boolean>(false);
   const [isFocusInput, setIsFocusInput] = useState<boolean>(false);
   const [isOnDrag, setIsOnDrag] = useState<boolean>(false);
   const [isHover, setIsHover] = useState<boolean>(false);
@@ -57,7 +56,7 @@ const Section = ({
   const taskIds = useWorkspaceStore(
     useShallow((state) => state.sectionIndex[sectionId]?.tasks ?? []),
   );
-  const addTaskHandle = useAddTask();
+  const {handleAddTask,isAddTask,setIsAddTask} = useAddTask();
   const sectionExists = useWorkspaceStore(
     (state) => !!state.sectionIndex[sectionId],
   );
@@ -319,7 +318,7 @@ const Section = ({
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsCreateTask(!isCreateTask);
+                      setIsAddTask(!isAddTask)
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="rounded hover:bg-gray-200 p-1 text-neutral-600 cursor-pointer relative bg-transparent"
@@ -364,13 +363,13 @@ const Section = ({
             "max-h-[min(65vh,600px)]! max-w-[min(40vw,500px)] min-w-65! h-full w-full",
           )}
         >
-          {isCreateTask && (
+          {isAddTask && (
             <AddTask
-              isCreate={isCreateTask}
-              setIsCreate={setIsCreateTask}
+              isCreate={isAddTask}
+              setIsCreate={setIsAddTask}
               sectionId={sectionId}
               listId={listId}
-              onHandle={addTaskHandle}
+              onHandle={handleAddTask}
             />
           )}
           <TaskList

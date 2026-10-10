@@ -1,4 +1,5 @@
 export type {IFilterRepository} from "./IFilter.repository.js"
+export type {IColorRepository} from "./IColor.repository.js"
 export type {IListRepository} from "./IList.repository.js"
 export type {IRuleRepository} from "./IRule.repository.js"
 export type {ISectionRepository} from "./ISection.repository.js"

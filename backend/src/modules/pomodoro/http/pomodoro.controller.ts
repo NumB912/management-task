@@ -1,5 +1,6 @@
 
 import {  CreatePomodoroUsecase, DeletePomodoroUsecase, GetPomodoroUsecase, UpdatePomodoroUsecase } from '@/application/usecase/pomodoro';
+import { Ipomodoro } from '@/domain';
 import { TYPES } from '@/infrastructure/types/dependency.type';
 import type { AuthRequest } from '@/modules/common/types/authRequest.type';
 import {
@@ -16,8 +17,6 @@ import {
 } from '@nestjs/common';
 
 type CreatepomodoroBody = Parameters<CreatePomodoroUsecase['execute']>[0];
-type updatePomodoroBody = Parameters<UpdatePomodoroUsecase['execute']>[0];
-
 @Controller('pomodoro')
 export class pomodoroController {
   constructor(
@@ -46,9 +45,11 @@ export class pomodoroController {
 
   @Patch(":id")
   @HttpCode(200)
-  async patch(@Req() req:AuthRequest,@Param("id") id:string,@Body() body:CreatepomodoroBody){
+  async patch(@Req() req:AuthRequest,@Param("id") id:string,@Body() body:Pick<Ipomodoro,"task">){
     console.log(body)
-    await this.UpdatePomodoroUC.execute(id,req.user.id,body)
+    await this.UpdatePomodoroUC.execute(id,req.user.id,{
+      task:body.task
+    })
     return 'Thành công'
   }
 

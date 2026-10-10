@@ -15,7 +15,7 @@ import { IMemberRepository } from "@/domain/repositories/IMember.repository";
 import { ICreateTaskDTO } from "@/domain/DTO/task/task.DTO";
 import { pickRandomColor } from "@/domain/type";
 
-interface CreateTaskDTO {
+interface createdTaskDTO {
   listId: string;
   userId: string;
   sectionId: string;
@@ -35,15 +35,15 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
     private readonly unitWork: IUnitWork,
   ) {}
 
-  async execute(createTaskDTO: CreateTaskDTO): Promise<Partial<ITaskWithId>> {
-    const { data, listId, userId, sectionId } = createTaskDTO;
+  async execute(createdTaskDTO: createdTaskDTO): Promise<Partial<ITaskWithId>> {
+    const { data, listId, userId, sectionId } = createdTaskDTO;
     const rule = data.rule;
     const list = await this.getListOrThrow(listId);
     try {
       await this.unitWork.startTransaction();
       const session = this.unitWork.getSession();
 
-      let Createtask: Partial<ITaskWithId> | null = {};
+      let createdTask: Partial<ITaskWithId> | null = {};
 
       const HaveTag = await this.TagRepository.isUserHaveTag({
         userId: userId,
@@ -105,14 +105,14 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
         }),
       ]);
 
-      Createtask = await this.TaskRepository.update(
+      createdTask = await this.TaskRepository.update(
         task.id,
         { rule: ruleCreate.rule.id },
         session,
       );
 
-      if (!Createtask) {
-        throw new AppError("INTERNAL_SERVER", "Cáº­p nháº­t task tháº¥t báº¡i", 500);
+      if (!createdTask) {
+        throw new AppError("INTERNAL_SERVER", "Tạo thất bại vui lòng thử lại", 500);
       }
 
       if (list.isShareList) {
@@ -136,15 +136,12 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
           .filter((user) => user != userId);
         await this.publisher.pub("Task.exchange", "Task.create", "direct", {
           userIds: users,
-          data: {
-            ...Createtask,
-            ...ruleCreate,
-          },
+          data: {listId:createdTask.list,ids:[createdTask.id]},
           event: "task-create",
         });
       }
       await this.unitWork.commitTransaction();
-      return Createtask;
+      return createdTask;
     } catch (error: any) {
       console.error(error);
       await this.unitWork.rollBackTransaction();

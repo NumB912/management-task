@@ -1,5 +1,5 @@
 "use client";
-import { Play, Pause, SkipForward } from "lucide-react";
+import { Play, Pause, SkipForward, PlayCircle, Check, CircleAlert, ArchiveRestore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
@@ -21,15 +21,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { IStartDuration, useTimerStore } from "../../feature/store/timer.store";
 import { usePomodoroQuery } from "../../feature/hook/pomodoro/usePomodoroQuery.hook";
-import { pomodoroApi } from "../../feature/api/pomodoro/pomodoro.api";
 import { useTimer } from "../../feature/hook/pomodoro/pomodoroTimer.hook";
 import { PomodoroDetailDialog } from "../../components/Pomodoro.component";
 import { PomodoroTimelineView } from "../../components/pomodoro/pomodoroTimelineView.component";
-import { useTimerWorker } from "../../feature/store/useTimerWork";
-import { useDeletePomodoro } from "../../feature/hook/pomodoro/usePomodoroMutation";
-import { AudioPlayer } from "../../utils/audio.utils";
-import { AudioConfig } from "../../config/audio.config";
-
+import { useCreatePomodoro, useDeletePomodoro, useEditPomodoro } from "../../feature/hook/pomodoro/usePomodoroMutation";
+import { getTodayStats } from "../../feature/hook/pomodoro/usePomodoroStats";
 const PRESETS = {
   work: [
     { label: "25m", minutes: 25 },
@@ -51,12 +47,14 @@ const Page = () => {
     formattedMinutes,
     formattedSeconds,
     toggle,
-    end,
+    stop,
+    reset,
     setDuration,
     minutes,
     toWork,
     toBreak,
     next,
+    start,
     confirmEnd,
     setOnComplete,
     isConfirmEndOpen,
@@ -64,23 +62,27 @@ const Page = () => {
     elapsedWorkSeconds,
     totalDurationWork,
     setIsOpenEnd,
-  } = useTimer();
-  const { data: sessions = [] } = usePomodoroQuery();
-  const { mutate: deletePomodoro } = useDeletePomodoro();
-  const [defaultMinute, setDefaultMinute] = useState<number>(minutes);
-  const [openDrop, setOpenDrop] = useState<boolean>(false);
+  } = useTimer()
+
+  
+  const { data: sessions = [] } = usePomodoroQuery()
+  const { mutate: deletePomodoro } = useDeletePomodoro()
+  const {mutate:updatePomodoro} = useEditPomodoro()
+  const {mutate:createPomodoro} = useCreatePomodoro()
+  const [defaultMinute, setDefaultMinute] = useState<number>(minutes)
+  const [openDrop, setOpenDrop] = useState<boolean>(false)
   const [taskFocus, setTaskFocus] = useState<
     Pick<ITaskModel, "id" | "name"> | undefined
-  >(undefined);
+  >(undefined)
   const [detailSession, setDetailSession] = useState<IPomodoroModel | null>(
     null,
-  );
+  )
   const presets = PRESETS[mode];
   const complete = useCallback(
     async (startDurations: IStartDuration[]) => {
       const now = new Date();
       const sessionDurationMins = minutes > 0 ? minutes : 5;
-      await pomodoroApi.create({
+      createPomodoro({
         task: taskFocus?.id,
         progress: startDurations ?? [],
         totalDuration: totalDurationWork,
@@ -220,7 +222,7 @@ const Page = () => {
                 size="lg"
                 variant={"outline"}
                 className="w-16 h-16 rounded-full font-bold shadow-xs"
-                onClick={end}
+                onClick={stop}
                 aria-label={"end"}
               >
                 Dừng
@@ -257,7 +259,12 @@ const Page = () => {
         editTask={async (
           id: string,
           task: Pick<ITaskModel, "id" | "name">,
-        ) => {}}
+        ) => updatePomodoro({
+          id:id,
+           data:{
+              task:task
+           }
+        })}
         session={detailSession}
         onClose={() => {
           setDetailSession(null);
@@ -265,7 +272,7 @@ const Page = () => {
       />
 
       <AlertDialog open={isConfirmEndOpen} onOpenChange={setIsOpenEnd}>
-        <AlertDialogContent>
+        <AlertDialogContent className="space-y-3 rounded-md">
           <AlertDialogHeader>
             <AlertDialogTitle>
               Xác nhận kết thúc phiên làm việc
@@ -278,9 +285,12 @@ const Page = () => {
               . Phải trên 5 phút mới lưu vào được
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => {}}>Hủy</AlertDialogAction>
-            <AlertDialogAction onClick={confirmEnd}>Xác nhận</AlertDialogAction>
+          <AlertDialogFooter className="bg-transparent! px-2">
+            <AlertDialogAction variant={"ghost"} className="rounded-sm" onClick={() => {reset()}}><ArchiveRestore/> Đặt lại</AlertDialogAction>
+            <AlertDialogAction onClick={() => {
+              start()
+            }} className="rounded-sm"><PlayCircle/>Tiếp tục</AlertDialogAction>
+            <AlertDialogAction onClick={confirmEnd} className="rounded-sm "><Check/>Xác nhận</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

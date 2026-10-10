@@ -9,12 +9,11 @@ import React, { useEffect, useState } from "react";
 
 const Page = () => {
   const { setTitle } = useHeader();
-  const [isCreateTask, setIsCreateTask] = useState<boolean>(false);
   const [isCreateTaskOverDue, setIsCreateTaskOverDue] = useState(false);
   const { inbox } = useWorkspaceStore();
   const getOverdueTasks = useWorkspaceStore((state) => state.getOverdueTasks);
   const getTodayInfo = useWorkspaceStore((state) => state.getTodayInfo);
-  const addTaskHandle = useAddTask()
+  const {handleAddTask,isAddTask,setIsAddTask} = useAddTask()
 
   const taskOverDue = getOverdueTasks();
   const taskToday = getTodayInfo();
@@ -37,7 +36,7 @@ const Page = () => {
               setIsCreate={setIsCreateTaskOverDue}
               sectionId={undefined}
               listId={inbox}
-              onHandle={addTaskHandle}
+              onHandle={handleAddTask}
               defaultConfirmRule={{
                 start_date: (() => {
                   const previous = new Date();
@@ -55,15 +54,15 @@ const Page = () => {
       <SectionCard
         title={"Hôm nay"}
         count={getTodayInfo()?.length ?? 0}
-        onPlusClick={() => setIsCreateTask(!isCreateTask)}
+        onPlusClick={() => setIsAddTask(!isAddTask)}
       >
-        {inbox && isCreateTask && (
+        {inbox && isAddTask && (
           <AddTask
-            isCreate={isCreateTask}
-            setIsCreate={() => setIsCreateTask(!isCreateTask)}
+            isCreate={isAddTask}
+            setIsCreate={() =>setIsAddTask(!isAddTask)}
             sectionId={undefined}
             listId={inbox}
-            onHandle={addTaskHandle}
+            onHandle={handleAddTask}
             defaultConfirmRule={{ start_date: new Date() }}
           />
         )}

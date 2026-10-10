@@ -29,6 +29,7 @@ import {
 } from "../../feature/hook/useMemberMutation.hook";
 import useUserState from "../../states/user/user.state";
 import { useShallow } from "zustand/react/shallow";
+import { FileConfig } from "../../config/file.config";
 
 interface ShareContentProps {
   listId: string;
@@ -128,6 +129,7 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
       id: crypto.randomUUID(),
       name: contact.name,
       avatar: contact.avatar,
+      email:contact.email
     },
     role: "can edit",
     status: "pending",
@@ -320,7 +322,11 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
                 Đã mời ở danh sách khác
               </span>
               <div className="divide-y">
-                {suggestions.map((c) => (
+                {suggestions.map((c) => {
+                  console.log(c)
+                  {console.log(`${FileConfig.FILE_URL}${user?.avatar}`)}
+                  return (
+                 
                   <Button
                     key={c.id}
                     type="button"
@@ -336,7 +342,7 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
                   >
                     <>
                       <Avatar className="size-9">
-                        <AvatarImage src={c.user.avatar} alt={c.user.name} />
+                        <AvatarImage src={`${FileConfig.FILE_URL}${user?.avatar}`} alt={c.user.name} />
                         <AvatarFallback>
                           {initialsOf(c.user.name)}
                         </AvatarFallback>
@@ -354,7 +360,7 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
                       </span>
                     </>
                   </Button>
-                ))}
+                )})}
               </div>
             </div>
           )}

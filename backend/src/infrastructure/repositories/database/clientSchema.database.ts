@@ -5,6 +5,7 @@ import {
   IListDocument,
   IMemberDocument,
   INotificationDocument,
+  IColorDocument,
   pomodoroDocument,
   RuleDocument,
   ISectionDocument,
@@ -17,6 +18,7 @@ import {
   ListSchema,
   MemberSchema,
   NotificationSchema,
+  ColorSchema,
   pomodoroSchema,
   RuleSchema,
   SectionSchema,
@@ -44,6 +46,7 @@ export class DatabaseModels {
   readonly Member: Model<IMemberDocument>;
   readonly pomodoro:Model<IpomodoroDocument>
   readonly Notification:Model<INotificationDocument>
+  readonly Color:Model<IColorDocument>
 
   private constructor(client: Mongoose) {
     this.Task = this.getOrCreate<TaskDocument>(client, "task", TaskSchema);
@@ -60,6 +63,7 @@ export class DatabaseModels {
     this.Member = this.getOrCreate<IMemberDocument>(client, "member", MemberSchema)
     this.pomodoro = this.getOrCreate<IpomodoroDocument>(client, "pomodoro", pomodoroSchema)
     this.Notification = this.getOrCreate<INotificationDocument>(client,"notification",NotificationSchema)
+    this.Color = this.getOrCreate<IColorDocument>(client,"color",ColorSchema)
   }
 
   private getOrCreate<T>(client: Mongoose, name: string, schema: any): Model<T> {

@@ -3,6 +3,7 @@ import {
   CreateTaskWithSection,
   GetAllTasksUsecase,
 } from '@/application';
+import { GetAllTasksWithIdsUsecase } from '@/application/usecase/tasks/findManyWithIds.usecase';
 import { TYPES } from '@/infrastructure/types/dependency.type';
 import type { AuthRequest } from '@/modules/common/types/authRequest.type';
 import {
@@ -19,7 +20,9 @@ type CreateTaskBody = Parameters<CreateTaskUsecase['execute']>[0]['data'];
 type CreateTaskWithSectionBody = Parameters<
   CreateTaskWithSection['execute']
 >[0]['data'];
-
+type GetAllTaskWithIDs = {
+  ids:string[],
+}
 @Controller('lists/:listId')
 export class ListTasksController {
   constructor(
@@ -27,7 +30,20 @@ export class ListTasksController {
     private readonly createTaskUC: CreateTaskUsecase,
     @Inject(TYPES.CreateTaskWithSectionUsecase)
     private readonly createTaskWithSectionUC: CreateTaskWithSection,
+        @Inject(TYPES.GetAllTasksWithIdsUsecase)
+        private readonly getAllTaskWithIds:GetAllTasksWithIdsUsecase
   ) {}
+
+  @Post('/tasks/by_ids')
+    async getByIds(@Req() req: AuthRequest,@Param('listId') listId: string,@Body() dto:GetAllTaskWithIDs) {
+      const tasks = await this.getAllTaskWithIds.execute({
+        listId:listId,
+        userId:req.user.id,
+        taskIds:dto.ids
+      });
+      return { message: 'Thành công', tasks };
+    }
+  
 
   @Post('tasks')
   @HttpCode(200)
@@ -43,18 +59,6 @@ export class ListTasksController {
     });
     return { task };
   }
-
-  // @Get('sections/:sectionId/tasks')
-  // async getAllInSection(
-  //   @Param('listId') listId: string,
-  //   @Param('sectionId') sectionId: string,
-  // ) {
-  //   const data = await this.getAllTaskUC.execute({
-  //     section: sectionId,
-  //     list: listId,
-  //   });
-  //   return { message: 'Thành công', data };
-  // }
 
   @Post('sections/:sectionId/tasks')
   @HttpCode(200)

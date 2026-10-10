@@ -48,7 +48,6 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
         <SectionCard
           key={group.listId}
           count={group.tasks.length}
-          onPlusClick={() => {}}
           title={group.listName}
         >
           <TaskList tasks={group.tasks} />

@@ -1,5 +1,5 @@
 import { DomainFilter, DomainSelect, IRepository } from "@/domain/repositories/IRepository.js";
-import { ClientSession, Model, QueryFilter } from "mongoose";
+import { ClientSession, Model, QueryFilter, Types } from "mongoose";
 
 export abstract class BaseRepository<TDocument, TEntity, ID = string> implements IRepository<TEntity, ID> {
   constructor(protected readonly model: Model<TDocument>) { }
@@ -110,7 +110,7 @@ export abstract class BaseRepository<TDocument, TEntity, ID = string> implements
 
   async findById(id: ID, session?: ClientSession): Promise<TEntity | null> {
     const doc = await this.model.findOne({
-      _id: id,
+      _id: new Types.ObjectId(id as string),
       deleted_at: null
     }).session(session ?? null);
     return doc ? this.toDomain(doc) : null;

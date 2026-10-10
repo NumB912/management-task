@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { getInitials } from "../utils/actor.utils";
+import { FileConfig } from "../config/file.config";
 
 const MAX_SIZE = 4 * 1024 * 1024; // 2 MB
 const ACCEPT = ["image/png", "image/jpeg", "image/webp"];
@@ -88,12 +89,12 @@ const AvatarEditor = ({
     "group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100",
     "focus-visible:ring-2 focus-visible:ring-ring"
   );
-
+  console.log(`${FileConfig.FILE_URL}${src}`)
   return (
     <div className="flex flex-col items-center gap-2">
       <div className={cn("group relative rounded-full", className)}>
         <Avatar className="size-30">
-          <AvatarImage src={src} alt={`avatar-${name}`} />
+          <AvatarImage src={`${FileConfig.FILE_URL}${src}`} alt={`avatar-${name}`} />
           <AvatarFallback className="text-xl">
             {getInitials(name)}
           </AvatarFallback>

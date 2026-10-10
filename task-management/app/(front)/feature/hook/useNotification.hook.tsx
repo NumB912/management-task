@@ -9,6 +9,7 @@ import { useWorkspaceStore } from "../../states/workspace.state";
 import { ISectionModelState, ITaskModel } from "../../model";
 import { IStatus } from "../../model/type/type";
 import { useList } from "./useListQuery.hook";
+import { useTask, useTaskWithIds } from "./useTaskQuery.hook";
 
 interface RealtimePayload {
   [key: string]: any;
@@ -39,6 +40,7 @@ const useNotifications = (apiUrl: string) => {
   const updateSection = useWorkspaceStore((state) => state.setSectionIndex);
   const changePositionSection = useWorkspaceStore((state) => state.moveSection);
   const updateRole = useWorkspaceStore((state) => state.setUpdateRoleMember);
+  const {mutateAsync:TaskWithIds} = useTaskWithIds()
   const [acceptedListId, setAcceptedListId] = useState("");
   const { data: list, isError } = useList(acceptedListId);
   useEffect(() => {
@@ -134,7 +136,7 @@ const useNotifications = (apiUrl: string) => {
       });
     });
 
-    es.addEventListener("task-update-status", (event: MessageEvent) => {
+    es.addEventListener("task-update-status",async (event: MessageEvent) => {
       try {
         const payload: RealtimePayload = JSON.parse(event.data);
         const { record, task: base } = payload.data as unknown as {
@@ -142,7 +144,6 @@ const useNotifications = (apiUrl: string) => {
           task: ITaskModel;
           status?: IStatus;
         };
-
         const { taskIndex } = useWorkspaceStore.getState();
         const status = (payload.data as any).status ?? "completed";
         if (payload.data.type == "single") {
@@ -152,9 +153,16 @@ const useNotifications = (apiUrl: string) => {
         }
 
         if (payload.data.type === "recurring") {
+          const s = Object.keys(record).map((r)=>r.toString())
+          const data = await TaskWithIds({
+            ids:s,
+            listId:base.list
+          })
+
+          console.log(data)
           for (const [tempId, pair] of Object.entries(record ?? {})) {
             if (taskIndex[tempId]) continue;
-
+            
             addTask({
               ...base,
               id: tempId,
@@ -269,10 +277,16 @@ const useNotifications = (apiUrl: string) => {
         return [payload as unknown as INotificationModel, ...prev];
       });
     });
-
-    es.addEventListener("task-create", (event) => {
-      const payload: RealtimePayload = JSON.parse(event.data);
-      addTask(payload.data as unknown as ITaskModel);
+    es.addEventListener("task-create",async (event) => {
+      const payload: RealtimePayload = JSON.parse(event.data);  
+      const {ids,listId} = payload.data
+      const data =await TaskWithIds({
+        ids,
+        listId
+      })
+      data.forEach(task=>{
+        addTask(task)
+      })
     });
 
     es.addEventListener("task-update", (event) => {

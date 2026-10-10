@@ -19,7 +19,7 @@ import {
 import { formatDuration } from "../../utils/formatTimer";
 import { IPomodoroModel } from "../../model/pomodoro.model";
 import { Button } from "@/components/ui/button";
-import { getGroupedTimelineData, TimeOfDayPeriod } from "../../feature/hook/pomodoro/usePomodoroStats";
+import { getGroupedTimelineData, TimeOfDayPeriod, usePomodoroStats } from "../../feature/hook/pomodoro/usePomodoroStats";
 
 interface PomodoroTimelineViewProps {
   sessions: IPomodoroModel[];
@@ -42,6 +42,8 @@ export function PomodoroTimelineView({
   const overallData = useMemo(() => {
     return getGroupedTimelineData(sessions);
   }, [sessions]);
+  const { stats } = usePomodoroStats(sessions);
+  const { sessions: todaySessions, focusHours, pauseMinutes } = stats.today;
   const [openDays, setOpenDays] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     if (overallData.days.length > 0) {
@@ -66,7 +68,6 @@ export function PomodoroTimelineView({
     }));
   };
   const rulerHours = [6, 8, 10, 12, 14, 16, 18, 20, 22];
-  const peakPeriodInfo = overallData.timeOfDayStats.find((p) => p.isPeak);
   return (
     <div
       className={`flex flex-col gap-4 w-full max-h-12/12 pr-1 overflow-y-auto ${className}`}
@@ -83,11 +84,11 @@ export function PomodoroTimelineView({
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <div className="p-3 rounded-lg border bg-card/60 shadow-2xs space-y-1">
+          <div className="p-3 rounded-lg border shadow-2xs space-y-1 bg-primary/10">
             <span className="text-xs font-medium text-muted-foreground">
               Thời gian tập trung
             </span>
-            <div className="text-xl font-extrabold text-foreground">
+            <div className="text-xl font-extrabold text-primary">
               {overallData.totalFocusHours}
             </div>
             <div className="text-[11px] text-muted-foreground">
@@ -95,11 +96,11 @@ export function PomodoroTimelineView({
             </div>
           </div>
 
-          <div className="p-3 rounded-lg border bg-card/60 shadow-2xs space-y-1">
+          <div className="p-3 rounded-lg border shadow-2xs space-y-1 bg-primary/10">
             <span className="text-xs font-medium text-muted-foreground">
               Hiệu suất
             </span>
-            <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+            <div className="text-xl font-extrabold text-primary">
               {overallData.efficiency}%
             </div>
             <div className="text-[11px] text-muted-foreground">
@@ -107,76 +108,31 @@ export function PomodoroTimelineView({
             </div>
           </div>
 
-          <div className="p-3 rounded-lg border bg-card/60 shadow-2xs space-y-1">
+                   <div className="p-3 rounded-lg border shadow-2xs space-y-1 bg-primary/10">
             <span className="text-xs font-medium text-muted-foreground">
-              Khung giờ vàng
+              Số phiên hôm nay
             </span>
-            <div
-              className="text-sm font-bold text-foreground truncate"
-              title={overallData.peakPeriod}
-            >
-              {overallData.peakPeriod}
+            <div className="text-xl font-extrabold text-primary">
+              {todaySessions} lần
+            </div>
+          </div>
+
+          <div className="p-3 rounded-lg border shadow-2xs space-y-1 bg-primary/10">
+            <span className="text-xs font-medium text-muted-foreground">
+              Tập trung hôm nay
+            </span>
+            <div className="text-xl font-extrabold text-primary">
+              {focusHours}
             </div>
             <div className="text-[11px] text-muted-foreground">
-              Tập trung tốt nhất
+              Nghỉ {pauseMinutes}m
             </div>
           </div>
 
-          <div className="p-3 rounded-lg border bg-card/60 shadow-2xs space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">
-              Buổi nhiều nhất
-            </span>
-            <div className="text-sm font-bold text-foreground truncate">
-              {peakPeriodInfo?.label || "Buổi sáng"}
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              {peakPeriodInfo?.sessionsCount || 0} phiên (
-              {peakPeriodInfo?.percentage || 0}%)
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2 pt-1">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-            <Clock className="w-3.5 h-3.5 text-primary" />
-            <span>Thời gian trong ngày</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {overallData.timeOfDayStats.map((p) => (
-              <div
-                key={p.period}
-                className="p-2.5 rounded-lg border bg-card/40 border-border/50 text-xs space-y-1"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-xs text-foreground">
-                    {p.label}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    {p.timeRange}
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between pt-0.5">
-                  <span className="font-bold text-sm text-foreground">
-                    {p.totalHoursFormatted}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {p.sessionsCount} phiên ({p.percentage}%)
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
       <div className="space-y-3 pt-2 h-fit">
-        <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-            <CalendarDays className="w-3.5 h-3.5 text-primary" />
-            <span>Lịch sử các ngày</span>
-          </div>
-        </div>
 
         <div className="space-y-2 w-full">
           {overallData.days.map((day) => {
@@ -248,8 +204,7 @@ export function PomodoroTimelineView({
 
                             {day.sessions.map((s) => {
                               const isHovered = hoveredSessionId === s.id;
-                              const blockColor =
-                                PERIOD_COLORS[s.period] || "#6366f1";
+                              const blockColor =PERIOD_COLORS[s.period] || "#6366f1";
 
                               return (
                                 <div

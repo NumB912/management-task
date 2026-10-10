@@ -11,6 +11,7 @@ import {
   SectionRepository,
   TagRepository,
   TaskRepository,
+  ColorRepository,
 } from '@/infrastructure/repositories/index.js';
 import { NotificationRepository } from '@/infrastructure/repositories/notification.repository.js';
 import { RedisCache } from '@/infrastructure/cache/redis.cache.js';
@@ -27,6 +28,7 @@ import {
   TagMapper,
   TaskMapper,
   UserMapper,
+  ColorMapper,
 } from '@infrastructure/mapper';
 import CredentialsService from '@/infrastructure/services/ICreadentials.service';
 import { GenerateIdService } from '@/infrastructure/services/generateId.service';
@@ -105,6 +107,7 @@ import { PutAvatarUsecase } from '@/application/usecase/user/avatarPut.usecase';
 import { IUserRepository } from '@/domain';
 import { DeleteAvatarUsecase } from '@/application/usecase/user/avatarDel.usecase';
 import { CreatePomodoroUsecase, DeletePomodoroUsecase, GetPomodoroUsecase, UpdatePomodoroUsecase } from '@/application/usecase/pomodoro';
+import { GetAllTasksWithIdsUsecase } from '@/application/usecase/tasks/findManyWithIds.usecase';
 
 
 const repositories = [
@@ -118,6 +121,7 @@ const repositories = [
   { provide: TYPES.SectionRepository, useClass: SectionRepository },
   { provide: TYPES.notificationRepository, useClass: NotificationRepository },
   { provide: TYPES.ListRepository, useClass: ListRepository },
+  { provide: TYPES.ColorRepository, useClass: ColorRepository },
 ];
 
 const mappers = [
@@ -131,6 +135,7 @@ const mappers = [
   { provide: TYPES.SectionMapper, useClass: SectionMapper },
   { provide: TYPES.NotificationMapper, useClass: NotificationMapper },
   { provide: TYPES.ListMapper, useClass: ListMapper },
+  { provide: TYPES.ColorMapper, useClass: ColorMapper },
 ];
 
 const services = [
@@ -839,7 +844,6 @@ const usecase = [
     provide: TYPES.CreateTaskUsecase,
     inject: [
       TYPES.TaskRepository,
-      TYPES.SectionRepository,
       TYPES.TagRepository,
       TYPES.ListRepository,
       TYPES.MemberRepository,
@@ -935,6 +939,22 @@ const usecase = [
         unitWork,
       ),
   },
+    {
+    provide: TYPES.GetAllTasksWithIdsUsecase,
+    inject: [
+      TYPES.TaskRepository,
+      TYPES.UnitWork
+    ],
+    useFactory: (
+      taskRepo: TaskRepository,
+      unitWork: UnitWorkMongo,
+    ) =>
+      new GetAllTasksWithIdsUsecase(
+        taskRepo,
+        unitWork
+      ),
+  }
+  ,
   {
     provide: TYPES.GetAllTaskUsecase,
     inject: [TYPES.TaskRepository],

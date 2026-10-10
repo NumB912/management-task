@@ -23,7 +23,7 @@ export interface ITaskRepository extends IRepository<ITaskWithId, string> {
     session?: unknown
   }): Promise<Partial<ITask>[]>
   deleteByPath(path: string, session?: unknown): Promise<boolean>
-
+  findTasksByIds(DTO:{ids:string[],list:string,user:string},session?:unknown):Promise<ITask[]>
   getToday(
     userId: string,
     session?: unknown,

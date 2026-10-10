@@ -12,3 +12,4 @@ export interface IPomodoroModel {
   totalDuration:number,
   created_at: Date
 }
+
