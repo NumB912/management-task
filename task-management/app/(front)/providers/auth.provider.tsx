@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import useUserState from "../states/user/user.state";
+import useUserState from "../feature/store/user/user.state";
 
 export function AuthProvider({
   children,

@@ -1,7 +1,7 @@
 import { differenceInCalendarDays, differenceInCalendarMonths, differenceInCalendarWeeks, eachDayOfInterval, endOfWeek, format, isSameDay, isToday, startOfDay, startOfWeek } from "date-fns";
 import React, { useMemo } from "react";
 import HourGrid from "./hour/hourGrid";
-import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import { formatDateVi } from "@/app/(front)/utils/getDayOfMonth.utils";
 import { IRuleModel, ITaskModel } from "@/app/(front)/model";
@@ -76,65 +76,6 @@ const expandForWeek = (week: Date[], tasks: ITaskModel[]): ITaskModel[] =>
       });
   });
 
-const segments = (week: Date[], tasks: ITaskModel[]): Segment[] => {
-  const startDayOfWeek = week[0];
-  const endDayOfWeek = week[6];
-  const taskPushRepeat = expandForWeek(week,tasks)
-  const multiDayTasks = taskPushRepeat.filter((t) => {
-    const start = t.rule?.start_date;
-    const end = t.rule?.end_date ?? start;
-    if (!start || !end) return false;
-    return (
-      compareDate(start, endDayOfWeek) &&
-      new Date(start).getTime() <= new Date(end).getTime() &&
-      compareDate(startDayOfWeek, end)
-    );
-  });
-
-  multiDayTasks.sort((a, b) => {
-    const aStart = new Date(a.rule?.start_date!).getTime();
-    const bStart = new Date(b.rule?.start_date!).getTime();
-    if (aStart !== bStart) return aStart - bStart;
-    const aLen =
-      new Date(a.rule?.end_date ?? a.rule.start_date!).getTime() - aStart;
-    const bLen =
-      new Date(b.rule?.end_date ?? b.rule.start_date!).getTime() - bStart;
-    return bLen - aLen;
-  });
-
-  const lanes: boolean[][] = [];
-  const resultArray: Segment[] = [];
-
-  multiDayTasks.forEach((task) => {
-    const start = new Date(task.rule.start_date!);
-    const end = new Date(task.rule.end_date ?? task.rule.start_date!);
-    const clampedEnd =
-      endDayOfWeek.getTime() >= end.getTime() ? end : endDayOfWeek;
-    const clampedStart =
-      startDayOfWeek.getTime() <= start.getTime() ? start : startDayOfWeek;
-
-    const colStart = week.findIndex((d) => isSameDay(d, clampedStart));
-    const colEnd = week.findIndex((d) => isSameDay(d, clampedEnd));
-    const colSpan = colEnd - colStart + 1;
-    if (colStart === -1 || colEnd === -1) return;
-
-    const span = colEnd - colStart + 1;
-    let d = lanes.findIndex((lane) =>
-      Array.from({ length: span }).every((_, i) => !lane[colStart + i]),
-    );
-    if (d === -1) {
-      d = lanes.length;
-      lanes.push(new Array(7).fill(false));
-    }
-    for (let i = colStart; i <= colEnd; i++) lanes[d][i] = true;
-
-    const colSpanBool = new Array(7).fill(false);
-    for (let i = colStart; i <= colEnd; i++) colSpanBool[i] = true;
-
-    resultArray.push({ task, colSpan: colSpan, index: d, colStart });
-  });
-  return resultArray.sort((a, b) => a.index - b.index);
-};
 
 function WeekView({ currentDate,onCreateTask }: DayViewProps) {
   const days = useMemo(() => {
@@ -142,6 +83,8 @@ function WeekView({ currentDate,onCreateTask }: DayViewProps) {
   const end = endOfWeek(currentDate);
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
+
+  const colorIndex = useWorkspaceStore(useShallow((state)=>state.colorIndex))
   const taskIndex = useWorkspaceStore(useShallow((state)=>state.taskIndex))
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
@@ -172,7 +115,7 @@ function WeekView({ currentDate,onCreateTask }: DayViewProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <HourGrid tasks={Object.values(taskIndex)} type="Week" days={days} onHandle={onCreateTask!}/>
+        <HourGrid tasks={Object.values(taskIndex)} type="Week" days={days} onHandle={onCreateTask!} colors={colorIndex??{}}/>
       </div>
 
     </div>

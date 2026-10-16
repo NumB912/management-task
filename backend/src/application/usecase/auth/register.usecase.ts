@@ -22,7 +22,7 @@ export class RegisterEmailUsecase implements IUsecase<void> {
         email: registerForm.email
       });
       if (user) {
-        throw new AppError("UNVALID", "NgÆ°á»i dÃ¹ng Ä‘Ã£ tá»“n táº¡i vui lÃ²ng Ä‘Äƒng nháº­p", 400);
+        throw new AppError("UNVALID", "Người dùng đã tồn tại", 400);
       }
       await this.unitWork.startTransaction()
       const session = await this.unitWork.getSession()
@@ -46,7 +46,7 @@ export class RegisterEmailUsecase implements IUsecase<void> {
       await this.unitWork.rollBackTransaction()
       throw new AppError(
         error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lá»—i trong quÃ¡ trÃ¬nh Ä‘Äƒng kÃ½",
+        error.message ?? "Lỗi trong quá trình thực thi",
         error.status ?? 500,
       );
     }

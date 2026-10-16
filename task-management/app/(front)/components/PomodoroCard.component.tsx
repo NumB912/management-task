@@ -248,7 +248,6 @@ export function PomodoroSessionCard({ session }: PomodoroSessionCardProps) {
                             </div>
                           </div>
 
-                          {/* Chi tiết mở rộng khi click vào item */}
                           {isSelected && (
                             <div className="mt-2.5 pt-2.5 border-t border-border/50 space-y-2 animate-in fade-in-50 duration-150">
                               <div className="grid grid-cols-3 gap-2 p-2 rounded-md bg-background/80 border border-border/50 text-center">

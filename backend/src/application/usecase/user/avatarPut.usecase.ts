@@ -22,23 +22,29 @@ interface IPutAvatarDTO {
   };
 }
 
-export class PutAvatarUsecase implements IUsecase<void> {
+export class PutAvatarUsecase implements IUsecase<string> {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly publisher: IPublisher,
     private readonly unitwork: IUnitWork,
   ) {}
 
-  async execute({ userId, file }: IPutAvatarDTO): Promise<void> {
+  async execute({ userId, file }: IPutAvatarDTO): Promise<string> {
     if (!ALLOWED_MIME.includes(file.mimetype)) {
       throw new AppError('INVALID_FILE', 'Định dạng ảnh không hợp lệ', 400);
     }
     if (file.size > MAX_SIZE) {
       throw new AppError('INVALID_FILE', 'Ảnh quá lớn (tối đa 5MB)', 400);
     }
-    const ext = path.extname(file.originalName).toLowerCase();
-    const fileName = `avatar-${Date.now()}${ext}`;
-    const newAvatar = `/avatars/${userId}/${fileName}`;
+    const EXT_BY_MIME: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+
+    const ext = EXT_BY_MIME[file.mimetype];
+    const fileName = `avatar-${Date.now()}.${ext}`;
+    const newAvatar = `avatars/${userId}/${fileName}`;
     await this.unitwork.startTransaction();
     try {
       const session = this.unitwork.getSession();
@@ -59,9 +65,11 @@ export class PutAvatarUsecase implements IUsecase<void> {
         buffer: file.buffer.toString('base64'),
         mimeType: file.mimetype,
         originalName: file.originalName,
-        fileName:`uploads/${fileName}`,
+        fileName: `uploads/${fileName}`,
         size: file.size,
       },
     });
+
+    return newAvatar;
   }
 }

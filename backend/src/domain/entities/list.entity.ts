@@ -14,6 +14,7 @@ export interface IList {
     tasks:ITask[],
     isShareList:boolean,
     shared_tags: string[]
+    color:string
     created_at: Date,
     updated_at?: Date,
     deleted_at?: Date

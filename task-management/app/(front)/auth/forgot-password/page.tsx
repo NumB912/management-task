@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+import { AuthBackLink } from "@/app/(front)/components/auth/authBackLink";
 import { Button } from "@/app/(front)/components/ui/button"
 import { Input } from "@/app/(front)/components/ui/input"
 import { Label } from "@/app/(front)/components/ui/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/app/(front)/components/ui/card"
-import { Mail, Loader2, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react"
+import { Mail, Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { axiosInstance } from "../../lib/axios"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -21,17 +22,9 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/v1/auth/sendResetPassword", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || "Không thể gửi email")
-      }
+     await axiosInstance.post("/auth/send/email/password",{
+      email:email
+     });
 
       setSuccess(true)
     } catch (err) {
@@ -43,7 +36,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-transparent p-4">
-      <Card className="w-full min-w-md shadow-2xl/20 border-0">
+      <Card className="w-full max-w-md shadow-2xl/20 border-0">
+        <AuthBackLink />
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 size-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Mail className="h-6 w-6 text-primary" />
@@ -103,13 +97,6 @@ export default function ForgotPasswordPage() {
               </Button>
             </form>
           )}
-
-          <Button variant="outline" className="w-full p-5" asChild>
-            <Link href="/auth/login">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Quay lại đăng nhập
-            </Link>
-          </Button>
         </CardContent>
       </Card>
     </div>

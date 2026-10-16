@@ -28,6 +28,7 @@ export function CheckPermissionListMiddleware(
         if (!user || !listId) {
           throw new ForbiddenException('Không có quyền truy cập');
         }
+
         const method = req.method as permissionEntity.HttpMethod;
         const allowed = await this.usecase.execute(
           user.id,

@@ -10,7 +10,7 @@ import { Label } from "@/app/(front)/components/ui/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/app/(front)/components/ui/card"
 import { Mail, Lock, AlertCircle, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import useUserState from "../../states/user/user.state"
+import useUserState from "../../feature/store/user/user.state"
 
 function getLoginErrorMessage(error: unknown): string {
   const err = error as {

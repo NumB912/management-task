@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+import { AuthBackLink } from "@/app/(front)/components/auth/authBackLink";
 import { Button } from "@/app/(front)/components/ui/button"
 import { Input } from "@/app/(front)/components/ui/input"
 import { Label } from "@/app/(front)/components/ui/label"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/app/(front)/components/ui/card"
-import { Mail, Loader2, AlertCircle, ArrowLeft } from "lucide-react"
+import { Mail, Loader2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { axiosInstance } from "../../lib/axios"
 export default function SendRegisterPage() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -20,15 +21,10 @@ export default function SendRegisterPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/auth/sendOtp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      })
-      if (!response.ok) throw new Error("Failed to send reset email")
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      const {email:emailResponse} = await response.json()
+     const { data } = await axiosInstance.post("/auth/send/email/otp",{
+      email:email
+     });
+      const {email:emailResponse} = data
       window.location.href = `/auth/otp?email=${emailResponse}`
       setSuccess(true)
     } catch {
@@ -40,7 +36,8 @@ export default function SendRegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full min-w-md  shadow-2xl/20 border-0">
+      <Card className="w-full max-w-md shadow-2xl/20 border-0">
+        <AuthBackLink />
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Gửi yêu cầu đăng ký</CardTitle>
           <CardDescription className="mt-2">
@@ -94,26 +91,6 @@ export default function SendRegisterPage() {
               </Button>
             </form>
           )}
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Hoặc</span>
-            </div>
-          </div>
-
-          <Button
-            variant="outline"
-            className="w-full p-5 focus:transition-all focus:scale-95"
-            asChild
-          >
-            <Link href="/auth/login">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Quay lại đăng nhập
-            </Link>
-          </Button>
         </CardContent>
       </Card>
     </div>

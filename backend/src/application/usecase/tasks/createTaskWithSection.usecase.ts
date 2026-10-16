@@ -62,11 +62,11 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
           path: path,
           list: listId,
           id:data.id,
-          rule:data.rule.id
+          rule:data.rule.id,
+          color: data.color ?? pickRandomColor(),
         },
         session,
       );
-
       const getTagsInList = await this.ListRepository.findById(listId, session);
       const listTag = getTagsInList?.shared_tags.map((tag) => tag.toString()) ?? [];
       const ShareTag = HaveTag.map((tag) => tag.name) ?? [];
@@ -85,7 +85,6 @@ export class CreateTaskWithSection implements IUsecase<Partial<ITaskWithId>> {
           taskId: task.id,
           rule: {
             ...rule,
-            color: rule.color ?? pickRandomColor(),
             tags: [...tagCreateList, ...TagInlist],
             task: task.id,
             path: path,

@@ -73,9 +73,7 @@ export class MembersController {
     @Param('listId') listId: string,
     @Body() body: { status: InviteStatus },
   ) {
-
-
-    console.log(body)
+    console.log(req.user)
     const data = await this.statusInviteUC.execute({
       listId,
       email: req.user.email,

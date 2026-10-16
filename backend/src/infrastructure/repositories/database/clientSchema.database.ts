@@ -6,12 +6,11 @@ import {
   IMemberDocument,
   INotificationDocument,
   IColorDocument,
-  pomodoroDocument,
   RuleDocument,
   ISectionDocument,
   TagDocument,
   TaskDocument,
-  UserDocument,
+  
 } from "./schema/index.schema.js";
 import {
   FilterSchema,

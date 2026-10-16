@@ -97,11 +97,7 @@ export class DeleteListUsecase implements IUsecase<IListWithId | null> {
           { id: list.id, name: list.name },
           recipientIds,
           userId,
-          {
-            id:user?.id,
-            name:user?.name,
-            avatar:user?.avatar??null
-          }
+          user?.id
         );
       } catch (error) {
         console.error("Gá»­i thÃ´ng bÃ¡o xÃ³a list tháº¥t báº¡i:", error);
@@ -115,11 +111,7 @@ export class DeleteListUsecase implements IUsecase<IListWithId | null> {
     payload: ListDeletePayload,
     userIds: string[],
     userId: string,
-    actor?: {
-      id?:string,
-      name?:string,
-      avatar?:string|null
-    },
+    actor?: string,
   ) {
     this.publisher.pub("list.exchange", "list.delete", "direct", {
       event: LIST_DELETE_EVENT,
@@ -127,14 +119,10 @@ export class DeleteListUsecase implements IUsecase<IListWithId | null> {
       userIds,
     });
 
-    this.pushNotification.push(userIds, LIST_DELETE_NOTIFICATION, {
+    this.pushNotification.push(userIds??[], LIST_DELETE_NOTIFICATION, {
       listId: payload.id,
       listName: payload.name,
-      user: {
-        id: actor?.id ?? userId,
-        name: actor?.name,
-        avatar: actor?.avatar,
-      },
+      user:actor??userId
     });
   }
 }

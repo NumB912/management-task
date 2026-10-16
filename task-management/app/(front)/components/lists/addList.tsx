@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { listApi } from "../../feature/api/list/list.api";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import { useCreateList } from "../../feature/hook/useListMutation.hook";
 

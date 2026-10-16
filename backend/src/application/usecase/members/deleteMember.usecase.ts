@@ -5,6 +5,8 @@ import {
   IListRepository,
   IUserRepository,
   IPublisher,
+  IMember,
+  IMemberWithId,
 } from "@/domain";
 import { IRealtimeNotifier } from "@/domain/message";
 import { IMemberRepository } from "@/domain/repositories/IMember.repository";
@@ -22,9 +24,9 @@ export class DeleteMemberUsecase implements IUsecase<void> {
   ) {}
 
   async execute(deleteMemberDTO: {
-    email: string;   // người bị xóa / removed member's email
+    email: string;
     listId: string;
-    userId: string;  // người xóa / the user performing the removal
+    userId: string;
   }): Promise<void> {
     const { email, listId, userId } = deleteMemberDTO;
 
@@ -33,6 +35,7 @@ export class DeleteMemberUsecase implements IUsecase<void> {
     let removedUserId: string | undefined;
     let recipientIds: string[] = [];
     let notificationId:string[] = []
+    let member:IMemberWithId|null=null
     await this.unitWork.startTransaction();
     const session = await this.unitWork.getSession();
 
@@ -46,8 +49,8 @@ export class DeleteMemberUsecase implements IUsecase<void> {
         throw new AppError("NOT_FOUND", "Không tìm thấy danh sách", 404);
       }
 
-      const member = await this.memberRepository.findOne(
-        { list: listId, email, status: "accept" },
+      member = await this.memberRepository.findOne(
+        { list: listId, email:email},
         session,
       );
       if (!member) {
@@ -89,6 +92,10 @@ export class DeleteMemberUsecase implements IUsecase<void> {
       );
     }
 
+    if(member.status=="deny"){
+      return
+    }
+
     void this.notifyRemoved({
       listId,
       listName,
@@ -112,10 +119,7 @@ export class DeleteMemberUsecase implements IUsecase<void> {
     const { listId, listName, actorId, memberEmail,notificationIds, removedUserId, recipientIds } = params;
 
     try {
-      const user = await this.userRepository.findById(actorId);
-      const actor = { id: String(actorId), name: user?.name, avatar: user?.avatar };
       const tasks: Promise<unknown>[] = [];
-      console.log(notificationIds)
       if (recipientIds.length > 0) {
 
         tasks.push(
@@ -134,9 +138,9 @@ export class DeleteMemberUsecase implements IUsecase<void> {
             this.realtimeNotifier.push(notificationIds, REMOVE_MEMBER_NOTIFICATION, {
               listId,
               listName,
-              user: actor,                                  
+              user:actorId,                                  
               removedMember: { id: removedUserId, email: memberEmail }, 
-            }),
+            },{}),
           ))
       }
 
@@ -147,7 +151,7 @@ export class DeleteMemberUsecase implements IUsecase<void> {
             this.publisher.pub("memberExchange", "remove.own.member", "direct", {
               userIds: [removedUserId],
               event: REMOVE_MEMBER_OWN_EVENT,
-              data: { listId, listName, removedBy: actor },
+              data: { listId, listName, removedBy: actorId },
             }),
           ),
         );

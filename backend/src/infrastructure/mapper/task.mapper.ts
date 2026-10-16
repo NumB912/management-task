@@ -25,6 +25,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       updated_at: doc.updated_at ?? undefined,
       deleted_at: doc.deleted_at ?? undefined,
       description: doc.description,
+      color: doc.color,
       list:doc.list.toString(),
       done_at: doc.done_at,
       order: doc.order,
@@ -42,6 +43,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
     if (doc.parent) partial.parent = doc.parent?.toString();
     if (doc.children) partial.children = doc.children.map(child => child.toString());
     if (doc.description) partial.description = doc.description;
+    if (doc.color) partial.color = doc.color;
     if (doc.list) partial.list = doc.list.toString()
     if (doc.done_at) partial.done_at = doc.done_at;
     if (doc.order) partial.order = doc.order;
@@ -66,6 +68,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       deleted_at: doc.deleted_at ?? undefined,
       list:doc.list?.toString(),
       description: doc.description,
+      color: doc.color,
       done_at: doc.done_at,
       order: doc.order,
       rule: doc.rule ? this.ruleMapper.toDomainPopulate(doc.rule) : undefined,
@@ -86,6 +89,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
     if (doc.parent) partial.parent = this.toDomain(doc.parent as ITaskDocument) as unknown as ITaskWithId;
     if (doc.children) partial.children = doc.children.map(child => this.toDomain(child as ITaskDocument)) as unknown as ITaskWithId[];
     if (doc.description) partial.description = doc.description;
+    if (doc.color) partial.color = doc.color;
     if (doc.list) partial.list = doc.list.toString();
     if (doc.done_at) partial.done_at = doc.done_at;
     if (doc.order) partial.order = doc.order;
@@ -114,6 +118,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       order: entity.order,
       path: entity.path,
       description: entity.description,
+      color: entity.color,
       status: entity.status,
       rule: entity.rule ? new Types.ObjectId(entity.rule) : undefined,
       done_at: entity.done_at,
@@ -132,6 +137,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
     if (entity.path) update.path = entity.path;
     if (entity.description)
       update.description = entity.description;
+    if (entity.color !== undefined) update.color = entity.color;
     if (entity.status) update.status = entity.status;
     if (entity.order) update.order = entity.order;
 
@@ -181,6 +187,7 @@ export class TaskMapper implements IMapper<ITaskDocument, ITaskWithId, ITaskPopu
       updated_at: entity.updated_at,
       deleted_at: entity.deleted_at,
       description: entity.description,
+      color: entity.color,
 
       list:new Types.ObjectId(entity.list),
       done_at: entity.done_at,

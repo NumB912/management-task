@@ -27,7 +27,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import { Ipriority, ISpecials, IStatus } from "../../model/type/type";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
@@ -45,8 +45,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PRIORITY_OPTIONS, SPECIALS_OPTIONS, STATUS_OPTIONS } from "./editFilter.filters";
 import ObjectID from "bson-objectid";
-import useUserState from "../../states/user/user.state";
+import useUserState from "../../feature/store/user/user.state";
 import { IFilterModel } from "../../model/filter.model";
+import ColorPicker from "../color/colorPicker.component";
+import { DEFAULT_COLORS } from "../../model/mod/color.config";
 
 interface addFilterDialogProps {
   open: boolean;
@@ -55,6 +57,7 @@ interface addFilterDialogProps {
 
 export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps>) {
   const [name, setName] = useState("");
+  const [color, setColor] = useState(DEFAULT_COLORS[0]);
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Ipriority | null>(null);
   const [specials, setSpecials] = useState<ISpecials>("none");
@@ -130,6 +133,7 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
 
   const resetForm = () => {
     setName("");
+    setColor(DEFAULT_COLORS[0]);
     setDescription("");
     setPriority(null);
     setSpecials("none");
@@ -164,8 +168,10 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
       return;
     }
     if (dateError) return;
+    const id = new ObjectID().toString();
     addFilter({
       name: trimmed,
+      color,
       description: description.trim() || undefined,
       priority: priority,
       specials,
@@ -173,11 +179,12 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
       start_date: startDate,
       end_date: endDate,
       tags: selectedTags ?? [],
-      id: new ObjectID().toString(),
+      id,
       user:user?.id!
     })
     mutate({
       name: trimmed,
+      color,
       description: description.trim() || undefined,
       priority: priority,
       specials,
@@ -185,7 +192,7 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
       start_date: startDate,
       end_date: endDate,
       tags: selectedTags ?? [],
-      id: new ObjectID().toString(),
+      id,
       user:user?.id!
     });
   };
@@ -208,6 +215,10 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
 
           <div className="flex gap-5 py-4">
             <div className="flex flex-col gap-3 py-4 w-full">
+              <div className="grid gap-2">
+                <Label>Màu filter</Label>
+                <ColorPicker value={color} onChange={setColor} />
+              </div>
               <div className="grid gap-2">
               <Label htmlFor="name">Tên filter</Label>
               <Input

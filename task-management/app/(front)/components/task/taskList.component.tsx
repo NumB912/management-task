@@ -6,9 +6,10 @@ import { ChevronLeft } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
 import { Task } from "./taskCard";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
+import { IStatus } from "../../model/type/type";
 
 interface TaskSectionProp {
   tasks: string[];
@@ -83,7 +84,7 @@ const virtualizer = useVirtualizer({
     const type = virtualItemsData[index]?.type;
     return type === "completed-header" || type === "toggle-more" ? 40 : 56;
   },
-  overscan: 5,
+  overscan:8
 });
 
   const virtualItems = virtualizer.getVirtualItems();
@@ -93,7 +94,7 @@ const virtualizer = useVirtualizer({
   }
 
   return (
-    <div ref={parentRef} className={cn("w-full max-h-150 overflow-y-auto overflow-x-hidden",className)}>
+    <div ref={parentRef} className={cn("w-full max-h-150 overflow-y-auto overflow-x-clip",className)}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -173,9 +174,8 @@ const virtualizer = useVirtualizer({
               className={wrapperClass}
               style={style}
             >
-              <div className="items-center bg-white w-full mt-2 rounded-md border border-gray-200 shadow">
+        
                 <Task taskId={item.id} depth={0} />
-              </div>
             </div>
           );
         })}

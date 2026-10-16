@@ -9,7 +9,6 @@ export interface IRuleModel {
   endTimer?:number|null;
   repeat: IRepeat;
   tags:string[],
-  color?:string,
   priority?:1|2|3|4,
 }
 

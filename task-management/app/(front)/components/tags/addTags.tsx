@@ -14,11 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import { tagApi } from "../../feature/api/tags/tag.api";
 import { randomUUID } from "crypto";
 import ObjectID from "bson-objectid";
+import ColorPicker from "../color/colorPicker.component";
+import { DEFAULT_COLORS } from "../../model/mod/color.config";
 
 interface addTagsDialogProps {
   open:boolean;
@@ -27,6 +29,7 @@ interface addTagsDialogProps {
 
 export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
   const [name, setName] = useState("");
+  const [color, setColor] = useState(DEFAULT_COLORS[0]);
   const [error, setError] = useState<string | null>(null);
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
@@ -35,7 +38,6 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
   );
   const addTag = useWorkspaceStore((s)=>s.addTag)
   const remove = useWorkspaceStore((s)=>s.removetagIndex)
-  const changeTagId = useWorkspaceStore((s)=>s.changeIdTag)
   useEffect(() => {
     if (open) {
       setError(null);
@@ -43,7 +45,7 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
   }, [open]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (data: { name: string; id: string }) => {
+    mutationFn: async (data: { name: string; id: string; color: string }) => {
       return await tagApi.create(data);
     },
     onSuccess: () => {
@@ -81,16 +83,15 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
     addTag({
       name:trimmed,
       id:newTagId,
+      color,
     })
     mutate({
       name: trimmed,
-      id: newTagId
+      id: newTagId,
+      color,
     },{
-      onSuccess(data, variables, onMutateResult, context) {
-        changeTagId(data.id,trimmed)
-      },
       onError(error, variables, onMutateResult, context) {
-        remove(newTagId)
+        remove(trimmed)
       }
     });
 
@@ -99,6 +100,7 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
 
   const handleClose = () => {
     setName("");
+    setColor(DEFAULT_COLORS[0]);
     setError(null);
     onClose();
   };
@@ -129,6 +131,10 @@ export function AddTagDialog({ open, onClose }: Readonly<addTagsDialogProps>) {
               {error && (
                 <p className="text-sm text-destructive">{error}</p>
               )}
+            </div>
+            <div className="grid gap-2">
+              <span className="text-sm font-medium">Màu thẻ</span>
+              <ColorPicker value={color} onChange={setColor} />
             </div>
           </div>
 

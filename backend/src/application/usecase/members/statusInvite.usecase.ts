@@ -175,7 +175,7 @@ export class StatusInviteUsecase implements IUsecase<boolean> {
         this.realtimeNotifier.push(userIds, `${status}-member-notification`, {
           listId: String(listId),
           listName: list.name,
-          user: actor,
+          user: actor.id,
           status,
         }),
       ]);

@@ -1,4 +1,5 @@
-import { IPomodoro } from "./pomodoro.model"
+import { IPomodoroModel } from "./pomodoro.model"
+
 
 export interface PauseChartPoint {
   label: string  
@@ -16,7 +17,7 @@ function minutesSinceMidnight(date: Date) {
   return date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60
 }
 
-export function pomodoroToTimelineData(pomo: IPomodoro): PauseRangePoint[] {
+export function pomodoroToTimelineData(pomo: IPomodoroModel): PauseRangePoint[] {
   return pomo.progress
     .map(({ startPause, duration }) => {
       const start = new Date(startPause)

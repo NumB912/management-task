@@ -28,6 +28,9 @@ export class List extends BaseSchema {
   @Prop({ type: Boolean, default: false })
   isShareList: boolean;
 
+  @Prop({ type: String, default: '#3B82F6' })
+  color:string
+
   @Prop({ type: Number, default: 0 })
   order: number;
 

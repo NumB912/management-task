@@ -13,6 +13,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     return {
       id: doc._id.toString(),
       name: doc.name,
+      color: doc.color ?? '#3B82F6',
       user: doc.user.toString(),
       tags: doc.tags ? doc.tags.map((tag) => tag.toString()) : [],
       start_date: doc.start_date,
@@ -32,6 +33,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     const partial: Partial<IFilterWithId> = {};
     if (doc._id) partial.id = doc._id.toString();
     if (doc.name) partial.name = doc.name;
+    if (doc.color) partial.color = doc.color;
     if (doc.user) partial.user = doc.user.toString();
     if (doc.tags) partial.tags = doc.tags.map(tag => tag.toString());
     if (doc.start_date) partial.start_date = doc.start_date;
@@ -50,6 +52,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     return {
       id: doc._id.toString(),
       name: doc.name,
+      color: doc.color ?? '#3B82F6',
       user: doc.user.toString(),
       tags: doc.tags,
       start_date: doc.start_date,
@@ -68,6 +71,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     const partial: Partial<IFilter> = {};
     if (doc._id) partial.id = doc._id.toString();
     if (doc.name) partial.name = doc.name;
+    if (doc.color) partial.color = doc.color;
     if (doc.user) partial.user = doc.user.toString();
     if (doc.tags) partial.tags = doc.tags;
     if (doc.start_date) partial.start_date = doc.start_date;
@@ -94,6 +98,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     return {
       _id: new Types.ObjectId(entity.id),
       name: entity.name,
+      color: entity.color ?? '#3B82F6',
       user: new Types.ObjectId(entity.user),
       tags: entity.tags ? entity.tags : [],
       start_date: entity.start_date,
@@ -112,6 +117,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     const update: Partial<IFilterDocument> = {};
     if (entity.id !== undefined) update._id = new Types.ObjectId(entity.id);
     if (entity.name !== undefined) update.name = entity.name;
+    if (entity.color !== undefined) update.color = entity.color;
     if (entity.tags !== undefined) update.tags = entity.tags;
     if (entity.user !== undefined) update.user = new Types.ObjectId(entity.user);
     if (entity.start_date !== undefined) update.start_date = entity.start_date;
@@ -127,6 +133,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     return {
       _id: new Types.ObjectId(entity.id),
       name: entity.name,
+      color: entity.color ?? '#3B82F6',
       user: new Types.ObjectId(entity.user),
       tags: entity.tags ? entity.tags : [],
       start_date: entity.start_date,
@@ -145,6 +152,7 @@ export class FilterMapper implements IMapper<IFilterDocument, IFilterWithId, IFi
     const update: Partial<IFilterDocument> = {};
     if (entity.id) update._id = new Types.ObjectId(entity.id);
     if (entity.name) update.name = entity.name;
+    if (entity.color !== undefined) update.color = entity.color;
     if (entity.tags) {
       update.tags = entity.tags
     }

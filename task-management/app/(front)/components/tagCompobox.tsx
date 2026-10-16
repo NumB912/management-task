@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { ITagModel } from "../model";
-import { useWorkspaceStore } from "../states/workspace.state";
+import { useWorkspaceStore } from "../feature/store/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 
 export interface TagComboboxProps {

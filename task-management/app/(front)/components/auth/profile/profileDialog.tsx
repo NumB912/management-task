@@ -15,11 +15,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Label } from "../../ui/label";
-import { useUpdateProfile } from "@/app/(front)/feature/hook/useUpdateProfile.Mutate";
-import useUserState from "@/app/(front)/states/user/user.state";
+import {
+  useDeleteFile,
+  useUpdateProfile,
+  useUploadFile,
+} from "@/app/(front)/feature/hook/useUpdateProfile.Mutate";
+import useUserState from "@/app/(front)/feature/store/user/user.state";
 import { MAX_VALUE_REG } from "recharts/types/util/ChartUtils";
 import AvatarEditor from "../../avatar.component";
-import { FileConfig } from "@/app/(front)/config/file.config";
 export function getInitials(name: string, email: string) {
   const parts = (name.trim() || email).split(/\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -36,7 +39,7 @@ export interface ProfileDialogProps {
   email: string;
   avatar?: string | null;
   children?: React.ReactNode;
-   open?: boolean;
+  open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onLogout?: () => void | Promise<void>;
 }
@@ -52,58 +55,81 @@ const ProfileDialog = ({
 }: ProfileDialogProps) => {
   const nameId = useId();
   const [draft, setDraft] = useState(name);
-  const [touched, setTouched] = useState(false);
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const {setUser} = useUserState()
+  const { setUser, user } = useUserState();
   const [loggingOut, setLoggingOut] = useState(false);
-  const {mutate:update} = useUpdateProfile()
-  
-
+  const { mutate: update } = useUpdateProfile();
+  const { mutateAsync: upLoadFile } = useUploadFile();
+  const {mutateAsync:deleteFile} = useDeleteFile()
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
     setDraft(value);
-    setTouched(true);
     setStatus("idle");
   }
 
-  async function handleUpdateFile(file:File){
-    
-  }
-
-  async function handleSubmit(){
-
+  async function handleUpdateFile(file: File) {
+    const fileReview = URL.createObjectURL(file);
+    const prevAvatar = user?.avatar;
     setUser({
-      name:draft
-    })
-    update({
-      name:draft
-    },{
-      onError(error, variables, onMutateResult, context) {
-        
-      },
-      onSuccess(data, variables, onMutateResult, context) {
-        
-      },
-    })
-  }
-  
-  useEffect(()=>{
-    if(draft.length==0||draft.length >= NAME_MAX) return
-    const fn = setTimeout(()=>{
-        handleSubmit()
-    },DEBOUNCE_MS)
+      avatar: fileReview,
+    });
 
-    return ()=>{
-      clearTimeout(fn)
+    try {
+       await upLoadFile(file);
+    } catch (error) {
+      setUser({
+        avatar: prevAvatar,
+      });
+      URL.revokeObjectURL(fileReview)
+      console.error("Lỗi trong quá trình cập nhật hình");
     }
-  },[draft])
+  }
+
+  async function handleDeleteFile(){
+    const prevAvatar = user?.avatar;
+    setUser({
+      avatar:undefined
+    })  
+    
+    try {
+      await deleteFile();
+    } catch (error) {
+      setUser({
+        avatar: prevAvatar,
+      });
+      
+      console.error("Lỗi trong quá trình cập nhật hình");
+    }
+
+  }
+
+  async function handleSubmit() {
+    setUser({
+      name: draft,
+    });
+    update(
+      {
+        name: draft,
+      },
+    );
+  }
+
+  useEffect(() => {
+    if (draft.length == 0 || draft.length >= NAME_MAX) return;
+    const fn = setTimeout(() => {
+      handleSubmit();
+    }, DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(fn);
+    };
+  }, [draft]);
 
   function handleOpenChange(next: boolean) {
     if (next) {
       setDraft(name);
-      setTouched(false);
       setStatus("idle");
-    } 
+    }
     onOpenChange?.(next);
   }
 
@@ -117,8 +143,6 @@ const ProfileDialog = ({
       setLoggingOut(false);
     }
   }
-
-
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -135,10 +159,15 @@ const ProfileDialog = ({
         <div className="flex items-center gap-10 py-2">
           <div className="flex flex-col gap-2 items-center">
             <div className="w-full">
-                <AvatarEditor name={name} avatar={avatar} className="" onRemove={()=>{}} onUpload={()=>{}}/>
-
+              <AvatarEditor
+                name={name}
+                avatar={avatar}
+                className=""
+                onRemove={handleDeleteFile}
+                onUpload={handleUpdateFile}
+              />
             </div>
-           <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2">
               <div className="text-muted-foreground text-xs">
                 Hình ảnh chỉ được có kích cỡ từ 0Mb tới 4Mb thôi
               </div>
@@ -161,7 +190,9 @@ const ProfileDialog = ({
                 aria-describedby={`${nameId}-hint`}
               />
               <div className="flex w-full justify-end">
-                  <span className="text-muted-foreground text-sm">{draft.length}/{NAME_MAX}</span>
+                <span className="text-muted-foreground text-sm">
+                  {draft.length}/{NAME_MAX}
+                </span>
               </div>
             </div>
 

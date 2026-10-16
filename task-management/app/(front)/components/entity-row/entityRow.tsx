@@ -20,6 +20,7 @@ interface EntityRowProps {
   name: string;
   actionGroups: MenuActionGroup[];
   link: string;
+  color:string;
   count?: number;
 }
 
@@ -28,6 +29,7 @@ export default function EntityRow({
   name,
   actionGroups,
   link,
+  color,
   count = 0,
 }: Readonly<EntityRowProps>) {
   const pathName = usePathname();
@@ -49,7 +51,9 @@ export default function EntityRow({
           >
             <span className="flex items-center gap-2 pl-1">
               {icon}
-              <span className="flex items-center gap-1 text-sm">{name}</span>
+              <span className="flex items-center gap-1 text-sm" style={{ 
+                color:isActive?color:"black"
+               }}>{name}</span>
             </span>
             <span className="flex items-center gap-2 relative">
                           <span className="group-hover/list-item:hidden flex-1 absolute right-1 text-sm text-neutral-600">

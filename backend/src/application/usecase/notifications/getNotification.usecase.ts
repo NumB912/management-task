@@ -11,7 +11,7 @@ export class GetNotificationsUsecase implements IUsecase<
       if (!userId) {
         throw new AppError(
           'NOT_FOUND',
-          'LÃ´Ìƒi khÃ´ng tiÌ€m thÃ¢Ìy ngÆ°Æ¡Ì€i duÌ€ng',
+          'Không thấy dữ liêu',
           404,
         );
       }
@@ -24,7 +24,7 @@ export class GetNotificationsUsecase implements IUsecase<
       if (error instanceof AppError) {
         throw error;
       }
-      throw new AppError('ERROR', 'Lá»—i trong quÃ¡ trÃ¬nh thá»±c thi', 500);
+      throw new AppError('ERROR', 'Lỗi trong quá trình thực thi', 500);
     }
   }
 }

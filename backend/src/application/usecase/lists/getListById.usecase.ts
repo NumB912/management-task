@@ -8,7 +8,7 @@ export class GetListByIdUsecase implements IUsecase<Partial<IList> | null> {
       return list;
     } catch (error) {
       console.error(error);
-      throw new AppError("ERROR", "Lá»—i trong quÃ¡ trÃ¬nh láº¥y danh sÃ¡ch", 500);
+      throw new AppError("ERROR", "Lỗi trong quá trình thực thi", 500);
     }
   }
 }

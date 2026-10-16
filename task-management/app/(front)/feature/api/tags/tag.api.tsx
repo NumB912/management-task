@@ -14,19 +14,19 @@ export const tagApi = {
   },
 
   
-  create: async (data: Pick<ITagModel,"name"|"id">): Promise<ITagModel> => {
+  create: async (data: Pick<ITagModel,"name"|"id"> & { color?: string }): Promise<ITagModel> => {
     const res = await axiosInstance.post<{tag:ITagModel}>('/tags', data);
     return res.data.tag;
   },
 
-  updateOnlyMe: async (id: string, data:Omit<ITagModel,"id">): Promise<ITagModel> => {
-    const res = await axiosInstance.put<{
+  updateOnlyMe: async (id: string, data:Partial<Pick<ITagModel,"name"|"color">>): Promise<ITagModel> => {
+    const res = await axiosInstance.patch<{
       tag:ITagModel
     }>(`/tags/${id}/onlyMe`, data);
     return res.data.tag;
   },
-  updateShareWithMe:async (id: string,data:Omit<ITagModel,"id">): Promise<ITagModel> => {
-    const res = await axiosInstance.put<{
+  updateShareWithMe:async (id: string,data:Partial<Pick<ITagModel,"name"|"color">>): Promise<ITagModel> => {
+    const res = await axiosInstance.patch<{
       tag:ITagModel
     }>(`/tags/${id}/withShare`, data);
     return res.data.tag;

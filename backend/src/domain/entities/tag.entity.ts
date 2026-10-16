@@ -3,6 +3,7 @@ import { IUserWithouPassword } from "./user.entity.js"
 export interface ITag{
     id:string
     name:string
+    color:string
     user:IUserWithouPassword
     isShareTag?:boolean,
     created_at:Date

@@ -21,18 +21,19 @@ import MonthView from "../../components/calendar/evenCalendar/monthCalendar";
 import { ViewMode } from "../../model/type/type";
 import DayView from "../../components/calendar/evenCalendar/dayCalendar";
 import WeekView from "../../components/calendar/evenCalendar/weekCalendar";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import AppDrawer from "../../components/appDrawer.component";
 import CreateEventForm from "../../components/calendar/newTaskDrawer.component";
-import { ICreateTaskModel, IRuleModel } from "../../model";
-import {useCreateTask, useCreateTaskWithSectionObject } from "../../feature/hook/useTaskMutation.hook";
+import { ICreateTaskModel, IRuleModel, ITaskModel } from "../../model";
+import {useCreateTaskWithSectionObject } from "../../feature/hook/useTaskMutation.hook";
 import { useShallow } from "zustand/react/shallow";
 import { DEFAULT_COLORS } from "../../model/mod/color.config";
-import { formatDate, formatDateVi } from "../../utils/getDayOfMonth.utils";
+import {formatDateVi } from "../../utils/getDayOfMonth.utils";
 import ObjectID from "bson-objectid";
+import { useCalendarStore } from "../../feature/store/calendar/calendar.state";
 
 const Page = () => {
-  const [view, setView] = useState<ViewMode>("month");
+  const {View,setView} = useCalendarStore()
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const { inbox } = useWorkspaceStore();
   const listIndex = useWorkspaceStore(useShallow((state)=>state.listIndex))
@@ -46,22 +47,21 @@ const Page = () => {
     repeat: {
       mode: "none",
     },
-    color:DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)],
     start_date: new Date(),
   });
   const goToday = () => setCurrentDate(new Date());
   const goPrev = () => {
-    if (view === "month") setCurrentDate((d) => subMonths(d, 1));
-    if (view === "week") setCurrentDate((d) => subWeeks(d, 1));
-    if (view === "day") setCurrentDate((d) => subDays(d, 1));
+    if (View === "month") setCurrentDate((d) => subMonths(d, 1));
+    if (View === "week") setCurrentDate((d) => subWeeks(d, 1));
+    if (View === "day") setCurrentDate((d) => subDays(d, 1));
   };
   const goNext = () => {
-    if (view === "month") setCurrentDate((d) => addMonths(d, 1));
-    if (view === "week") setCurrentDate((d) => addWeeks(d, 1));
-    if (view === "day") setCurrentDate((d) => addDays(d, 1));
+    if (View === "month") setCurrentDate((d) => addMonths(d, 1));
+    if (View === "week") setCurrentDate((d) => addWeeks(d, 1));
+    if (View === "day") setCurrentDate((d) => addDays(d, 1));
   };
 
-  const viewLabel: Record<ViewMode, string> = {
+  const ViewLabel: Record<ViewMode, string> = {
     month: "Tháng",
     week: "Tuần",
     day: "Ngày",
@@ -75,11 +75,11 @@ const Page = () => {
       children: [],
       list: data.list,
       name: data.name,
+      color:data.color,
       rule: {
         id: idRuleTemp,
         task: idTemp,
         list:data.list,
-        color:data.rule.color,
         end_date:data.rule.end_date,
         endTimer:data.rule.endTimer,
         priority:data.rule.priority,
@@ -100,8 +100,6 @@ const Page = () => {
         task:idTemp
       }
     },{
-      onSuccess(data, variables, onMutateResult, context) {
-      },
       onError(error, variables, onMutateResult, context) {
         removeTaskStore(idTemp)
       },
@@ -157,7 +155,7 @@ const Page = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="rounded-md gap-1">
-                {viewLabel[view]}
+                {ViewLabel[View]}
                 <ChevronDown className="w-3.5 h-3.5" />
               </Button>
             </DropdownMenuTrigger>
@@ -185,14 +183,14 @@ const Page = () => {
         </div>
       </div>
 
-      {view === "month" && <MonthView currentDate={currentDate} onCreateTask={handleOpenCreatetask}/> }
-      {view === "week" && (
+      {View === "month" && <MonthView currentDate={currentDate} onCreateTask={handleOpenCreatetask}/> }
+      {View === "week" && (
         <WeekView
           currentDate={currentDate}
           onCreateTask={handleOpenCreatetask}
         />
       )}
-      {view === "day" && (
+      {View === "day" && (
         <DayView
           currentDate={currentDate}
           onCreateTask={handleOpenCreatetask}
@@ -208,6 +206,7 @@ const Page = () => {
             name: "",
             rule: ruleDefault,
             section: listIndex[inbox!]?.sections[0]??"",
+            color:DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)]
           }}
         />
       </AppDrawer>

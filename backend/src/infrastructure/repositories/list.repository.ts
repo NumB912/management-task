@@ -166,7 +166,6 @@ export class ListRepository
       },
       { $unset: ['sectionIds', 'memberIds'] },
     ]).session(session ?? null);
-    console.log(list)
     return list ? this.ListMapper.toDomainPopulate(list) : null;
   }
   async findListByUser(userId: string): Promise<Partial<IList>[]> {

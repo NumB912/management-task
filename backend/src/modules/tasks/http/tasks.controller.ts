@@ -2,12 +2,9 @@ import {
   DeleteTaskUsecase,
   GetTaskByIdUsecase,
   UpdateRuleUsecase,
-  UpdateStatusUsecase,
   UpdateTaskUsecase,
 } from '@/application';
-import { GetAllTasksWithIdsUsecase } from '@/application/usecase/tasks/findManyWithIds.usecase';
-import { GetTodayUsecase } from '@/application/usecase/tasks/today.usecase.js';
-import { GetUpcomingUsecase } from '@/application/usecase/tasks/upComming.usecase.js';
+import {  UpdateStatusUsecase } from '@/application/usecase/tasks/updateTaskStatus.usecase';
 import { TYPES } from '@/infrastructure/types/dependency.type';
 import type { AuthRequest } from '@/modules/common/types/authRequest.type';
 import {
@@ -24,10 +21,11 @@ import {
 
 type UpdateTaskBody = Parameters<UpdateTaskUsecase['execute']>[0]['data'];
 type UpdateRuleBody = Parameters<UpdateRuleUsecase['execute']>[1];
-type UpdateStatusBody = Parameters<UpdateStatusUsecase['execute']>[0]['data'];
 @Controller('tasks')
 export class TasksController {
   constructor(
+    @Inject(TYPES.GetTaskByIdUsecase)
+    private readonly getTaskByIdUC: GetTaskByIdUsecase,
     @Inject(TYPES.UpdateTaskUsecase)
     private readonly updateTaskUC: UpdateTaskUsecase,
     @Inject(TYPES.DeleteTaskUsecase)
@@ -35,15 +33,28 @@ export class TasksController {
     @Inject(TYPES.UpdateRuleUsecase)
     private readonly updateRuleUC: UpdateRuleUsecase,
     @Inject(TYPES.updateTaskStatusUsecase)
-    private readonly updateStatusUC: UpdateStatusUsecase,
+    private readonly updateStatus:UpdateStatusUsecase
   ) {}
 
 
-  // @Get(':taskId')
-  // async getById(@Param('taskId') taskId: string) {
-  //   const task = await this.getTaskByIdUC.execute(taskId);
-  //   return { message: 'Thành công', task };
-  // }
+  @Get(':taskId')
+  async getById(@Param('taskId') taskId: string) {
+    const task = await this.getTaskByIdUC.execute(taskId);
+    return { message: 'Thành công', task };
+  }
+
+  @Patch('/status')
+  async updateStatusArr(
+    @Req() req: AuthRequest,
+    @Body() body: any,
+  ) {
+
+    await this.updateStatus.execute({
+      data: body,
+      userId: req.user.id,
+    });
+    return { message: 'Thành công' };
+  }
 
   @Patch(':taskId')
   async update(
@@ -75,17 +86,5 @@ export class TasksController {
     return { message: 'Thành công', data };
   }
 
-  @Patch(':taskId/status')
-  async updateStatus(
-    @Req() req: AuthRequest,
-    @Param('taskId') taskId: string,
-    @Body() body: UpdateStatusBody,
-  ) {
-    await this.updateStatusUC.execute({
-      data: body,
-      taskId,
-      userId: req.user.id,
-    });
-    return { message: 'Thành công' };
-  }
+
 }

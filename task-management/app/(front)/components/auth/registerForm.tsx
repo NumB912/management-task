@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { isAxiosError } from "axios";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/app/(front)/components/ui/button";
@@ -16,6 +17,7 @@ import {
 } from "@/app/(front)/components/ui/card";
 import { Lock, User, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { axiosInstance } from "../../lib/axios";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -45,29 +47,38 @@ export default function RegisterForm() {
     setIsLoading(true);
 
     try {
-      const registerResponse = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, name }),
+      await axiosInstance.post("auth/register", {
+        password,email,name
       });
-
-      const data = await registerResponse.json();
-
-      if (!registerResponse.ok) {
-        throw new Error(data.message || "Đăng ký thất bại");
-      }
-
       setSuccess(true);
       setTimeout(() => {
         router.push("/auth/login");
         router.refresh();
       }, 1500);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Không thể tạo tài khoản. Vui lòng thử lại.",
-      );
+      const fallbackMessage = "Không thể tạo tài khoản. Vui lòng thử lại.";
+
+      if (isAxiosError<{ message?: unknown }>(err)) {
+        const message = err.response?.data?.message;
+        const serverMessage = Array.isArray(message)
+          ? message
+              .filter((item): item is string => typeof item === "string")
+              .map((item) => item.trim())
+              .filter(Boolean)
+              .join("; ")
+          : typeof message === "string"
+            ? message.trim()
+            : "";
+
+        setError(
+          serverMessage ||
+            (err.response
+              ? fallbackMessage
+              : "Không thể kết nối đến server. Vui lòng thử lại."),
+        );
+      } else {
+        setError(fallbackMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -88,6 +99,7 @@ export default function RegisterForm() {
         <CardContent className="space-y-4">
           {error && (
             <div
+              role="alert"
               className={cn(
                 "flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg",
               )}

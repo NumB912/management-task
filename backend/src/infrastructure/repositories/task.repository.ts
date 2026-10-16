@@ -54,12 +54,12 @@ export class TaskRepository
     }).session(session ?? null);
 
     if (!isMember) return [];
-      const docs = await this.db.Task.find({
-        _id: {
-          $in: ids.map((id) => new Types.ObjectId(id)),
-        },
-        list: new Types.ObjectId(list)
-      })
+    const docs = await this.db.Task.find({
+      _id: {
+        $in: ids.map((id) => new Types.ObjectId(id)),
+      },
+      list: new Types.ObjectId(list),
+    })
       .populate('rule')
       .lean<ITaskPopulateDocument[]>();
     return docs.map((doc) => this.TaskMapper.toDomainPopulate(doc));
@@ -97,7 +97,22 @@ export class TaskRepository
       .populate('rule')
       .lean()) as unknown as ITaskPopulateDocument;
 
-    return this.TaskMapper.toDomainPopulate(task);
+    return task ? this.TaskMapper.toDomainPopulate(task) : null;
+  }
+
+  async findManyPopulateByIds(
+    ids: string[],
+    session?: ClientSession,
+  ): Promise<ITask[]> {
+    if (ids.length === 0) return [];
+    const tasks = await this.db.Task.find({
+      _id: { $in: ids.map((id) => new Types.ObjectId(id)) },
+      deleted_at: null,
+    })
+      .session(session ?? null)
+      .populate('rule')
+      .lean<ITaskPopulateDocument[]>();
+    return tasks.map((task) => this.TaskMapper.toDomainPopulate(task));
   }
 
   async findTasksByTagForUser(DTO: {

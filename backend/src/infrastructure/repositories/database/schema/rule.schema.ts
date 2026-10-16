@@ -90,9 +90,6 @@ export class Rule extends BaseSchema {
   })
   endTimer?: number;
 
-  @Prop({ type: String, required: true })
-  color: string;
-
   @Prop({ type: Types.ObjectId, required: true, ref: 'task' })
   task: Types.ObjectId;
 }

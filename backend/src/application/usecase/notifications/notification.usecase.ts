@@ -11,7 +11,7 @@ export class RealtimeNotifier implements IRealtimeNotifier {
     private readonly notificationRepository: INotificationRepository,
   ) {}
 
-  async push<T>(userIds: string[], event: string, data: T): Promise<void> {
+  async push<T,U>(userIds: string[], event: string, data: T,dataPush?:U): Promise<void> {
     if (userIds.length === 0) return;
 
     let saved: INotification[];
@@ -39,7 +39,7 @@ export class RealtimeNotifier implements IRealtimeNotifier {
             id:value.id,
             user:value.user,
             event:value.event,
-            data:value.data,
+            data:dataPush??data,
             is_read:false
           }
         })

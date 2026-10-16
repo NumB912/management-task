@@ -18,12 +18,11 @@ export class VerifyTokenMiddleware implements NestMiddleware {
   private readonly secret: string;
 
   constructor(config: ConfigService) {
-    this.secret = config.getOrThrow<string>('SECRET_KEY'); // thiếu thì dừng ngay khi khởi động
+    this.secret = config.getOrThrow<string>('SECRET_KEY');
   }
 
   use(req: Request, _res: Response, next: NextFunction) {
     delete req.user;
-
     const token = req.cookies?.['token'];
     if (!token) {
       throw new UnauthorizedException('Vui lòng đăng nhập')

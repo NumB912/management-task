@@ -17,8 +17,6 @@ export class MembersModule implements NestModule {
     consumer
       .apply(LoggerMiddleware, VerifyTokenMiddleware)
       .forRoutes(MembersController);
-
-    // Chỉ owner mới được xoá / đổi quyền thành viên
     consumer
       .apply(CheckOwnerMiddleware)
       .exclude(

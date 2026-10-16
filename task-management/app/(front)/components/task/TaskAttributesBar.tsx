@@ -25,7 +25,7 @@ import CalendarComponent from "../calendar/calendar.component";
 import { formatDate } from "../../utils/getDayOfMonth.utils";
 import { IRuleModel } from "../../model/rule/rule.model";
 import { formatTimer } from "../../utils/formatTimer";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import { PRIORITY_CONFIG } from "../../model/mod/priorityConfig";
 
 interface TaskAttributesBarProps {

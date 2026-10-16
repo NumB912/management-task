@@ -1,8 +1,7 @@
 "use client";
-import SectionList from "@/app/(front)/component/sectionList.component";
-import { useList } from "@/app/(front)/feature/hook/useListQuery.hook";
+import SectionList from "@/app/(front)/components/section/sectionList.component";
 import { useHeader } from "@/app/(front)/providers/header.provider";
-import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 import { useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 

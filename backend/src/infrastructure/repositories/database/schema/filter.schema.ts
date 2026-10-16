@@ -12,6 +12,9 @@ export class Filter extends BaseSchema {
   @Prop({ type: String, required: true })
   name: string;
 
+  @Prop({ type: String, default: '#3B82F6' })
+  color: string;
+
   @Prop({ type: [String], default: [] })
   tags: string[];
 

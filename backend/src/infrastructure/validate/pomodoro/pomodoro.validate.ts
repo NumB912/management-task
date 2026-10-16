@@ -4,12 +4,11 @@ const userIdSchema = z.string().min(1, "Không được để trống userId");
 const pomodoroIdSchema = z.string().min(1, "Không được để trống pomodoroId");
 const taskIdSchema = z.string().min(1, "Không được để trống taskId");
 
-// GetPomodoroUsecase.execute(userId)
 export const GetPomodoroSchemaDTO = z.object({
   userId: userIdSchema,
 });
 
-// CreatePomodoroUsecase.execute(data: Pick<IPomodoroWithId, "name" | "progress" | "start" | "task">, userId)
+
 export const CreatePomodoroSchemaDTO = z.object({
   userId: userIdSchema,
   data: z.object({
@@ -25,7 +24,6 @@ export const CreatePomodoroSchemaDTO = z.object({
   }),
 });
 
-// UpdatePomodoroUsecase.execute(id, userId, data: Pick<Ipomodoro, "task">)
 export const UpdatePomodoroSchemaDTO = z.object({
   id: pomodoroIdSchema,
   userId: userIdSchema,
@@ -41,7 +39,6 @@ export const UpdatePomodoroSchemaDTO = z.object({
     .optional(),
 });
 
-// DeletePomodoroUsecase.execute(id, userId)
 export const DeletePomodoroSchemaDTO = z.object({
   id: pomodoroIdSchema,
   userId: userIdSchema,

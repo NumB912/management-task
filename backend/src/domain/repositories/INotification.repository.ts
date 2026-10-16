@@ -7,4 +7,5 @@ import { IRepository } from "./IRepository.js";
 export interface INotificationRepository extends IRepository<INotification> {
     updateNotificationInviteMemberStatus(DTO:{listId:string,userId:string,status:IStatusMember},session?:unknown):Promise<boolean>
     getNotificationByUser(DTO:{userId:String},session?:unknown):Promise<INotification[]>
+    getNotificationDetailByUser(DTO:{userId:string,id:string},session?:unknown):Promise<INotification|null>
 }

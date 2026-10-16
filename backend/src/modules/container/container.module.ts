@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Module, Scope } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TYPES } from '@/infrastructure/types/dependency.type.js';
 import {
@@ -15,6 +15,7 @@ import {
 } from '@/infrastructure/repositories/index.js';
 import { NotificationRepository } from '@/infrastructure/repositories/notification.repository.js';
 import { RedisCache } from '@/infrastructure/cache/redis.cache.js';
+import { TaskDetailCache } from '@/application/service/taskDetailCache.service.js';
 import { MongodbClient } from '@/infrastructure/repositories/database/mongoClient.Database.js';
 import { DatabaseModels } from '@/infrastructure/repositories/database/clientSchema.database.js';
 import {
@@ -98,17 +99,28 @@ import { MoveToSectionUsecase } from '@/application/usecase/tasks/moveToSection.
 import { GetTodayUsecase } from '@/application/usecase/tasks/today.usecase.js';
 import { GetUpcomingUsecase } from '@/application/usecase/tasks/upComming.usecase.js';
 import { UpdateRuleUsecase } from '@/application/usecase/tasks/updateRule.usecase.js';
-import { UpdateStatusUsecase } from '@/application/usecase/tasks/updateStatusTask.usecase.js';
 import { UpdateTaskUsecase } from '@/application/usecase/tasks/updateTask.usecase.js';
 import { GetProfileUsecase } from '@/application/usecase/user/getProfile.usecase.js';
 import { PutProfileUsecase } from '@/application/usecase/user/profileupdate.usecase.js';
 import { WorkSpaceUsecase } from '@/application/usecase/workSpace/workspace.usecase.js';
 import { PutAvatarUsecase } from '@/application/usecase/user/avatarPut.usecase';
-import { IUserRepository } from '@/domain';
+import {
+  IColorRepository,
+  IListRepository,
+  ITaskRepository,
+  IUserRepository,
+} from '@/domain';
 import { DeleteAvatarUsecase } from '@/application/usecase/user/avatarDel.usecase';
-import { CreatePomodoroUsecase, DeletePomodoroUsecase, GetPomodoroUsecase, UpdatePomodoroUsecase } from '@/application/usecase/pomodoro';
+import {
+  CreatePomodoroUsecase,
+  DeletePomodoroUsecase,
+  GetPomodoroUsecase,
+  UpdatePomodoroUsecase,
+} from '@/application/usecase/pomodoro';
 import { GetAllTasksWithIdsUsecase } from '@/application/usecase/tasks/findManyWithIds.usecase';
-
+import { UpdateColorUsecase } from '@/application/usecase/color/update.color';
+import { GetNotificationDetailUsecase } from '@/application/usecase/notifications/getDetailNotification.usecase';
+import { UpdateStatusUsecase } from '@/application/usecase/tasks/updateTaskStatus.usecase';
 
 const repositories = [
   { provide: TYPES.TagRepository, useClass: TagRepository },
@@ -145,7 +157,7 @@ const services = [
   { provide: TYPES.OtpService, useClass: OTPService },
   { provide: TYPES.QueryFilterParserService, useClass: QueryFilterParser },
   { provide: TYPES.calculateDeadLineService, useClass: CaculateDeadLine },
-  { provide: TYPES.UnitWork, useClass: UnitWorkMongo },
+  { provide: TYPES.UnitWork, useClass: UnitWorkMongo, scope: Scope.REQUEST },
   {
     provide: TYPES.Publisher,
     useFactory: async () => await Publisher.create(),
@@ -240,7 +252,7 @@ const usecase = [
         unitWork,
       ),
   },
-  
+
   {
     provide: TYPES.SendResetPasswordUsecase,
     inject: [
@@ -377,9 +389,9 @@ const usecase = [
     useFactory: (
       listRepo: ListRepository,
       sectionRepo: SectionRepository,
-      userRepo:IUserRepository,
+      userRepo: IUserRepository,
       memberRepo: MemberRepository,
-    ) => new InitListUsecase(listRepo,sectionRepo,userRepo,memberRepo),
+    ) => new InitListUsecase(listRepo, sectionRepo, userRepo, memberRepo),
   },
   {
     provide: TYPES.SortSectionUsecase,
@@ -601,6 +613,12 @@ const usecase = [
       new GetNotificationsUsecase(notificationRepo),
   },
   {
+    provide: TYPES.getNotificationDetail,
+    inject: [TYPES.notificationRepository],
+    useFactory: (notificationRepo: NotificationRepository) =>
+      new GetNotificationDetailUsecase(notificationRepo),
+  },
+  {
     provide: TYPES.readNotification,
     inject: [TYPES.notificationRepository],
     useFactory: (notificationRepo: NotificationRepository) =>
@@ -623,13 +641,13 @@ const usecase = [
   {
     provide: TYPES.DeletePomodoroUsecase,
     inject: [TYPES.pomodoroRepository, TYPES.UnitWork],
-    useFactory: (pomodoroRepo:pomodoroRepository, unitWork:UnitWorkMongo) =>
+    useFactory: (pomodoroRepo: pomodoroRepository, unitWork: UnitWorkMongo) =>
       new DeletePomodoroUsecase(pomodoroRepo, unitWork),
   },
-    {
+  {
     provide: TYPES.updatePomodoUsecase,
     inject: [TYPES.pomodoroRepository, TYPES.UnitWork],
-    useFactory: (pomodoroRepo:pomodoroRepository, unitWork:UnitWorkMongo) =>
+    useFactory: (pomodoroRepo: pomodoroRepository, unitWork: UnitWorkMongo) =>
       new UpdatePomodoroUsecase(pomodoroRepo, unitWork),
   },
   {
@@ -939,22 +957,12 @@ const usecase = [
         unitWork,
       ),
   },
-    {
+  {
     provide: TYPES.GetAllTasksWithIdsUsecase,
-    inject: [
-      TYPES.TaskRepository,
-      TYPES.UnitWork
-    ],
-    useFactory: (
-      taskRepo: TaskRepository,
-      unitWork: UnitWorkMongo,
-    ) =>
-      new GetAllTasksWithIdsUsecase(
-        taskRepo,
-        unitWork
-      ),
-  }
-  ,
+    inject: [TYPES.TaskRepository, TYPES.UnitWork],
+    useFactory: (taskRepo: TaskRepository, unitWork: UnitWorkMongo) =>
+      new GetAllTasksWithIdsUsecase(taskRepo, unitWork),
+  },
   {
     provide: TYPES.GetAllTaskUsecase,
     inject: [TYPES.TaskRepository],
@@ -962,18 +970,23 @@ const usecase = [
   },
   {
     provide: TYPES.GetTaskByIdUsecase,
-    inject: [TYPES.TaskRepository],
-    useFactory: (taskRepo: TaskRepository) => new GetTaskByIdUsecase(taskRepo),
+    inject: [TYPES.TaskRepository, TaskDetailCache],
+    useFactory: (taskRepo: TaskRepository, cache: TaskDetailCache) => new GetTaskByIdUsecase(taskRepo, cache),
   },
   {
     provide: TYPES.MoveToSectionUsecase,
-    inject: [TYPES.TaskRepository, TYPES.SectionRepository,TYPES.ListRepository, TYPES.UnitWork],
+    inject: [
+      TYPES.TaskRepository,
+      TYPES.SectionRepository,
+      TYPES.ListRepository,
+      TYPES.UnitWork,
+    ],
     useFactory: (
       taskRepo: TaskRepository,
       sectionRepo: SectionRepository,
-      listRepo:ListRepository,
+      listRepo: ListRepository,
       unitWork: UnitWorkMongo,
-    ) => new MoveToSectionUsecase(taskRepo, sectionRepo,listRepo, unitWork),
+    ) => new MoveToSectionUsecase(taskRepo, sectionRepo, listRepo, unitWork),
   },
   {
     provide: TYPES.GetTodayUsecase,
@@ -1027,6 +1040,7 @@ const usecase = [
       TYPES.SectionRepository,
       TYPES.MemberRepository,
       TYPES.ListRepository,
+      TYPES.ColorRepository,
       TYPES.Publisher,
       TYPES.UnitWork,
     ],
@@ -1037,6 +1051,7 @@ const usecase = [
       sectionRepo: SectionRepository,
       memberRepo: MemberRepository,
       listRepo: ListRepository,
+      colorRepo:ColorRepository,
       publisher: Publisher,
       unitWork: UnitWorkMongo,
     ) =>
@@ -1047,10 +1062,47 @@ const usecase = [
         sectionRepo,
         memberRepo,
         listRepo,
+        colorRepo,
         publisher,
         unitWork,
       ),
   },
+  // {
+  //   provide: TYPES.updateTaskStatusUsecase,
+  //   inject: [
+  //     TYPES.TaskRepository,
+  //     TYPES.calculateDeadLineService,
+  //     TYPES.RuleRepository,
+  //     TYPES.SectionRepository,
+  //     TYPES.MemberRepository,
+  //     TYPES.ListRepository,
+  //     TYPES.ColorRepository,
+  //     TYPES.Publisher,
+  //     TYPES.UnitWork,
+  //   ],
+  //   useFactory: (
+  //     taskRepo: TaskRepository,
+  //     calculateDeadLineService: CaculateDeadLine,
+  //     ruleRepo: RuleRepository,
+  //     sectionRepo: SectionRepository,
+  //     memberRepo: MemberRepository,
+  //     listRepo: ListRepository,
+  //     colorRepo: IColorRepository,
+  //     publisher: Publisher,
+  //     unitWork: UnitWorkMongo,
+  //   ) =>
+  //     new UpdateStatusArrUsecase(
+  //       taskRepo,
+  //       calculateDeadLineService,
+  //       ruleRepo,
+  //       sectionRepo,
+  //       memberRepo,
+  //       listRepo,
+  //       colorRepo,
+  //       publisher,
+  //       unitWork,
+  //     ),
+  // },
   {
     provide: TYPES.UpdateTaskUsecase,
     inject: [
@@ -1094,24 +1146,61 @@ const usecase = [
   },
   {
     provide: TYPES.WorkSpaceUsecase,
-    inject: [TYPES.TagRepository, TYPES.ListRepository, TYPES.FilterRepository],
+    inject: [
+      TYPES.TagRepository,
+      TYPES.ListRepository,
+      TYPES.FilterRepository,
+      TYPES.ColorRepository,
+      TYPES.notificationRepository,
+    ],
     useFactory: (
       tagRepo: TagRepository,
       listRepo: ListRepository,
       filterRepo: FilterRepository,
-    ) => new WorkSpaceUsecase(tagRepo, listRepo, filterRepo),
+      colorRepo: ColorRepository,
+      notificationRepo: NotificationRepository,
+    ) =>
+      new WorkSpaceUsecase(
+        tagRepo,
+        listRepo,
+        filterRepo,
+        colorRepo,
+        notificationRepo,
+      ),
   },
   {
-    provide:TYPES.putAvatarUsecase,
-    inject:[TYPES.UserRepository,TYPES.Publisher,TYPES.UnitWork],
-    useFactory:(userRepo:UserRepository,pub:Publisher,unitWork:UnitWorkMongo)=>new PutAvatarUsecase(userRepo,pub,unitWork)
-  }
-  ,
-    {
-    provide:TYPES.deleteAvatarUsecase,
-    inject:[TYPES.UserRepository,TYPES.Publisher,TYPES.UnitWork],
-    useFactory:(userRepo:UserRepository,pub:Publisher,unitWork:UnitWorkMongo)=>new DeleteAvatarUsecase(userRepo,pub,unitWork)
-  }
+    provide: TYPES.putAvatarUsecase,
+    inject: [TYPES.UserRepository, TYPES.Publisher, TYPES.UnitWork],
+    useFactory: (
+      userRepo: UserRepository,
+      pub: Publisher,
+      unitWork: UnitWorkMongo,
+    ) => new PutAvatarUsecase(userRepo, pub, unitWork),
+  },
+  {
+    provide: TYPES.deleteAvatarUsecase,
+    inject: [TYPES.UserRepository, TYPES.Publisher, TYPES.UnitWork],
+    useFactory: (
+      userRepo: UserRepository,
+      pub: Publisher,
+      unitWork: UnitWorkMongo,
+    ) => new DeleteAvatarUsecase(userRepo, pub, unitWork),
+  },
+  {
+    provide: TYPES.UpdateColorUC,
+    inject: [
+      TYPES.ColorRepository,
+      TYPES.TaskRepository,
+      TYPES.ListRepository,
+      TYPES.UnitWork,
+    ],
+    useFactory: (
+      colorRepo: IColorRepository,
+      taskRepo: ITaskRepository,
+      listRepo: IListRepository,
+      unitWork: UnitWorkMongo,
+    ) => new UpdateColorUsecase(colorRepo, taskRepo, listRepo, unitWork),
+  },
 ];
 
 @Global()
@@ -1143,10 +1232,16 @@ const usecase = [
     },
     ...mappers,
     ...services,
+    {
+      provide: TaskDetailCache,
+      inject: [TYPES.Cache],
+      useFactory: (cache: RedisCache) => new TaskDetailCache(cache),
+    },
     ...repositories,
     ...usecase,
   ],
   exports: [
+    TaskDetailCache,
     TYPES.DatabaseType,
     TYPES.Cache,
     ...services.map((r) => r.provide),

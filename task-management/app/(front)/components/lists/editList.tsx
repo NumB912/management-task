@@ -17,37 +17,46 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { listApi } from "../../feature/api/list/list.api";
 import { useUpdateList } from "../../feature/hook/useListMutation.hook";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
+import ColorPicker from "../color/colorPicker.component";
+import { useUpdateColor } from "../../feature/hook/useTaskMutation.hook";
+import { DEFAULT_COLORS } from "../../model/mod/color.config";
 
 interface EditListDialogProps {
-  list: { id: string; name: string } | null;
+  list: { id: string; name: string; color?: string; isShareList?: boolean } | null;
   onClose: () => void;
 }
 
 export function EditListDialog({ list, onClose }: Readonly<EditListDialogProps>) {
   const [name, setName] = useState(list?.name??"");
+  const [color, setColor] = useState(list?.color ?? DEFAULT_COLORS[0]);
   const {mutate,isPending} = useUpdateList()
+  const { mutate: saveColor, isPending: isColorPending } = useUpdateColor();
   const editList = useWorkspaceStore((s) => s.editList);
+  const updateColorStore = useWorkspaceStore((s) => s.updateColor);
+  
     useEffect(()=>{
     setName(list?.name??"")
+    setColor(list?.color ?? DEFAULT_COLORS[0])
   },[list])
 
-  
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if(!list) return
     const trimmed = name.trim();
-    if (!trimmed || trimmed === list?.name) return;
-    editList(list.id,name)
-    mutate({
+    if (!trimmed) return;
+    if (trimmed !== list.name) {
+      editList(list.id,trimmed)
+      mutate({
       name:trimmed,
       id:list?.id,
-    },{
-      onSuccess:()=>{
-        
-      },
-    });
+      });
+    }
+    if (color !== (list.color ?? DEFAULT_COLORS[0])) {
+      updateColorStore(list.id, color, "list");
+      saveColor({ id: list.id, color, type: "list" });
+    }
     onClose()
   };
 
@@ -76,12 +85,17 @@ export function EditListDialog({ list, onClose }: Readonly<EditListDialogProps>)
             </div>
           </div>
 
+          <div className="grid gap-2">
+            <span className="text-sm font-medium">Màu danh sách</span>
+            <ColorPicker value={color} onChange={setColor} />
+          </div>
+
           <DialogFooter className={cn("bg-transparent! p-3! border-t-0 mt-3")}>
             <Button type="button" variant="ghost" onClick={onClose}>
               Hủy
             </Button>
-            <Button type="submit" disabled={isPending || !name.trim()}>
-              {isPending ? "Đang lưu..." : "Lưu thay đổi"}
+            <Button type="submit" disabled={isPending || isColorPending || !name.trim()}>
+              {isPending || isColorPending ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
           </DialogFooter>
         </form>

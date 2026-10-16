@@ -2,7 +2,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner"; 
 import { ITaskModel } from "@/app/(front)/model";
-import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 import ObjectID from "bson-objectid";
 import { useCreateTask } from "../useTaskMutation.hook";
 

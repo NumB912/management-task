@@ -1,13 +1,29 @@
 "use client";
 import { useState, useEffect } from "react";
+import { AuthBackLink } from "@/app/(front)/components/auth/authBackLink";
 import { useParams, useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/(front)/components/ui/card";
-import { AlertCircle, ArrowLeft, CheckCircle, Link, Loader2, Lock, Mail, Timer } from "lucide-react";
-import { Label } from "@/app/(front)/components/ui/label"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/app/(front)/components/ui/card";
+import {
+  AlertCircle,
+  CheckCircle,
+  Link,
+  Loader2,
+  Lock,
+  Mail,
+  Timer,
+} from "lucide-react";
+import { Label } from "@/app/(front)/components/ui/label";
 import { Input } from "@/app/(front)/components/ui/input";
 import { Button } from "@/app/(front)/components/ui/button";
 import { cn } from "@/lib/utils";
+import { axiosInstance } from "@/app/(front)/lib/axios";
 
 interface ResetTokenPayload {
   email: string;
@@ -42,7 +58,7 @@ export default function ResetPasswordPage() {
         return;
       }
 
-      setEmail(payload.email); 
+      setEmail(payload.email);
     } catch {
       setError("Link đặt lại mật khẩu không hợp lệ");
       router.replace("/auth/login");
@@ -64,16 +80,10 @@ export default function ResetPasswordPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/auth/resetPassword", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }), 
+      await axiosInstance.post("/auth/reset/email", {
+        email: email,
+        password,
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Đặt lại mật khẩu thất bại");
-      }
       setSuccess(true);
       setCountdown(3);
       setTimeout(() => {
@@ -81,16 +91,18 @@ export default function ResetPasswordPage() {
         router.refresh();
       }, 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Có lỗi xảy ra. Vui lòng thử lại.");
+      setError(
+        err instanceof Error ? err.message : "Có lỗi xảy ra. Vui lòng thử lại.",
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-transparent p-4">
-      <Card className="w-full min-w-md shadow-2xl/20 border-0">
+      <Card className="w-full max-w-md shadow-2xl/20 border-0">
+        <AuthBackLink />
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 size-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Lock className="h-6 w-6 text-primary" />
@@ -105,14 +117,22 @@ export default function ResetPasswordPage() {
 
         <CardContent className="space-y-4">
           {error && (
-            <div className={cn("flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg")}>
+            <div
+              className={cn(
+                "flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg",
+              )}
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {success && (
-            <div className={cn("flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg")}>
+            <div
+              className={cn(
+                "flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg",
+              )}
+            >
               <CheckCircle className="h-4 w-4 shrink-0" />
               <span>
                 Đặt lại mật khẩu thành công!
@@ -181,7 +201,12 @@ export default function ResetPasswordPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full p-5" size="lg" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="w-full p-5"
+                size="lg"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -193,15 +218,8 @@ export default function ResetPasswordPage() {
               </Button>
             </form>
           )}
-
-          <Button variant="outline" className="w-full p-5" asChild>
-            <Link href="/auth/login">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Quay lại đăng nhập
-            </Link>
-          </Button>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

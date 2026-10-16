@@ -1,3 +1,5 @@
+import { ColorRepository } from "../repositories";
+
 export const TYPES = {
   DatabaseType: Symbol.for("DatabaseClient"),
   MessageQueue:Symbol.for("MessageQueue"),
@@ -9,7 +11,10 @@ export const TYPES = {
   CheckOwnerTagUsecase:Symbol.for("CheckOwnerTagUsecase"),
   WorkSpaceUsecase:Symbol.for("WorkSpaceUsecase"),
   RealTimeNotifier:Symbol.for("RealTimeNotifier"),
-
+  
+  ColorRepository:Symbol.for("ColorRepository"),
+  UpdateColorUC:Symbol.for("UpdateColorUC"),
+  
   DeletePomodoroUsecase:Symbol.for("DeletePomodoroUsecase"),
   logoutUsecase:Symbol.for("logoutUsecase"),
   ChangePasswordUsecase:Symbol.for("ChangePasswordUsecase"),
@@ -17,6 +22,7 @@ export const TYPES = {
   exitFromList:Symbol.for("exitFromList"),
   readNotification:Symbol.for("readNotification"),
   getNotification:Symbol.for("NotificationUsecase"),
+  getNotificationDetail:Symbol.for("NotificationDetailUsecase"),
   createpomodoroUsecase:Symbol.for("createpomodoroUsecase"),
   GetPomodoroUsecase:Symbol.for("GetPomodoroUsecase"),
   updatePomodoUsecase:Symbol.for("updatePomodoUsecase"),
@@ -98,7 +104,6 @@ export const TYPES = {
   UpdateTagsInFilterUsecase:Symbol.for("UpdateTagsInFilterUsecase"),
 
   pomodoroRepository: Symbol.for("pomodoroRepository"),
-  ColorRepository: Symbol.for("ColorRepository"),
 
   UserRepository:Symbol.for("UserRepository"),
   RegisterEmailUsecase:Symbol.for("RegisterUserCase"),

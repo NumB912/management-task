@@ -4,6 +4,7 @@ export  type IPriority = 1|2|3|4
 export interface IFilter{
     id:string
     name:string
+    color:string
     user:string,
     tags:string[],
     description?:string

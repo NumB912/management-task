@@ -1,19 +1,21 @@
 "use client";
 import React, { useEffect } from "react";
-import Side from "../component/side.component";
+
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { HeaderProvider } from "../providers/header.provider";
 import { AuthProvider } from "../providers/auth.provider";
 import { useWorkspace } from "../feature/hook/useWorkSpaceQuery.hook";
-import { useWorkspaceStore } from "../states/workspace.state";
-import useUserState from "../states/user/user.state";
+import { useWorkspaceStore } from "../feature/store/workspace.state";
+import useUserState from "../feature/store/user/user.state";
 import ProfileDialog from "../components/auth/profile/profileDialog";
 import { useRouter } from "next/navigation";
 import { AudioProvider, useAudio } from "../providers/audio.provider";
-import { useTimerWorker } from "../feature/store/useTimerWork";
-import { useTimerStore } from "../feature/store/timer.store";
+import { useTimerWorker } from "../feature/store/pomodoro/useTimerWork";
 import { useTimer } from "../feature/hook/pomodoro/pomodoroTimer.hook";
 import { toast } from "sonner";
+import Side from "../components/side.component";
+import { useTimerStore } from "../feature/store/pomodoro/timer.store";
+import { TaskStatusBatchProvider } from "../providers/task.provider";
 
 type Props = { children: React.ReactNode; modal: React.ReactNode };
 
@@ -53,6 +55,8 @@ function DashboardContent({ children, modal }: Props) {
           data.lists.find((l) => l.name.toLocaleLowerCase() === "inbox")?.id ??
           null,
         tags: data.tags ?? [],
+        notifications:data.notifications,
+        colors:data.colors
       });
     }
   }, [isSuccess, data, hydrate]);
@@ -90,7 +94,9 @@ function DashboardContent({ children, modal }: Props) {
 export default function layout(props: Props) {
   return (
     <AudioProvider>
+      <TaskStatusBatchProvider>
       <DashboardContent {...props} />
+      </TaskStatusBatchProvider>
     </AudioProvider>
   );
 }

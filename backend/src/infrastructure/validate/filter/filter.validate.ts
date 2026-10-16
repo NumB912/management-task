@@ -14,6 +14,7 @@ const prioritySchema = z.union([
 
 const filterDataSchema = z.object({
   name: z.string().min(1, "Tên filter không được để trống").max(100, "Tên filter tối đa 100 ký tự"),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Màu không hợp lệ").optional(),
   tags: z.array(z.string().min(1, "Tên tag không được để trống")),
   description: z.string().optional(),
   priority: prioritySchema,
@@ -23,18 +24,15 @@ const filterDataSchema = z.object({
   status: statusSchema,
 });
 
-// GetAllFiltersUsecase.execute(user_id)
 export const GetAllFilterSchemaDTO = z.object({
   user_id: userIdSchema,
 });
 
-// CreateFilterUsecase.execute({ data, user_id })
 export const CreateFilterSchemaDTO = z.object({
   data: filterDataSchema,
   user_id: userIdSchema,
 });
 
-// GetFilterByIdUsecase.execute({ id, userId })
 export const GetFilterByIdSchemaDTO = z.object({
   id: filterIdSchema,
   userId: userIdSchema,

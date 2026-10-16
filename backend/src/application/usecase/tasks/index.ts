@@ -4,6 +4,6 @@ export {DeleteTaskUsecase} from "./deleteTask.usecase";
 export {GetAllTasksUsecase} from "./findAllTask.usecase";
 export {GetTaskByIdUsecase} from "./findByTaskId.usecase";
 export {UpdateRuleUsecase} from "./updateRule.usecase";
-export {UpdateStatusUsecase} from "./updateStatusTask.usecase";
+export {UpdateStatusUsecase} from "./updateTaskStatus.usecase";
 export {UpdateTaskUsecase} from "./updateTask.usecase";
 export {MoveToSectionUsecase} from "./moveToSection.usecase";

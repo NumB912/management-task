@@ -4,7 +4,7 @@ import { SectionCard } from "@/app/(front)/components/sectionCard.component";
 import AddTask from "@/app/(front)/components/task/addTask";
 import { TaskList } from "@/app/(front)/components/task/taskList.component";
 import { useHeader } from "@/app/(front)/providers/header.provider";
-import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 import { useAddTask } from "@/app/(front)/feature/hook/task/addTask.hook";
 
 interface TagGroup {
@@ -43,7 +43,9 @@ function TagColumn({ listId, listName, sectionId, taskIds, tagName }: Readonly<T
           setIsCreate={setIsAddTask}
           sectionId={sectionId}
           listId={listId}
-          defaultConfirmRule={{ tags: [tagName] }}
+          defaultConfirmTask={{rule:{
+             tags: [tagName]
+          } }}
           onHandle={handleAddTask}
         />
       )}

@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 
 import { ITaskModel } from "../model";
 import { IPomodoroModel } from "../model/pomodoro.model";
-import { ListCombobox } from "./task/combobox/task.combobox"; 
+import { ListCombobox } from "./task/combobox/task.combobox";
 
 import {
   getSessionFocusMinutes,
@@ -39,7 +39,10 @@ interface Props {
   session: IPomodoroModel | null;
   onClose: () => void;
   deletepomodoro: (id: string) => Promise<void>;
-  editTask: (id: string, task: Pick<ITaskModel,"id"|"name">) => Promise<void>;
+  editTask: (
+    id: string,
+    task: Pick<ITaskModel, "id" | "name">,
+  ) => Promise<void>;
 }
 
 const toMs = (d: Date | string) => new Date(d).getTime();
@@ -69,15 +72,13 @@ export const PomodoroDetailDialog = ({
   deletepomodoro,
   editTask,
 }: Props) => {
-
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingTask, setIsSavingTask] = useState(false);
-  const [taskPodoromo,setTaskPodoromo] = useState(session?.task)
-  useEffect(()=>{
-    setTaskPodoromo(session?.task)
-  },[session?.task])
-
+  const [taskPodoromo, setTaskPodoromo] = useState(session?.task);
+  useEffect(() => {
+    setTaskPodoromo(session?.task);
+  }, [session?.task]);
 
   if (!session) {
     return <Dialog open={false} onOpenChange={onClose} />;
@@ -106,15 +107,17 @@ export const PomodoroDetailDialog = ({
   });
 
   const busy = isDeleting || isSavingTask;
-  const handleSelectTask = async (task: Pick<ITaskModel,"id"|"name"> | undefined) => {
+  const handleSelectTask = async (
+    task: Pick<ITaskModel, "id" | "name"> | undefined,
+  ) => {
     if (!task || !session.id || isSavingTask) return;
     if (task.id === session.task?.id) {
       return;
     }
     setTaskPodoromo({
-      id:task.id,
-      name:task.name
-    })
+      id: task.id,
+      name: task.name,
+    });
     try {
       setIsSavingTask(true);
       await editTask(session.id, task);
@@ -148,21 +151,21 @@ export const PomodoroDetailDialog = ({
           if (!open && !busy) onClose();
         }}
       >
-        <DialogContent className="max-w-md! w-full max-h-[85dvh] overflow-hidden">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md! flex-col overflow-hidden sm:max-h-[85dvh]">
+          <DialogHeader className="shrink-0 pr-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <DialogTitle className="flex items-center gap-2">
                   <Timer className="size-5 shrink-0" />
 
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <div className="min-w-0 flex-1 max-w-xs">
-                        <ListCombobox
-                          value={taskPodoromo}
-                          onSelect={handleSelectTask}
-                        />
-                      </div>
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <div className="min-w-0 flex-1 max-w-xs">
+                      <ListCombobox
+                        value={taskPodoromo}
+                        onSelect={handleSelectTask}
+                      />
                     </div>
+                  </div>
                 </DialogTitle>
 
                 <DialogDescription className="mt-1 text-xs">
@@ -174,7 +177,7 @@ export const PomodoroDetailDialog = ({
             </div>
           </DialogHeader>
 
-          <div className="flex w-full min-h-0 flex-col overflow-y-auto pr-1">
+          <div className="flex w-full min-h-0 min-w-0 flex-1 flex-col overflow-y-auto pr-1">
             <div className="min-w-0">
               <div className="mb-4 flex items-center gap-2">
                 <ListTodo className="size-4" />
@@ -190,7 +193,7 @@ export const PomodoroDetailDialog = ({
                   </p>
                 </div>
               ) : (
-                <div className="max-h-100 overflow-y-auto">
+                <div className="min-w-0">
                   <div className="relative flex flex-col gap-4">
                     <div className="absolute bottom-4 left-1.75 top-4 w-px bg-border" />
 
@@ -215,9 +218,9 @@ export const PomodoroDetailDialog = ({
                           )}
 
                           <div className="rounded-lg border bg-card p-3 transition-colors hover:bg-muted/40">
-                            <div className="flex items-start justify-between gap-3">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-xs font-medium text-muted-foreground">
                                     Đoạn #{i + 1}
                                   </span>
@@ -278,7 +281,7 @@ export const PomodoroDetailDialog = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex shrink-0 items-center justify-between gap-3">
             <Button
               type="button"
               variant="outline"

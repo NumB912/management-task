@@ -1,6 +1,7 @@
 import { toast } from "sonner"; 
 import { IRuleModel, ITaskModel } from "../../model";
 import ObjectID from "bson-objectid";
+import { DEFAULT_COLORS } from "../../model/mod/color.config";
 
 const ALL_ACTIVE_TAG_REGEX = /#([^\s#]+)/g;
 
@@ -41,6 +42,7 @@ const buildTask = (): ITaskModel | null => {
   return {
     id:TempIdTask,
     name: cleanName,
+    color:DEFAULT_COLORS[0],
     rule: {
       tags: allTags,
       priority: confirmedRule.priority,
@@ -51,7 +53,9 @@ const buildTask = (): ITaskModel | null => {
       id:TempIdRule,
       task:TempIdTask,
       list:confirmList,
+      endTimer:confirmedRule.endTimer
     },
+
     list: confirmList,
     children:[],
     section:sectionId,

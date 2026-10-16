@@ -3,11 +3,11 @@
 export class CreateTagUsecase implements IUsecase<ITagWithId | null> {
   constructor(private readonly tagRepository: ITagRepository) {}
   async execute(DTO:{
-    name:string,userId:string,id:string
+    name:string,userId:string,id:string,color?:string
   }): Promise<ITagWithId | null> {
     try {
 
-      const {name,userId,id} = DTO
+      const {name,userId,id,color} = DTO
       const isExist = await this.tagRepository.findTagByName({ name:name,userId:userId });
       if (isExist) {
         throw new AppError("CONFLICT", "dÃ¹ng tÃªn khÃ¡c Ä‘i, trÃ¹ng tÃªn rá»“i.", 409);
@@ -17,7 +17,8 @@ export class CreateTagUsecase implements IUsecase<ITagWithId | null> {
       const create = await this.tagRepository.create({
         name:name,
         user:userId,
-        id:id
+        id:id,
+        color: color ?? '#3B82F6'
       });
       return create;
     } catch (error) {

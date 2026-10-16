@@ -1,4 +1,3 @@
-// features/list/hooks/useListQuery.ts
 import { useQuery } from '@tanstack/react-query';
 import { listApi } from '../api/list/list.api';
 

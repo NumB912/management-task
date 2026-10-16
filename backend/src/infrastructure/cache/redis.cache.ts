@@ -1,5 +1,4 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { CacheConfig } from '@/domain/index.js';
 import type { ICache } from '@/domain/index.js';
 import { createClient, type RedisClientType } from '@redis/client';
 
@@ -11,7 +10,7 @@ export class RedisCache implements ICache {
 
   private constructor() {}
 
-  static getInstance(uri:string): RedisCache {
+  static getInstance(uri: string): RedisCache {
     if (!this.instance) {
       this.instance = new RedisCache();
 
@@ -61,5 +60,14 @@ export class RedisCache implements ICache {
   async delete(key: string): Promise<void> {
     await this.ensureConnected();
     await this.client.del(key);
+  }
+
+  async mget<T>(keys: string[]): Promise<(T | null)[]> {
+    if (keys.length === 0) return [];
+    await this.ensureConnected();
+    const values = await this.client.mGet(keys);
+    return values.map((value) =>
+      value === null ? null : (JSON.parse(value) as T),
+    );
   }
 }

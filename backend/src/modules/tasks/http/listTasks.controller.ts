@@ -36,6 +36,9 @@ export class ListTasksController {
 
   @Post('/tasks/by_ids')
     async getByIds(@Req() req: AuthRequest,@Param('listId') listId: string,@Body() dto:GetAllTaskWithIDs) {
+
+
+
       const tasks = await this.getAllTaskWithIds.execute({
         listId:listId,
         userId:req.user.id,

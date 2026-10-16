@@ -27,7 +27,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import { Ipriority, ISpecials, IStatus } from "../../model/type/type";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
@@ -44,6 +44,8 @@ import {
 } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { IFilterModel } from "../../model/filter.model";
+import ColorPicker from "../color/colorPicker.component";
+import { DEFAULT_COLORS } from "../../model/mod/color.config";
 import { workSpaceKeys } from "../../feature/hook/useWorkSpaceQuery.hook";
 import { filterKeys } from "../../feature/hook/useFilterQuery.hook";
 
@@ -130,6 +132,7 @@ export function EditFilterDialog({
   filter,
 }: Readonly<editFilterDialogProps>) {
   const [name, setName] = useState(filter?.name ?? "");
+  const [color, setColor] = useState(filter?.color ?? DEFAULT_COLORS[0]);
   const [description, setDescription] = useState(filter?.description ?? "");
   const [priority, setPriority] = useState<Ipriority | null>(filter?.priority??null);
   const [specials, setSpecials] = useState<ISpecials>(filter?.specials ?? "none");
@@ -154,6 +157,7 @@ export function EditFilterDialog({
   useEffect(() => {
     if (filter) {
       setName(filter.name);
+      setColor(filter.color ?? DEFAULT_COLORS[0]);
       setDescription(filter.description ?? "");
       setPriority(filter.priority??null);
       setSpecials(filter.specials);
@@ -241,6 +245,7 @@ export function EditFilterDialog({
     const trimmedDesc = description.trim();
 
     if (trimmedName !== filter.name) payload.name = trimmedName;
+    if (color !== (filter.color ?? DEFAULT_COLORS[0])) payload.color = color;
 
     if (trimmedDesc !== (filter.description ?? "")) {
       payload.description = (trimmedDesc || null) as any;
@@ -323,6 +328,10 @@ export function EditFilterDialog({
 
           <div className="flex gap-5 py-4">
             <div className="flex flex-col gap-3 w-full">
+              <div className="grid gap-2">
+                <Label className="font-bold">Màu filter</Label>
+                <ColorPicker value={color} onChange={setColor} />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="name" className="font-bold">Tên filter</Label>
                 <Input

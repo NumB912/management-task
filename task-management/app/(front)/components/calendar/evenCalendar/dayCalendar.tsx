@@ -3,19 +3,20 @@
 import { format, isSameDay, isToday, startOfDay } from "date-fns";
 import React, { useEffect, useMemo, useState } from "react";
 import HourGrid from "./hour/hourGrid";
-import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { formatDateVi } from "@/app/(front)/utils/getDayOfMonth.utils";
 import { useShallow } from "zustand/react/shallow";
+import { occursOn } from "@/app/(front)/utils/task.visibility";
 
 const MAX_VISIBLE = 2;
 
 interface DayViewProps {
   currentDate: Date;
-   onCreateTask: (day: Date, timer?: number) => void;
+  onCreateTask: (day: Date, timer?: number) => void;
 }
 
 function DayView({ currentDate, onCreateTask }: Readonly<DayViewProps>) {
@@ -25,19 +26,7 @@ function DayView({ currentDate, onCreateTask }: Readonly<DayViewProps>) {
   const dayTime = startOfDay(currentDate).getTime();
   const day = useMemo(() => new Date(dayTime), [dayTime]);
   const dateTaskNow = useMemo(
-    () =>
-      Object.values(taskIndex).filter((task) => {
-        const raw = task.rule?.start_date;
-        const rawEnd = task.rule?.end_date;
-        if (!raw) return false;
-
-        if(rawEnd && new Date(rawEnd).getTime() >= day.getTime() && new Date(raw).getTime() <= day.getTime()){
-          return true;
-        }
-        
-        const d = new Date(raw);
-        return !Number.isNaN(d.getTime()) && isSameDay(d, day);
-      }),
+    () => Object.values(taskIndex).filter((task) => occursOn(task, day)),
     [taskIndex, day],
   );
   const link = useMemo(() => "/dashboard/tasks", []);
@@ -50,7 +39,7 @@ function DayView({ currentDate, onCreateTask }: Readonly<DayViewProps>) {
   const visibleTasks = expanded
     ? dateTaskNow
     : dateTaskNow.slice(0, MAX_VISIBLE);
-
+  const colorIndex = useWorkspaceStore(useShallow((state) => state.colorIndex));
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div className="grid grid-cols-[56px_1fr] border-b border-border/50 shrink-0">
@@ -92,7 +81,7 @@ function DayView({ currentDate, onCreateTask }: Readonly<DayViewProps>) {
                   key={task.id}
                   variant="outline"
                   className="p-2 font-bold rounded w-full justify-start text-left"
-                  style={{ backgroundColor: task.rule.color }}
+                  style={{ backgroundColor: task.color }}
                   onClick={() => {
                     route.push(link + `/${task.id}`);
                   }}
@@ -110,6 +99,7 @@ function DayView({ currentDate, onCreateTask }: Readonly<DayViewProps>) {
         type="Day"
         days={days}
         onHandle={onCreateTask!}
+        colors={colorIndex ?? {}}
       />
     </div>
   );

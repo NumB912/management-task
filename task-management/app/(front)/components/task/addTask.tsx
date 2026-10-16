@@ -1,4 +1,4 @@
-import { useTaskInputEditor } from "../../feature/hook/useTaskInputEditor.hook";
+import { DefaultTask, useTaskInputEditor } from "../../feature/hook/useTaskInputEditor.hook";
 import { useCreateTaskSubmit } from "../../feature/hook/useCreateTaskSubmit.hook";
 import { ICreateRuleDTO } from "../../model/DTO/rule.DTO";
 import TaskInputEditor from "./TaskInputEditor";
@@ -6,17 +6,18 @@ import TaskAttributesBar from "./TaskAttributesBar";
 import TaskActions from "./taskAction";
 import { useEffect } from "react";
 import { IRuleModel, ITaskModel } from "../../model";
+
 interface AddTaskProp {
   isCreate: boolean;
   setIsCreate: (isCreate: boolean) => void;
   sectionId?: string;
   listId: string;
-  defaultConfirmRule?: Partial<ICreateRuleDTO>;
+  defaultConfirmTask?: DefaultTask;
   onHandle:(task:ITaskModel)=>void
 }
 
-const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmRule,onHandle }: AddTaskProp) => {
-  const editor = useTaskInputEditor({ listId, defaultConfirmRule,sectionId });
+const AddTask = ({ isCreate, setIsCreate, sectionId, listId, defaultConfirmTask,onHandle }: AddTaskProp) => {
+  const editor = useTaskInputEditor({ listId, defaultConfirmTask,sectionId });
   const { handleDone } = useCreateTaskSubmit({
     listId: listId,
     sectionId: editor.confirmSection,  

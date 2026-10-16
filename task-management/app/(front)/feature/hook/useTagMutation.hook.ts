@@ -6,11 +6,12 @@ import { ApiErrorResponse } from './apiErrorResponse.type';
 import { tagApi } from '../api/tags/tag.api';
 import { ICreateTagDTO } from '../../model/DTO/tag.DTO';
 import { workSpaceKeys } from './useWorkSpaceQuery.hook';
+import ObjectID from 'bson-objectid';
 
 export const useCreateTag = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (data: ICreateTagDTO) => tagApi.create(data),
+        mutationFn: (data: ICreateTagDTO) => tagApi.create({ ...data, id: data.id ?? new ObjectID().toHexString() }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: listKeys.all });
             queryClient.invalidateQueries({ queryKey: workSpaceKeys.index() });
@@ -46,9 +47,9 @@ export const useRemoveTagWithShare = () => {
 export const useUpdateTagWithShare = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, name }: { id: string; name: string }) =>
+        mutationFn: ({ id, name, color }: { id: string; name?: string; color?: string }) =>
             tagApi.updateShareWithMe(id, {
-                name: name
+                name: name, color
             }),
 
         onSuccess: (_data, { id, name }) => {
@@ -62,9 +63,9 @@ export const useUpdateTagWithShare = () => {
 export const useUpdateTagOnlyMe = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, name }: { id: string; name: string }) =>
+        mutationFn: ({ id, name, color }: { id: string; name?: string; color?: string }) =>
             tagApi.updateOnlyMe(id, {
-                name: name
+                name: name, color
             }),
 
         onSuccess: (_data, { id, name }) => {

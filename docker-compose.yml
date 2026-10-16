@@ -10,8 +10,11 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    restart: 
+      on-failure
     networks:
       - tm-network
+
   email-services:
     build: "./email-services"
     container_name: task-management-email-services
@@ -23,6 +26,8 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+    restart: 
+      on-failure
     networks:
       - tm-network
   notifier-services:
@@ -36,6 +41,8 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+    restart: 
+      on-failure
     networks:
       - tm-network
   # app:
@@ -59,20 +66,6 @@ services:
   #     - /app/node_modules
   #     - /app/.next             
   #   networks: [tm-network]
-  stalwart:
-    image: stalwartlabs/stalwart:latest  
-    container_name: stalwart
-    hostname: mail.example.com
-    ports:
-      - "25:25"     # SMTP
-      - "587:587"   # Submission
-      - "465:465"   # SMTPS
-      - "993:993"   # IMAPS
-      - "443:443"   # HTTPS / JMAP
-      - "8080:8080" # Web admin
-    volumes:
-      - ./stalwart-data:/opt/stalwart   
-    restart: always
   mongodb:
     image: mongo:7
     container_name: task-management-mongodb

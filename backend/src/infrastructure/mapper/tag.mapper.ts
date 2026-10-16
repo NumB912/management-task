@@ -16,6 +16,7 @@ export class TagMapper implements IMapper<ITagDocument, ITagWithId,ITagPopulateD
     return {
       id: doc._id.toString(),
       name: doc.name,
+      color: doc.color ?? '#3B82F6',
       user: doc?.user?.toString(),
       isShareTag: doc.isShareTag,
       created_at: doc.created_at,
@@ -28,6 +29,7 @@ export class TagMapper implements IMapper<ITagDocument, ITagWithId,ITagPopulateD
     const data: Partial<ITagWithId> = {};
     if (doc._id) data.id = doc._id.toString();
     if (doc.name) data.name = doc.name;
+    if (doc.color) data.color = doc.color;
     if (doc.user) data.user = doc.user.toString();
     if (doc.created_at) data.created_at = doc.created_at;
     if (doc.updated_at) data.updated_at = doc.updated_at ?? undefined;
@@ -40,6 +42,7 @@ export class TagMapper implements IMapper<ITagDocument, ITagWithId,ITagPopulateD
     return {
       id: doc._id.toString(),
       name: doc.name,
+      color: doc.color ?? '#3B82F6',
       isShareTag:doc.isShareTag,
       user: this.userMapper.toDomainWithoutPassword(
         doc.user
@@ -61,6 +64,7 @@ export class TagMapper implements IMapper<ITagDocument, ITagWithId,ITagPopulateD
     return {
       _id: new Types.ObjectId(entity.id),
       name: entity.name,
+      color: entity.color ?? '#3B82F6',
       isShareTag: entity.isShareTag,
       user:new Types.ObjectId(entity.user),
       created_at: entity.created_at,
@@ -74,6 +78,7 @@ export class TagMapper implements IMapper<ITagDocument, ITagWithId,ITagPopulateD
     const update: Partial<ITagDocument> = {};
     if (entity.id ) update._id = new Types.ObjectId(entity.id);
     if (entity.name ) update.name = entity.name;
+    if (entity.color !== undefined) update.color = entity.color;
     if (entity.user ) update.user = new Types.ObjectId(entity.user)
     if (entity.isShareTag) update.isShareTag = entity.isShareTag
     if (entity.created_at) update.created_at = entity.created_at
@@ -87,6 +92,7 @@ export class TagMapper implements IMapper<ITagDocument, ITagWithId,ITagPopulateD
     return {
       _id: new Types.ObjectId(entity.id),
       name: entity.name,
+      color: entity.color ?? '#3B82F6',
       isShareTag:entity.isShareTag,
       user:user,
       created_at: entity.created_at??null,
@@ -98,6 +104,7 @@ export class TagMapper implements IMapper<ITagDocument, ITagWithId,ITagPopulateD
   toPersistencePartialPopulate(entity: Partial<ITag>): Partial<ITagPopulateDocument> {
     const update: Partial<ITagPopulateDocument> = {};
     if (entity.name ) update.name = entity.name;
+    if (entity.color !== undefined) update.color = entity.color;
     return update;
   }
 }

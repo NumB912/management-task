@@ -1,7 +1,9 @@
 import { ITaskModel } from "@/app/(front)/model";
+import { IColorModel } from "@/app/(front)/model/color.model";
 import { HOURS } from "@/app/(front)/model/mod/mod";
 import { formatTimer } from "@/app/(front)/utils/formatTimer";
-import { HdIcon, Icon } from "lucide-react";
+import { occursOn } from "@/app/(front)/utils/task.visibility";
+import { CalendarRange } from "lucide-react";
 import Link from "next/link";
 import React, { useMemo } from "react";
 
@@ -9,6 +11,7 @@ interface HourGridProp {
   tasks: ITaskModel[];
   type: "Day" | "Week";
   days?: Date[];
+  colors: Record<string, IColorModel>;
   onHandle: (day: Date, timer?: number) => void;
 }
 
@@ -24,11 +27,22 @@ const isSameDay = (a: Date, b: Date) =>
 type Positioned = { task: ITaskModel; top: number; height: number };
 type Laid = Positioned & { lane: number; lanes: number };
 
-const getTaskStyle = (task: ITaskModel, firstHour: number) => {
-  const rule = (task as any).rule;
+const getTaskStyle = (
+  task: ITaskModel,
+  firstHour: number,
+  lastHour: number,
+) => {
+  const rule = task.rule;
   if (rule?.timer == null) return null;
+
   const startSec: number = rule.timer;
-  const endSec: number = rule.endTimer ?? startSec;
+  const gridEndSec = (lastHour + 1) * 3600;
+
+  // Task qua nửa đêm (vd 22:00 → 01:00): kéo dài đến hết lưới thay vì bị âm chiều cao
+  // Overnight task (e.g. 22:00 → 01:00): extend to the bottom of the grid instead of a negative height
+  let endSec: number = rule.endTimer ?? startSec;
+  if (endSec < startSec) endSec = gridEndSec;
+
   const top = (startSec / 3600 - firstHour) * HOUR_HEIGHT;
   const height = Math.max(
     ((endSec - startSec) / 3600) * HOUR_HEIGHT,
@@ -73,21 +87,32 @@ const layoutOverlaps = (items: Positioned[]): Laid[] => {
   return result;
 };
 
-const HourGrid = ({ tasks, type = "Day", days, onHandle }: HourGridProp) => {
+const HourGrid = ({
+  tasks,
+  type = "Day",
+  days,
+  onHandle,
+  colors,
+}: HourGridProp) => {
   const firstHour = HOURS[0];
+  const lastHour = HOURS[HOURS.length - 1];
   const totalHeight = HOURS.length * HOUR_HEIGHT;
 
   const columns: { date?: Date; tasks: ITaskModel[] }[] = useMemo(() => {
     const safeDays = days ?? [];
     if (type === "Day") {
-      return [{ date: safeDays[0], tasks }];
+      const date = safeDays[0];
+      return [
+        {
+          date,
+          tasks: date ? tasks.filter((t) => occursOn(t, date)) : tasks,
+        },
+      ];
     }
+
     return safeDays.map((date) => ({
       date,
-      tasks: tasks.filter(
-        (t) =>
-          t.rule?.start_date && isSameDay(new Date(t.rule.start_date), date) || (t.rule?.end_date && t.rule.start_date && new Date(t.rule.end_date).getTime() >= date.getTime() && new Date(t.rule.start_date).getTime() <= date.getTime()),
-      ),
+      tasks: tasks.filter((t) => occursOn(t, date)),
     }));
   }, [tasks, type, days]);
 
@@ -96,12 +121,12 @@ const HourGrid = ({ tasks, type = "Day", days, onHandle }: HourGridProp) => {
       columns.map((col) =>
         layoutOverlaps(
           col.tasks.flatMap((task) => {
-            const style = getTaskStyle(task, firstHour);
+            const style = getTaskStyle(task, firstHour, lastHour);
             return style ? [{ task, ...style }] : [];
           }),
         ),
       ),
-    [columns, firstHour],
+    [columns, firstHour, lastHour],
   );
 
   const gridColsClass =
@@ -119,7 +144,11 @@ const HourGrid = ({ tasks, type = "Day", days, onHandle }: HourGridProp) => {
             </div>
             {columns.map((col, colIdx) => (
               <div
-                key={col.date ? `${col.date.toISOString()}-${hour}` : `${colIdx}-${hour}`}
+                key={
+                  col.date
+                    ? `${col.date.toISOString()}-${hour}`
+                    : `${colIdx}-${hour}`
+                }
                 onClick={() => {
                   if (col.date) onHandle(col.date, hour);
                 }}
@@ -148,8 +177,19 @@ const HourGrid = ({ tasks, type = "Day", days, onHandle }: HourGridProp) => {
             {columnLayouts[colIdx].map(
               ({ task, top, height, lane, lanes }, i) => {
                 const time = task.rule?.timer;
+                const endTime = task.rule?.endTimer;
                 const isDone = task.status === "done";
                 const short = height < 48;
+
+                const isMultiDay = !!(
+                  task.rule?.end_date || task.rule?.repeat?.until
+                );
+                // Ngày không phải ngày bắt đầu thì làm mờ để phân biệt
+                // Fade blocks on days other than the start day
+                const isStartDay =
+                  !col.date ||
+                  !task.rule?.start_date ||
+                  isSameDay(col.date, new Date(task.rule.start_date));
 
                 return (
                   <Link
@@ -160,29 +200,35 @@ const HourGrid = ({ tasks, type = "Day", days, onHandle }: HourGridProp) => {
                       short ? "flex-row items-center gap-1" : "flex-col gap-0.5"
                     } rounded-md border border-white px-2 py-1 text-[11px] overflow-hidden shadow-sm cursor-pointer z-30 ${
                       isDone ? "line-through text-black/60" : "text-white"
-                    }`}
+                    } ${isStartDay ? "" : "opacity-70"}`}
                     style={{
                       top,
                       height,
-                      backgroundColor:
-                        (task as any).rule?.color ?? "#3B82F6",
+                      backgroundColor: colors[task.id]?.color ?? task.color,
                       left: `calc(${(lane / lanes) * 100}% + 1px)`,
                       width: `calc(${100 / lanes}% - 2px)`,
                     }}
                   >
                     <span className="font-medium truncate">{task.name}</span>
+
                     <span className="flex">
-                        {time != null && (
-                      <span className="font-medium truncate shrink-0 opacity-90">
-                        {formatTimer(time)}
+                      {time != null && (
+                        <span className="font-medium truncate shrink-0 opacity-90">
+                          {formatTimer(time)}
+                        </span>
+                      )}
+                      {endTime != null && (
+                        <span className="font-medium truncate shrink-0 opacity-90">
+                          - {formatTimer(endTime)}
+                        </span>
+                      )}
+                    </span>
+
+                    {isMultiDay && (
+                      <span className="font-medium truncate">
+                        <CalendarRange className="w-3 h-3 shrink-0" />
                       </span>
                     )}
-
-                    {task.rule.endTimer && (<span className="font-medium truncate shrink-0 opacity-90">
-                        - {formatTimer(task.rule.endTimer)}
-                      </span>)}
-                    </span>
-                   {task.rule.end_date && ( <span className="font-medium truncate"><HdIcon className="w-3 h-3"/></span>)}
                   </Link>
                 );
               },

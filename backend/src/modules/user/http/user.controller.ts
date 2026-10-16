@@ -12,8 +12,9 @@ import {
   type PutProfileDTO,
   PutProfileSchema,
 } from '@/infrastructure/validate/user/putProfile.validate';
-import { Body, Controller, Delete, FileTypeValidator, Get, Inject, MaxFileSizeValidator, ParseFilePipe, Patch, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, FileTypeValidator, Get, Inject, MaxFileSizeValidator, Param, ParseFilePipe, Patch, Req, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { GetNotificationDetailUsecase } from '@/application/usecase/notifications/getDetailNotification.usecase';
 
 @Controller('user')
 export class UserController {
@@ -28,6 +29,8 @@ export class UserController {
     private readonly deleteAvatarUC:DeleteAvatarUsecase,
     @Inject(TYPES.getNotification)
     private readonly getNotificationUC: GetNotificationsUsecase,
+    @Inject(TYPES.getNotificationDetail)
+    private readonly getNotificationDetailUC: GetNotificationDetailUsecase,
     @Inject(TYPES.readNotification)
     private readonly readNotificationUC: ReadedNotificationUsecase,
   ) {}
@@ -37,6 +40,16 @@ export class UserController {
     @Req() req: Request & { user: { id: string; role: string; email: string } },
   ) {
     const notification = await this.getNotificationUC.execute(req.user.id);
+    return { notification };
+  }
+
+  
+  @Get('me/notification/:notificationId')
+  async getNotificationDetail(
+    @Param("notificationId") notificationId:string,
+    @Req() req: Request & { user: { id: string; role: string; email: string } },
+  ) {
+    const notification = await this.getNotificationDetailUC.execute(req.user.id,notificationId);
     return { notification };
   }
 
@@ -82,7 +95,7 @@ export class UserController {
   }
 
   @Patch('me/profile/avatar')
-  @UseInterceptors(FileInterceptor('file',{limits:{fileSize:2*1024*1024}}))
+  @UseInterceptors(FileInterceptor('file',{limits:{fileSize:4*1024*1024}}))
   async PatchAvatar(
     @Req() req: Request & { user: { id: string; role: string; email: string } },
     @UploadedFile(
@@ -98,9 +111,10 @@ export class UserController {
     ) file:Express.Multer.File,
   ): Promise<{
     message: string;
+    path:string
   }> {
     const user = req.user;
-    await this.putAvatarUC.execute({
+    const path = await this.putAvatarUC.execute({
       userId: user.id,
       file:{
         buffer: file.buffer,
@@ -113,6 +127,7 @@ export class UserController {
     });
     return {
       message: 'thành công',
+      path:path
     };
   }
 

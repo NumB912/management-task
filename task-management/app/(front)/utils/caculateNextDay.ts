@@ -12,7 +12,6 @@ export const getNextOccurrence = (task: ITaskModel):{
     isEnded: true,
     next: null
   };
-
   const next = calculateNextDate(rule?.repeat, rule.start_date);
   if (!next) return {
     isEnded: true,

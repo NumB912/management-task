@@ -20,7 +20,7 @@ export class SendOtpUsecase implements IUsecase<string> {
         email: email,
       });
       if (user) {
-        throw new AppError("EXIST", "Email ngÆ°á»i dÃ¹ng Ä‘Ã£ tá»“n táº¡i vui lÃ²ng Ä‘Äƒng nháº­p", 400);
+        throw new AppError("EXIST", "Email", 400);
       }
       const otp = await this.otpService.generateOtp(email);
         this.publisher.pub<{ email: string; otp: string }>(

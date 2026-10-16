@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import {
   IMemberModel,
   IRoleMember,
@@ -27,9 +27,9 @@ import {
   useRemoveMember,
   useUpdateMember,
 } from "../../feature/hook/useMemberMutation.hook";
-import useUserState from "../../states/user/user.state";
+import useUserState from "../../feature/store/user/user.state";
 import { useShallow } from "zustand/react/shallow";
-import { FileConfig } from "../../config/file.config";
+import { resolveSrc } from "../../utils/readURL.utils";
 
 interface ShareContentProps {
   listId: string;
@@ -42,6 +42,7 @@ interface Contact {
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
 function initialsOf(text?: string) {
   return text?.[0]?.toUpperCase() ?? "?";
 }
@@ -60,7 +61,9 @@ const STATUS_LABEL: Record<IStatusMember, string> = {
 
 export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
   const { user } = useUserState();
-  const list = useWorkspaceStore(useShallow((state) => state.listIndex[listId]))
+  const list = useWorkspaceStore(
+    useShallow((state) => state.listIndex[listId]),
+  );
   const listIndex = useWorkspaceStore((state) => state.listIndex);
   const updateRole = useWorkspaceStore((state) => state.setUpdateRoleMember);
   const addMemberStore = useWorkspaceStore((state) => state.addMember);
@@ -79,16 +82,18 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
   const query = input.trim().toLowerCase();
   const isInviting = query.length > 0 || staged.length > 0;
 
-  const memberStatusByEmail = useMemo(() => {
-    const map = new Map<string, IStatusMember>();
+  const existingEmails = useMemo(() => {
+    const emails = new Set<string>();
     members?.forEach((m) => {
-      if (m.email) map.set(m.email.toLowerCase(), m.status);
+      if (m.email) emails.add(normalizeEmail(m.email));
+      if (m.user?.email) emails.add(normalizeEmail(m.user.email));
     });
-    return map;
-  }, [members]);
+    if (user?.email) emails.add(normalizeEmail(user.email));
+    return emails;
+  }, [members, user?.email]);
 
-  const isAccepted = (email: string) =>
-    memberStatusByEmail.get(email.toLowerCase()) === "accept";
+  const alreadyExists = (email: string) =>
+    existingEmails.has(normalizeEmail(email));
 
   const suggestions = useMemo(() => {
     const seen = new Set<string>();
@@ -98,9 +103,9 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
       if (l.id === listId) continue;
 
       for (const member of l.members ?? []) {
-        const email = member.email?.toLowerCase();
+        const email = member.email && normalizeEmail(member.email);
         if (!email) continue;
-        if (memberStatusByEmail.get(email) === "accept") continue;
+        if (existingEmails.has(email)) continue;
         if (member.status === "pending") continue;
         if (staged.includes(email)) continue;
         if (seen.has(email)) continue;
@@ -117,19 +122,19 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     }
 
     return result;
-  }, [listIndex, listId, memberStatusByEmail, staged, query]);
+  }, [listIndex, listId, existingEmails, staged, query]);
 
   const canAddTyped = EMAIL_REGEX.test(query);
 
   const buildPendingMember = (contact: Contact): IMemberModel => ({
     id: crypto.randomUUID(),
-    email: contact.email.toLowerCase(),
+    email: normalizeEmail(contact.email),
     list: listId,
     user: {
       id: crypto.randomUUID(),
       name: contact.name,
       avatar: contact.avatar,
-      email:contact.email
+      email: contact.email,
     },
     role: "can edit",
     status: "pending",
@@ -144,8 +149,25 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     options?: { onDone?: () => void },
   ) => {
     if (!list || contacts.length === 0) return;
+     const currentMembers =
+      useWorkspaceStore.getState().listIndex[listId]?.members ?? [];
+    const seen = new Set(
+      currentMembers.flatMap((m) =>
+        [m.email, m.user?.email]
+          .filter((email): email is string => Boolean(email))
+          .map(normalizeEmail),
+      ),
+    );
+    if (user?.email) seen.add(normalizeEmail(user.email));
+    const uniqueContacts = contacts.flatMap((contact) => {
+      const email = normalizeEmail(contact.email);
+      if (!EMAIL_REGEX.test(email) || seen.has(email)) return [];
+      seen.add(email);
+      return [{ ...contact, email }];
+    });
+    if (uniqueContacts.length === 0) return;
     const previousByEmail = new Map<string, IMemberModel | undefined>();
-    contacts.forEach((c) => {
+    uniqueContacts.forEach((c) => {
       const email = c.email.toLowerCase();
       previousByEmail.set(
         email,
@@ -155,7 +177,7 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     });
 
     Invite(
-      { email: contacts.map((c) => c.email), listId },
+      { email: uniqueContacts.map((c) => c.email), listId },
       {
         onError(error) {
           previousByEmail.forEach((previous, email) =>
@@ -165,9 +187,9 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
         },
         onSuccess() {
           toast.success(
-            contacts.length === 1
-              ? `Đã mời ${contacts[0].email}`
-              : `Đã mời ${contacts.length} người`,
+            uniqueContacts.length === 1
+              ? `Đã mời ${uniqueContacts[0].email}`
+              : `Đã mời ${uniqueContacts.length} người`,
           );
           options?.onDone?.();
         },
@@ -176,6 +198,11 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
   };
 
   const handleInviteContact = (contact: Contact) => {
+    if (
+      alreadyExists(contact.email) ||
+      staged.includes(normalizeEmail(contact.email))
+    )
+      return;
     setInput("");
     inviteEmails([contact]);
   };
@@ -195,8 +222,8 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
         firstError ||= `Email không hợp lệ: ${email}`;
         continue;
       }
-      if (isAccepted(email)) {
-        firstError ||= `${email} đã là thành viên`;
+      if (alreadyExists(email)) {
+        firstError ||= `${email} đã có trong danh sách hoặc đã được mời`;
         continue;
       }
       if (nextStaged.includes(email)) continue;
@@ -218,20 +245,23 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
   };
 
   const sendInvites = () => {
-    const emailsToInvite = [...staged];
-    if (canAddTyped && !emailsToInvite.includes(query) && !isAccepted(query)) {
+    const emailsToInvite = staged.filter((email) => !alreadyExists(email));
+    if (
+      canAddTyped &&
+      !emailsToInvite.includes(query) &&
+      !alreadyExists(query)
+    ) {
       emailsToInvite.push(query);
     }
     if (emailsToInvite.length === 0) return;
-
 
     inviteEmails(emailsToInvite.map((email) => ({ email, name: email })));
     resetInvite();
   };
 
   const pendingCount =
-    staged.length +
-    (canAddTyped && !staged.includes(query) && !isAccepted(query) ? 1 : 0);
+    staged.filter((email) => !alreadyExists(email)).length +
+    (canAddTyped && !staged.includes(query) && !alreadyExists(query) ? 1 : 0);
 
   const handleRoleChange = (email: string, role: IRoleMember) => {
     const previousRole = list?.members.find(
@@ -275,7 +305,6 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
     );
   };
 
-  // List bị xóa (realtime) hoặc chưa có trong store
   if (!list) return null;
 
   return (
@@ -311,6 +340,11 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
           </div>
 
           {error && <p className="text-xs text-destructive">{error}</p>}
+          {!error && alreadyExists(query) && (
+            <p className="text-xs text-muted-foreground">
+              Người dùng này đã có trong danh sách hoặc đã được mời.
+            </p>
+          )}
         </div>
       )}
 
@@ -323,51 +357,55 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
               </span>
               <div className="divide-y">
                 {suggestions.map((c) => {
-                  console.log(c)
-                  {console.log(`${FileConfig.FILE_URL}${user?.avatar}`)}
+                  {
+                    console.log(user?.avatar);
+                  }
                   return (
-                 
-                  <Button
-                    key={c.id}
-                    type="button"
-                    variant={"ghost"}
-                    onClick={() =>
-                      handleInviteContact({
-                        email: c.email,
-                        name: c.user.name,
-                        avatar: c.user.avatar,
-                      })
-                    }
-                    className="flex w-full h-fit items-center gap-3 p-2! text-left hover:bg-muted/50"
-                  >
-                    <>
-                      <Avatar className="size-9">
-                        <AvatarImage src={`${FileConfig.FILE_URL}${user?.avatar}`} alt={c.user.name} />
-                        <AvatarFallback>
-                          {initialsOf(c.user.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {c.user.name}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {c.email}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        Thêm
-                      </span>
-                    </>
-                  </Button>
-                )})}
+                    <Button
+                      key={c.id}
+                      type="button"
+                      variant={"ghost"}
+                      onClick={() =>
+                        handleInviteContact({
+                          email: c.email,
+                          name: c.user.name,
+                          avatar: c.user.avatar,
+                        })
+                      }
+                      className="flex w-full h-fit items-center gap-3 p-2! text-left hover:bg-muted/50"
+                    >
+                      <>
+                        <Avatar className="size-9">
+                          <AvatarImage
+                            src={resolveSrc(user?.avatar)}
+                            alt={c.user.name}
+                          />
+                          <AvatarFallback>
+                            {initialsOf(c.user.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {c.user.name}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {c.email}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          Thêm
+                        </span>
+                      </>
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           {canAddTyped &&
             !staged.includes(query) &&
-            !isAccepted(query) &&
+            !alreadyExists(query) &&
             !suggestions.some((c) => c.email.toLowerCase() === query) && (
               <button
                 type="button"
@@ -422,7 +460,10 @@ export function ShareContent({ listId, onClose }: Readonly<ShareContentProps>) {
               {list.members.map((m) => (
                 <div key={m.id} className="flex items-center gap-3 py-2.5">
                   <Avatar className="size-9">
-                    <AvatarImage src={m.user?.avatar} alt={m.user?.name} />
+                    <AvatarImage
+                      src={resolveSrc(m.user?.avatar)}
+                      alt={m.user?.name}
+                    />
                     <AvatarFallback>{initialsOf(m.user?.name)}</AvatarFallback>
                   </Avatar>
 

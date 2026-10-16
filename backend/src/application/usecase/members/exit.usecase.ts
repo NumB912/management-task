@@ -5,12 +5,12 @@ import {
   IListRepository,
   IPublisher,
   IUserRepository,
-} from "@/domain";
-import { IRealtimeNotifier } from "@/domain/message";
-import { IMemberRepository } from "@/domain/repositories/IMember.repository";
+} from '@/domain';
+import { IRealtimeNotifier } from '@/domain/message';
+import { IMemberRepository } from '@/domain/repositories/IMember.repository';
 
-const EXIT_MEMBER_EVENT = "exit-member";
-const EXIT_MEMBER_NOTIFICATION = "exit-member-notification";
+const EXIT_MEMBER_EVENT = 'exit-member';
+const EXIT_MEMBER_NOTIFICATION = 'exit-member-notification';
 
 interface ExitMemberDTO {
   email: string;
@@ -32,41 +32,47 @@ export class ExitMemberUsecase implements IUsecase<void> {
     const { email, listId, userId } = DTO;
 
     if (!email || !userId || !listId) {
-      throw new AppError("BAD_REQUEST", "Không chứa dữ liệu phù hợp", 400);
+      throw new AppError('BAD_REQUEST', 'Không chứa dữ liệu phù hợp', 400);
     }
 
     let memberEmail: string;
     let listName: string;
     let recipientIds: string[] = [];
-    let notificationIds:string[] = []
+    let notificationIds: string[] = [];
     try {
       await this.unitWork.startTransaction();
       const session = await this.unitWork.getSession();
 
       const list = await this.listRepository.findById(listId, session);
       if (!list) {
-        throw new AppError("NOT_FOUND", "Không tìm thấy danh sách", 404);
+        throw new AppError('NOT_FOUND', 'Không tìm thấy danh sách', 404);
       }
       const member = await this.memberRepository.findOne(
-        { list: listId, user: userId, status: "accept" },
+        { list: listId, user: userId, status: 'accept' },
         session,
       );
       if (!member) {
-        throw new AppError("NOT_FOUND", "Không tìm thấy thành viên", 404);
+        throw new AppError('NOT_FOUND', 'Không tìm thấy thành viên', 404);
       }
-      if (member.role === "owner" || String((list as any).user) === String(userId)) {
-        throw new AppError("FORBIDDEN", "Chủ danh sách không thể rời khỏi danh sách", 403);
+      if (
+        member.role === 'owner' ||
+        String((list as any).user) === String(userId)
+      ) {
+        throw new AppError(
+          'FORBIDDEN',
+          'Chủ danh sách không thể rời khỏi danh sách',
+          403,
+        );
       }
-
       memberEmail = member.email;
       listName = list.name;
 
       const others =
         (await this.memberRepository.findManyByIds(list.members ?? [])) ?? [];
       const ids = new Set(
-        others.filter((m) => m.status === "accept").map((m) => String(m.user)),
+        others.filter((m) => m.status === 'accept').map((m) => String(m.user)),
       );
-      notificationIds = [...ids]
+      notificationIds = [...ids];
       if ((list as any).user) ids.add(String((list as any).user));
       ids.delete(String(userId));
       recipientIds = [...ids];
@@ -82,8 +88,8 @@ export class ExitMemberUsecase implements IUsecase<void> {
       await this.unitWork.rollBackTransaction();
       console.error(error);
       throw new AppError(
-        error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lỗi trong quá trình rời danh sách",
+        error.code ?? 'INTERNAL_SERVER',
+        error.message ?? 'Lỗi trong quá trình rời danh sách',
         error.status ?? 500,
       );
     }
@@ -93,7 +99,7 @@ export class ExitMemberUsecase implements IUsecase<void> {
       userId,
       memberEmail: memberEmail!,
       recipientIds,
-      notificationIds:notificationIds
+      notificationIds: notificationIds,
     });
   }
 
@@ -103,20 +109,24 @@ export class ExitMemberUsecase implements IUsecase<void> {
     userId: string;
     memberEmail: string;
     recipientIds: string[];
-    notificationIds:string[];
+    notificationIds: string[];
   }): Promise<void> {
-    const { listId,notificationIds, listName, userId, memberEmail, recipientIds } = params;
+    const {
+      listId,
+      notificationIds,
+      listName,
+      userId,
+      memberEmail,
+      recipientIds,
+    } = params;
 
     try {
-      const user = await this.userRepository.findById(userId);
-      const actor = { id: String(userId), name: user?.name, avatar: user?.avatar };
-
       const tasks: Promise<unknown>[] = [];
 
       if (recipientIds.length > 0) {
         tasks.push(
           Promise.resolve(
-            this.publisher.pub("memberExchange", "exit.member", "direct", {
+            this.publisher.pub('memberExchange', 'exit.member', 'direct', {
               userIds: recipientIds,
               event: EXIT_MEMBER_EVENT,
               data: { listId, email: memberEmail },
@@ -125,24 +135,26 @@ export class ExitMemberUsecase implements IUsecase<void> {
         );
       }
 
-      if(notificationIds.length > 0){
-        tasks.push(          Promise.resolve(
+      if (notificationIds.length > 0) {
+        tasks.push(
+          Promise.resolve(
             this.realtimeNotifier.push(recipientIds, EXIT_MEMBER_NOTIFICATION, {
               listId,
               listName,
-              user: actor,
+              user: userId
             }),
-          ),)
+          ),
+        );
       }
 
       const results = await Promise.allSettled(tasks);
       results.forEach((r, i) => {
-        if (r.status === "rejected") {
+        if (r.status === 'rejected') {
           console.error(`[exit-member] task ${i} failed`, r.reason);
         }
       });
     } catch (err) {
-      console.error("[exit-member] notify failed", err);
+      console.error('[exit-member] notify failed', err);
     }
   }
 }

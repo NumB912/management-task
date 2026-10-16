@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useDeleteList } from "../../feature/hook/useListMutation.hook";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 interface DeleteListDialogProps {
   list: { id: string; name: string } | null;
   onClose: () => void;

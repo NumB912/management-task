@@ -4,8 +4,9 @@ import {
   IRuleModel,
   ISectionModel,
   ISectionModelState,
+  ITaskModel,
 } from "../../model";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../store/workspace.state";
 
 const ACTIVE_TAG_REGEX = /#([^\s]*)$/;
 const ACTIVE_priority = /(?:^|\s)P([1-4])\s$/;
@@ -14,13 +15,18 @@ const ACTIVE_LIST_REGEX = /@([^\s]*)$/;
 interface UseTaskInputEditorProps {
   listId: string;
   sectionId?:string;
-  defaultConfirmRule?: Partial<IRuleModel>;
+  defaultConfirmTask?: DefaultTask;
+}
+
+type rulePartial = Partial<IRuleModel>
+export interface DefaultTask extends Partial<Omit<ITaskModel,"rule">>{
+  rule:rulePartial
 }
 
 export const useTaskInputEditor = ({
   listId,
   sectionId,
-  defaultConfirmRule,
+  defaultConfirmTask,
 }: UseTaskInputEditorProps) => {
   const buildDefaultRule = (
     override?: Partial<IRuleModel>,
@@ -58,11 +64,11 @@ export const useTaskInputEditor = ({
   const [confirmList, setConfirmList] = useState<string>(listId);
   const [confirmRule, setConfirmRule] = useState<IRuleModel>(() => {
     return {
-      ...buildDefaultRule(defaultConfirmRule),
-      ...defaultConfirmRule,
-      id: defaultConfirmRule?.id ?? "",
-      task: defaultConfirmRule?.task ?? "",
-      list: defaultConfirmRule?.list ?? listId,
+      ...buildDefaultRule(defaultConfirmTask?.rule),
+      ...defaultConfirmTask?.rule,
+      id: defaultConfirmTask?.rule?.id ?? "",
+      task: defaultConfirmTask?.rule?.task ?? "",
+      list: defaultConfirmTask?.rule?.list ?? listId,
     } as IRuleModel;
   });
   const [isOpenList, setIsOpenList] = useState<boolean>(false);
@@ -386,7 +392,6 @@ export const useTaskInputEditor = ({
     list: Pick<IListModelState, "id" | "sections" | "name">;
     section?: ISectionModelState;
   }) => {
-    console.log(list,section)
     const el = refDivInput.current;
     if (!el || !list) return;
     const chipCurrent = el.querySelector<HTMLElement>(".list-chip");

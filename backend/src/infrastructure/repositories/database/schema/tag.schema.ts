@@ -12,6 +12,8 @@ export interface ITagPopulateDocument extends Omit<ITagDocument,"user">{
 export class Tag extends BaseSchema {
   @Prop({ type: String, required: true })
   name: string;
+  @Prop({ type: String, default: '#3B82F6' })
+  color: string;
   @Prop({ type: Number, default: 0 })
   order: number;
   @Prop({ type: Types.ObjectId, ref: 'user', required: false })

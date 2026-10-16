@@ -88,8 +88,8 @@ export class AuthController {
         httpOnly: true,
         secure: isProd,
         sameSite: 'lax',
-        path: '/auth/refresh',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/api/v1/auth/refresh',
+        maxAge: 24 * 60 * 60 * 1000,
       });
 
       return { message: 'Đăng nhập thành công' };
@@ -109,7 +109,7 @@ export class AuthController {
       token: token,
     });
     res.clearCookie('token', { path: '/' });
-    res.clearCookie('refresh_token', { path: '/auth/refresh' });
+    res.clearCookie('refresh_token', { path: '/api/v1/auth/refresh' });
     return { message: 'Đã đăng xuất' };
   }
 
@@ -190,9 +190,7 @@ export class AuthController {
     if (!refreshToken) {
       throw new AppError('UNAUTHORIZED', 'Refresh token không tồn tại', 401);
     }
-
     const result = await this.refreshUC.execute(refreshToken);
-
     res.cookie('token', result.token, {
       httpOnly: true,
       secure: isProd,

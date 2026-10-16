@@ -30,10 +30,6 @@ export class TasksModule implements NestModule {
       .forRoutes(ListTasksController);
     consumer
       .apply(CheckPermissionTaskMiddleware(EDITOR_PERMISSION))
-      .exclude(
-        { path: 'tasks/today', method: RequestMethod.GET },
-        { path: 'tasks/upComming', method: RequestMethod.GET },
-      )
-      .forRoutes(TasksController);
+      .forRoutes({ path: 'tasks/:taskId', method: RequestMethod.GET });
   }
 }

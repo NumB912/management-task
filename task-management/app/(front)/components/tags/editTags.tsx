@@ -16,7 +16,9 @@ import { cn } from "@/lib/utils";
 import { ITagModel } from "../../model";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "../ui/label";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import ColorPicker from "../color/colorPicker.component";
+import { DEFAULT_COLORS } from "../../model/mod/color.config";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import {
   useUpdateTagOnlyMe,
   useUpdateTagWithShare,
@@ -28,6 +30,7 @@ interface EditTagDialogProps {
 
 export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
   const [name, setName] = useState("");
+  const [color, setColor] = useState(DEFAULT_COLORS[0]);
   const [isEditShareTag, setIsEditShareTag] = useState<boolean>(false);
   const [confirm, setConfirm] = useState<boolean>(false);
   const [openEdit, setOpenEdit] = useState<boolean>(false);
@@ -46,12 +49,19 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
     if (!tag) return;
     const trimmed = name.trim();
 
-    if (!trimmed || trimmed === tag.name) {
+    if (!trimmed) {
       handleCloseAll();
       return;
     }
 
-    if (hasTag(trimmed)) {
+    const nameChanged = trimmed !== tag.name;
+    const colorChanged = color !== (tag.color ?? DEFAULT_COLORS[0]);
+    if (!nameChanged && !colorChanged) {
+      handleCloseAll();
+      return;
+    }
+
+    if (nameChanged && hasTag(trimmed)) {
       setError("Trùng tên với thẻ khác rồi vui lòng dùng tên khác");
       return;
     }
@@ -59,31 +69,32 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
     if (!tag) return;
     if (isEditShareTag) {
       editTagWithShare(tag.name, {
-        name: trimmed,
+        ...(nameChanged ? { name: trimmed } : {}), color,
       });
       updateWithShare({
         id: tag.id,
-        name: trimmed,
+        ...(nameChanged ? { name: trimmed } : {}), color,
       });
 
       onClose();
     } else {
       editTagOnlyMe(tag.name, {
-        name: trimmed,
+        ...(nameChanged ? { name: trimmed } : {}), color,
       });
       updateOnlyMe({
         id: tag.id,
-        name: trimmed,
+        ...(nameChanged ? { name: trimmed } : {}), color,
       });
       onClose();
     }
     setOpenEdit(false);
-    setConfirm(true);
+    setConfirm(nameChanged);
   };
 
   useEffect(() => {
     if (tag) {
       setName(tag.name);
+      setColor(tag.color ?? DEFAULT_COLORS[0]);
 
       setIsEditShareTag(tag?.isShareTag ?? false);
       setOpenEdit(true);
@@ -111,10 +122,10 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle className={cn("font-bold!")}>
-                Chỉnh sửa danh sách
+                Chỉnh sửa thẻ
               </DialogTitle>
               <DialogDescription>
-                Đổi tên danh sách của bạn. Nhấn lưu khi hoàn tất.
+                Đổi tên thẻ của bạn. Nhấn lưu khi hoàn tất.
               </DialogDescription>
             </DialogHeader>
 
@@ -134,6 +145,10 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
                   )}
                 />
                 {error && <p className="text-sm text-destructive">{error}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label>Màu thẻ</Label>
+                <ColorPicker value={color} onChange={setColor} />
               </div>
             </div>
 

@@ -10,3 +10,19 @@ export const useUpdateProfile = () => {
       }),
   });
 };
+
+export const useUploadFile = ()=>{
+  return useMutation({
+    mutationFn: (data:File):Promise<string> =>
+      userApi.uploadFile({
+        data:data
+      }),
+  });
+}
+
+export const useDeleteFile = ()=>{
+  return useMutation({
+    mutationFn: ():Promise<void> =>
+      userApi.deleteFile()
+  });
+}

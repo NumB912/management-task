@@ -1,108 +1,131 @@
 "use client";
-
-import React, { useMemo, useState } from "react";
-import { IPomodoroModel } from "@/app/(front)/model/pomodoro.model";
-import { daysAgo } from "@/app/(front)/feature/hook/pomodoro/usePomodoroStats";
-import { ToggleGroup, ToggleGroupItem } from "../components/ui/toggle-group";
-import { ChartColumn, Check, Ticket, Timer } from "lucide-react";
-import { TaskStatsView } from "../components/task/taskStatsView";
-import { TaskStatsItem } from "../feature/hook/task/useTaskStats";
-// import { TaskStatsView } from "../components/task/taskStatsView";
-
-const USE_MOCK = true;
-
-function makeMockSessions(): IPomodoroModel[] {
-  const result: unknown[] = [];
-  const hours = [8, 10, 14, 16, 20];
-
-  for (let day = 0; day < 14; day++) {
-    const count = 2 + ((day * 7) % 4);
-    for (let i = 0; i < count; i++) {
-      const start = daysAgo(day, hours[i % hours.length], (i * 7) % 40);
-      const hasPause = (day + i) % 3 === 0;
-      const progress = hasPause
-        ? [
-            { startPause: start, duration: 12 * 60_000 },
-            {
-              startPause: new Date(start.getTime() + 15 * 60_000),
-              duration: 13 * 60_000,
-            },
-          ]
-        : [{ startPause: start, duration: 25 * 60_000 }];
-
-      result.push({
-        id: `mock-${day}-${i}`,
-        start,
-        progress,
-        task: { id: `task-${i}`, name: `Công việc ${i + 1}` },
-      });
-    }
-  }
-  return result as IPomodoroModel[];
+import { useState, useSyncExternalStore } from "react";
+import { ChartColumn, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  TaskApiStatsView,
+  PomodoroApiStatsView,
+} from "../components/statistics/statisticsViews";
+import { useStatistics } from "../feature/hook/statistics/useStatistics";
+import type { StatisticsRange } from "../model/statistics.model";
+function vietnamToday() {
+  return new Date(Date.now() + 420 * 60000).toISOString().slice(0, 10);
 }
-
-function makeMockTasks(): TaskStatsItem[] {
-  return Array.from({ length: 40 }, (_, i) => {
-    const completed = i % 3 !== 0;
-    return {
-      id: `t-${i}`,
-      completed,
-      createdAt: daysAgo(10 + (i % 8), 9),
-      completedAt: completed ? daysAgo(i % 12, 11 + (i % 6)) : null,
-      dueDate: daysAgo((i % 7) - 2, 17),
-      priority: ((i % 4) + 1) as TaskPriority,
-    };
-  });
-}
-
-type StatsSection = "task" | "pomodoro";
-
+const subscribeDate = () => () => {};
+const serverDate = () => "";
+const displayDate = (iso: string) =>
+  new Date(new Date(iso).getTime() + 420 * 60000)
+    .toISOString()
+    .slice(0, 10)
+    .split("-")
+    .reverse()
+    .join("/");
 export default function StatsPage() {
-  const [section, setSection] = useState<StatsSection>("task");
-  const sessions = useMemo<IPomodoroModel[]>(
-    () => (USE_MOCK ? makeMockSessions() : []),
-    [],
+  const [section, setSection] = useState<"task" | "pomodoro">("task");
+  const [range, setRange] = useState<StatisticsRange>("week");
+  const today = useSyncExternalStore(subscribeDate, vietnamToday, serverDate);
+  const [selectedDate, setDate] = useState("");
+  const date = selectedDate || today;
+  const { tasks, pomodoro } = useStatistics(
+    { range, date, utcOffsetMinutes: 420 },
+    section,
   );
-  const tasks = useMemo<TaskStatsItem[]>(
-    () => (USE_MOCK ? makeMockTasks() : []),
-    [],
-  );
-
+  const active = section === "task" ? tasks : pomodoro;
+  const period = active.data?.period;
   return (
-    <div className="flex max-h-dvh w-full flex-col gap-5 overflow-y-auto p-4 md:p-6">
-      <div className="title flex text-xl font-bold text-nowrap gap-2">
-        <ChartColumn /> Thống kê nhiệm vụ
-      </div>
-      <div className="flex items-center justify-center">
-        <ToggleGroup
-          type="single"
-          value={section}
-          onValueChange={(v) => {
-            if (v) setSection(v as StatsSection);
-          }}
-          className="flex max-w-md! w-full justify-center gap-1 rounded-full bg-accent/75 p-1"
-        >
-          <ToggleGroupItem
-            value="task"
-            className="flex-1 rounded-full font-bold text-neutral-600 data-[state=on]:bg-white"
+    <div className="flex h-dvh w-full flex-col gap-5 overflow-y-auto p-4 md:p-6">
+      <h1 className="flex items-center gap-2 text-xl font-bold">
+        <ChartColumn aria-hidden="true" />
+        Thống kê
+      </h1>
+      <div className="mx-auto w-full max-w-5xl space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Tabs
+            value={section}
+            onValueChange={(v) => {
+              if (v === "task" || v === "pomodoro") setSection(v);
+            }}
           >
-            <Check  className={`${section=="task"&&"text-primary"}`}/> Nhiệm vụ
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="pomodoro"
-            className="flex-1 rounded-full font-bold text-neutral-600 data-[state=on]:bg-white"
-          >
-            <Timer className={`${section=="pomodoro"&&"text-primary"}`}/>
-            Pomodoro
-          </ToggleGroupItem>
-        </ToggleGroup>
+            <TabsList>
+              <TabsTrigger value="task">Nhiệm vụ</TabsTrigger>
+              <TabsTrigger value="pomodoro">Pomodoro</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex flex-wrap items-center gap-3">
+            <Tabs
+              value={range}
+              onValueChange={(v) => {
+                if (v === "week" || v === "month") setRange(v);
+              }}
+            >
+              <TabsList>
+                <TabsTrigger value="week">Theo tuần</TabsTrigger>
+                <TabsTrigger value="month">Theo tháng</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <label className="flex items-center gap-2 text-sm">
+              Ngày trong kỳ
+              <input
+                type="date"
+                aria-label="Chọn ngày trong kỳ thống kê"
+                value={date}
+                onChange={(e) => {
+                  if (e.target.value) setDate(e.target.value);
+                }}
+                className="h-9 rounded-md border bg-background px-2"
+              />
+            </label>
+            <Button
+              variant="outline"
+              disabled={!date || active.isFetching}
+              onClick={() => void active.refetch()}
+            >
+              <RefreshCw className={active.isFetching ? "animate-spin" : ""} />
+              Làm mới
+            </Button>
+          </div>
+        </div>
+        {period && (
+          <p className="text-sm text-muted-foreground">
+            {range === "week" ? "Tuần" : "Tháng"}: {displayDate(period.start)} –{" "}
+            {displayDate(
+              new Date(
+                new Date(period.endExclusive).getTime() - 1,
+              ).toISOString(),
+            )}{" "}
+            · Giờ Việt Nam
+          </p>
+        )}
+        <div aria-live="polite" aria-busy={active.isFetching}>
+          {!date || active.isPending ? (
+            <div
+              role="status"
+              className="rounded-lg border p-12 text-center text-muted-foreground"
+            >
+              Đang tải thống kê…
+            </div>
+          ) : active.isError ? (
+            <div
+              role="alert"
+              className="space-y-3 rounded-lg border border-destructive/30 p-6"
+            >
+              <p>Không thể tải thống kê. Vui lòng thử lại.</p>
+              <Button
+                variant="outline"
+                disabled={active.isFetching}
+                onClick={() => void active.refetch()}
+              >
+                Thử lại
+              </Button>
+            </div>
+          ) : section === "task" && tasks.data ? (
+            <TaskApiStatsView data={tasks.data} />
+          ) : section === "pomodoro" && pomodoro.data ? (
+            <PomodoroApiStatsView data={pomodoro.data} />
+          ) : null}
+        </div>
       </div>
-      {section === "task" ? (
-        <TaskStatsView tasks={tasks} />
-      ) : (
-        // <PomodoroStatsView sessions={sessions} />
-        <></>
-      )}
     </div>
   );
 }

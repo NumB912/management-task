@@ -1,21 +1,21 @@
-import type DeleteFileUsecase from "@application/usecase/deleteFile.usecase.js";
-import { ValidationError } from "@domain/errors/AppError.js";
+import { AppError, ValidationError } from "@domain/errors/AppError.js";
 import type IConsumer from "@domain/message/consumer.message.js";
+import type { IStorageService } from "@domain/service/IStorageService.js";
 import type IUsecase from "@domain/usecase/usecase.entities.js";
 
 export default class DeleteFileEvent implements IUsecase<void> {
-  private deleteFileUC: DeleteFileUsecase;
-  private consumer: IConsumer;
+    private readonly storageService: IStorageService
+    private readonly consumer: IConsumer
 
-  constructor(deleteFileUC: DeleteFileUsecase, consumer: IConsumer) {
-    this.deleteFileUC = deleteFileUC;
+  constructor(storageService: IStorageService, consumer: IConsumer) {
+    this.storageService = storageService;
     this.consumer = consumer;
   }
 
   async handle(dto: { fileName: string,userId:string }) {
     const { fileName,userId } = dto;
-
-    this.deleteFileUC.execute([fileName], `avatars/${userId}`);
+    console.log(fileName)
+    await this.storageService.delete(fileName)
     return fileName;
   }
 
@@ -29,10 +29,14 @@ export default class DeleteFileEvent implements IUsecase<void> {
       ["file.remove"],
       "direct",
       async (event) => {
-        await this.handle({
+        try{
+                  await this.handle({
           userId:event.userId,
           fileName: event.fileName,
         });
+        }catch(error){
+          throw new AppError("INTERNAL","Lỗi trong quá trình thực thi",500)
+        }
       },
     );
   }

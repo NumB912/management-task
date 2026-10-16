@@ -119,9 +119,24 @@ export function TaskStatsView({ tasks }: Readonly<{ tasks: TaskStatsItem[] }>) {
               </p>
             </CardContent>
           </Card>
+
+                    <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardDescription className="text-sm font-medium">
+                Tổng ngày steak ({rangeLabel})
+              </CardDescription>
+              <ListChecks className="size-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{stats.totalInRange}</div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {stats.statusBreakdown.completed} hoàn thành · tỉ lệ {stats.completionRate}%
+              </p>
+            </CardContent>
+          </Card>
+
         </div>
 
-        {/* Cột phải: biểu đồ tròn / Right: pie chart */}
         <Card>
           <CardHeader className="pb-0">
             <CardTitle className="text-base">Trạng thái task</CardTitle>

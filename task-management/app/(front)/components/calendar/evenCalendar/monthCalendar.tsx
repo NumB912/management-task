@@ -2,7 +2,7 @@
 
 import { IRuleModel, ITaskModel } from "@/app/(front)/model";
 import { WEEKDAYS } from "@/app/(front)/model/mod/mod";
-import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 import { getContrastText } from "@/app/(front)/utils/color";
 import { compareDate } from "@/app/(front)/utils/compareDate";
 import { formatTimer } from "@/app/(front)/utils/formatTimer";
@@ -175,6 +175,7 @@ function MonthView({ currentDate, onCreateTask }: MonthViewProp) {
   }, [currentDate]);
   const router = useRouter();
   const taskIndex = useWorkspaceStore(useShallow((state) => state.taskIndex));
+  const colorIndex = useWorkspaceStore(useShallow((state)=>state.colorIndex))
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
       <div className="grid grid-cols-7 border-b border-border/50 shrink-0">
@@ -200,6 +201,8 @@ function MonthView({ currentDate, onCreateTask }: MonthViewProp) {
             >
               <div className="absolute left-0 w-full top-10 grid grid-cols-7 gap-1.5 overflow-hidden z-20 pointer-events-none">
                 {visible.map((value) => {
+                  const color = colorIndex[value.task.id]?colorIndex[value.task.id].color:value.task.color
+
                   return (
                     <div
                       key={`${value.task.id}-${value.colStart}`}
@@ -207,8 +210,8 @@ function MonthView({ currentDate, onCreateTask }: MonthViewProp) {
                       style={{
                         gridColumn: `${value.colStart + 1} / span ${value.colSpan}`,
                         gridRow: value.index + 1,
-                        backgroundColor: value.task.rule.color,
-                        color: getContrastText(value.task.rule.color),
+                        backgroundColor:color,
+                        color: getContrastText(color),
                       }}
                       onClick={(e) => {
                         e.stopPropagation();

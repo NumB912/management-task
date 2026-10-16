@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mail, CalendarDays, CalendarClock, Flag, Plus, Repeat, Calendar1 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -37,9 +37,9 @@ export default function CreateTaskForm({
         mode:"none",
       },
       tags:[],
-      color:"",
       priority:4,
-    }
+    },
+    color:""
   },
   onCancel,
   onSave,
@@ -65,8 +65,8 @@ export default function CreateTaskForm({
         },
         ...rule,
         tags: tags,
-        color:color,
       },
+      color:color,
     });
   };
 
@@ -74,6 +74,24 @@ export default function CreateTaskForm({
     setTags(newTags);
     setOpenTags(false);
   };
+
+  useEffect(() => {
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      if (event.target instanceof HTMLTextAreaElement) return;
+      if (openTags || openPriority) return;
+
+      event.preventDefault();
+      handleSave();
+    }
+  };
+  window.addEventListener("keydown", handleKeyDown);
+
+  return () => {
+    window.removeEventListener("keydown", handleKeyDown);
+  };
+}, [handleSave, openTags, openPriority]);
+  
 
   return (
     <div className="flex flex-col w-full h-full">

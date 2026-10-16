@@ -34,7 +34,6 @@ const createRuleSchema = z.object({
   endTimer: z.number().int().positive().nullable().optional(),
   start_date: z.coerce.date().nullable().optional(),
   end_date: z.coerce.date().nullable().optional(),
-  color: colorSchema.optional(),
 });
 
 const updateRuleSchema = createRuleSchema.partial();
@@ -47,11 +46,11 @@ export const CreateTaskSchemaDTO = z.object({
     id: taskIdSchema,
     name: z.string().min(1, "Tên task không được để trống").max(200, "Tên task tối đa 200 ký tự"),
     section: sectionIdSchema.nullable().optional(),
+    color: colorSchema.optional(),
     rule: createRuleSchema,
   }),
 });
 
-// CreateTaskWithSection.execute({ listId, sectionId, userId, data: ICreateTaskDTO })
 export const CreateTaskWithSectionSchemaDTO = z.object({
   listId: listIdSchema,
   sectionId: sectionIdSchema,
@@ -60,6 +59,7 @@ export const CreateTaskWithSectionSchemaDTO = z.object({
     id: taskIdSchema,
     name: z.string().min(1, "Tên task không được để trống").max(200, "Tên task tối đa 200 ký tự"),
     section: sectionIdSchema.nullable().optional(),
+    color: colorSchema.optional(),
     rule: createRuleSchema,
   }),
 });
@@ -72,6 +72,7 @@ export const UpdateTaskSchemaDTO = z.object({
     .object({
       name: z.string().min(1).max(200).optional(),
       description: z.string().optional(),
+      color: colorSchema.optional(),
       list: listIdSchema.optional(),
       section: sectionIdSchema.nullable().optional(),
       rule: updateRuleSchema.optional(),
@@ -86,7 +87,6 @@ export const UpdateRuleSchemaDTO = z.object({
   data: updateRuleSchema,
 });
 
-// UpdateStatusUsecase.execute({ taskId, data: PayloadUpdateStatus, userId })
 export const UpdateTaskStatusSchemaDTO = z.object({
   taskId: taskIdSchema,
   userId: userIdSchema,

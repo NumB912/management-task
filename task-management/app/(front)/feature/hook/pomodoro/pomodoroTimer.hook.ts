@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { useTimerStore } from "../../store/timer.store";
+import { useTimerStore } from "../../store/pomodoro/timer.store";
 
 const formatTime = (value: number) => value.toString().padStart(2, "0");
 

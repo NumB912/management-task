@@ -4,33 +4,27 @@ const userIdSchema = z.string().min(1, "Không được để trống userId");
 const listIdSchema = z.string().min(1, "Không được để trống listId");
 const sectionIdSchema = z.string().min(1, "Không được để trống sectionId");
 
-// GetAllListUsecase.execute({ user_id })
 export const GetAllListSchemaDTO = z.object({
   user_id: userIdSchema,
 });
 
-// CreateListUsecase.execute({ name, user })
 export const CreateListSchemaDTO = z.object({
   name: z.string().min(1, "Tên list không được để trống").max(100, "Tên list tối đa 100 ký tự"),
   user: userIdSchema,
 });
 
-// GetAllListSectionUsecase.execute({ user_id })
 export const GetAllListSectionSchemaDTO = z.object({
   user_id: userIdSchema,
 });
 
-// GetInboxUsecase.execute({ user_id })
 export const GetInboxSchemaDTO = z.object({
   user_id: userIdSchema,
 });
 
-// GetListByIdUsecase.execute(listId)
 export const GetListByIdSchemaDTO = z.object({
   listId: listIdSchema,
 });
 
-// UpdateListUsecase.execute({ id, name, userId })
 export const UpdateListSchemaDTO = z.object({
   id: listIdSchema,
   name: z.string().min(1, "Tên list không được để trống").max(100, "Tên list tối đa 100 ký tự"),

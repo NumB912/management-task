@@ -1,40 +1,67 @@
-import { Types } from "mongoose";
+import { Types } from 'mongoose';
 
-import { IMapper } from "@/domain/mapper/Imapper.mapper.js";
-import { INotification } from "@/domain/entities/notification.entity.js";
-import { INotificationDocument } from "../repositories/database/schema/notification.schema.js";
-import { Injectable } from "@nestjs/common";
+import { IMapper } from '@/domain/mapper/Imapper.mapper.js';
+import { INotification } from '@/domain/entities/notification.entity.js';
+import { INotificationDocument } from '../repositories/database/schema/notification.schema.js';
+import { Inject, Injectable } from '@nestjs/common';
 @Injectable()
-export class NotificationMapper implements IMapper<INotificationDocument, INotification> {
+export class NotificationMapper implements IMapper<
+  INotificationDocument,
+  INotification
+> {
+  constructor() {}
+private normalizeData(data: INotificationDocument['data']): Record<string, unknown> {
+  if (!data) return {};
+
+  const { user, ...rest } = data as Record<string, any>;
+  if (!user) return rest;
+
+  // Chưa populate: ObjectId hoặc string
+  if (typeof user === 'string' || user instanceof Types.ObjectId) {
+    return { ...rest, user: user.toString() };
+  }
+
+  // Đã populate: document / object có _id
+  const plain = typeof user.toObject === 'function' ? user.toObject() : user;
+  const { _id, __v, ...userRest } = plain;
+
+  return {
+    ...rest,
+    user: _id ? { ...userRest, id: _id.toString() } : userRest,
+  };
+}
   toDomainPopulate(doc: INotificationDocument): INotification {
     return {
-      created_at:doc.created_at,
-      data:doc.data,
-      event:doc.event,
-      id:doc._id.toString(),
-      is_read:doc.is_read,
-      user:doc.user.toString()
-    }
+      created_at: doc.created_at,
+      data: this.normalizeData(doc.data),
+      event: doc.event,
+      id: doc._id.toString(),
+      is_read: doc.is_read,
+      user: doc.user.toString(),
+    };
   }
   toDomainPopulateList(docs: INotificationDocument[]): INotification[] {
-    return docs.map((doc)=>this.toDomainPopulate(doc))
+    return docs.map((doc) => this.toDomainPopulate(doc));
   }
+
+
   toDomain(doc: INotificationDocument): INotification {
     return {
-      id: doc._id.toString(),
-      user: doc.user.toString(),
-      data: doc.data,
-      event: doc.event,
-      is_read: doc.is_read,
-      created_at: doc.created_at,
+    id: doc._id.toString(),
+    user: doc.user.toString(),
+    data: this.normalizeData(doc.data),
+    event: doc.event,
+    is_read: doc.is_read,
+    created_at: doc.created_at,
     };
   }
 
   toDomainPartial(doc: Partial<INotificationDocument>): Partial<INotification> {
+    console.log(doc)
     const partial: Partial<INotification> = {};
     if (doc._id) partial.id = doc._id.toString();
     if (doc.user) partial.user = doc.user.toString();
-    if (doc.data) partial.data = doc.data;
+    if (doc.data) partial.data = this.normalizeData(doc.data);
     if (doc.event) partial.event = doc.event;
     if (doc.is_read !== undefined) partial.is_read = doc.is_read;
     if (doc.created_at) partial.created_at = doc.created_at;
@@ -45,9 +72,10 @@ export class NotificationMapper implements IMapper<INotificationDocument, INotif
     return docs.map((doc) => this.toDomain(doc));
   }
 
-  toPersistence(notification:INotification): Partial<INotificationDocument> {
+  toPersistence(notification: INotification): Partial<INotificationDocument> {
+    console.log(notification);
     return {
-      _id:new Types.ObjectId(notification.id),
+      _id: new Types.ObjectId(notification.id),
       user: new Types.ObjectId(notification.user),
       event: notification.event,
       data: notification.data,
@@ -55,13 +83,16 @@ export class NotificationMapper implements IMapper<INotificationDocument, INotif
     };
   }
 
-  toPersistencePartial(notification: Partial<INotification>): Partial<INotificationDocument> {
+  toPersistencePartial(
+    notification: Partial<INotification>,
+  ): Partial<INotificationDocument> {
     const update: Partial<INotificationDocument> = {};
     if (notification.id) update._id = new Types.ObjectId(notification.id);
     if (notification.user) update.user = new Types.ObjectId(notification.user);
     if (notification.event) update.event = notification.event;
     if (notification.data) update.data = notification.data;
-    if (notification.is_read !== undefined) update.is_read = notification.is_read;
+    if (notification.is_read !== undefined)
+      update.is_read = notification.is_read;
     return update;
   }
 }

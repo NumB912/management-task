@@ -16,13 +16,10 @@ export interface ITaskPopulateDocument extends Omit<ITaskDocument,"rule"|"parent
 export class Task extends BaseSchema {
   @Prop({ type: String })
   name: string;
-
   @Prop({ type: Types.ObjectId, required: false, ref: 'section' })
   section?: Types.ObjectId|null;
-
   @Prop({ type: [{ type: Types.ObjectId, ref: 'task' }], required: false })
   children: Types.ObjectId[];
-
   @Prop({ type: Types.ObjectId, required: true, ref: 'list' })
   list: Types.ObjectId;
 
@@ -46,6 +43,9 @@ export class Task extends BaseSchema {
 
   @Prop({ type: String, required: false })
   description?: string;
+
+  @Prop({ type: String, required: false })
+  color: string;
 }
 
 export const TaskSchema = SchemaFactory.createForClass(Task);

@@ -12,6 +12,15 @@ export const PRIORITY_BORDER: Record<number, string> = {
   4: "border-gray-400!",
 };
 
+
+export const PRIORITY_BACKGROUND: Record<number, string> = {
+  1: "bg-red-500/10!",
+  2: "bg-orange-500/10!",
+  3: "bg-blue-500/10!",
+  4: "bg-gray-400/0!",
+};
+
+
 export const PRIORITY_CONFIG = [
   { value: 1, label: "Ưu tiên 1", colorClass: "text-red-500 fill-red-500" },
   { value: 2, label: "Ưu tiên 2", colorClass: "text-orange-500 fill-orange-500" },

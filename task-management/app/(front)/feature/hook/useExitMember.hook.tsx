@@ -3,7 +3,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useExitMember } from "./useMemberMutation.hook";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../store/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 
 const useExitMemberHook = () => {

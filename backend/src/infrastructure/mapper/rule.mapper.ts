@@ -21,7 +21,6 @@ export class RuleMapper implements IMapper<IRuleDocument, IRuleWithId, IRulePopu
       task: doc.task.toString(),
       list:doc.list.toString(),
       tags:doc.tags,
-      color: doc.color,
       end_date: doc.end_date,
       priority: doc.priority as 1 | 2 | 3 | 4,
       repeat: doc.repeat as unknown as IRepeat,
@@ -44,7 +43,6 @@ export class RuleMapper implements IMapper<IRuleDocument, IRuleWithId, IRulePopu
     if (doc.endTimer) partial.endTimer = doc.endTimer
     if (doc.list) partial.list = doc.list.toString()
     if (doc.tags) partial.tags = doc.tags.map((tag)=>tag.toString())
-    if (doc.color) partial.color = doc.color;
     if (doc.created_at) partial.created_at = doc.created_at;
     if (doc.updated_at) partial.updated_at = doc.updated_at ?? undefined;
     if (doc.deleted_at) partial.deleted_at = doc.deleted_at ?? undefined;
@@ -60,7 +58,6 @@ export class RuleMapper implements IMapper<IRuleDocument, IRuleWithId, IRulePopu
       updated_at: doc.updated_at ?? null,
       path: doc.path,
       tags:doc.tags??[],
-      color:doc.color,
       task: doc.task.toString(),
       end_date: doc.end_date,
       priority: doc.priority as 1 | 2 | 3 | 4,
@@ -90,7 +87,6 @@ export class RuleMapper implements IMapper<IRuleDocument, IRuleWithId, IRulePopu
       tags: entity.tags ?? [],
       timer: entity.timer ?? undefined,
       endTimer: entity.endTimer ?? undefined,
-      color: entity.color,
       task: entity.task as unknown as Types.ObjectId,
       list:new  Types.ObjectId(entity.list),
       created_at: entity.created_at,
@@ -111,7 +107,6 @@ toPersistencePartial(entity: Partial<IRuleWithId>): Partial<IRuleDocument> {
   if (entity.list !== undefined) update.list = new Types.ObjectId(entity.list);
   if (entity.timer !== undefined) update.timer = entity.timer ?? undefined;
   if (entity.endTimer !== undefined) update.endTimer = entity.endTimer ?? undefined;
-  if (entity.color !== undefined) update.color = entity.color;
   if (entity.task !== undefined) update.task = entity.task?new Types.ObjectId(entity.task):undefined;
 
   return update;
@@ -131,7 +126,6 @@ toPersistencePartial(entity: Partial<IRuleWithId>): Partial<IRuleDocument> {
       task:entity.task?new Types.ObjectId(entity.task):undefined,
       tags:entity.tags??[],
       created_at: entity.created_at,
-      color:entity.color,
       updated_at: entity.updated_at ?? null,
       deleted_at: entity.deleted_at ?? null,
     } as unknown as IRulePopulateDocument;

@@ -10,3 +10,10 @@ export const useNotification = () => {
     queryFn: () => notificationApi.get(),
   });
 };
+
+export const useNotificationDetail = (id: string) => {
+  return useQuery<INotificationModel>({
+    queryKey: ["notification", id],
+    queryFn: () => notificationApi.detail(id),
+  });
+};

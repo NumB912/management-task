@@ -13,6 +13,7 @@ export interface ITask {
   done_at?:Date
   status:IStatusTask,
   parent?:ITaskWithId
+  color:string,
   path:string
   order:number
   created_at:Date

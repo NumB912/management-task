@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { AuthBackLink } from "@/app/(front)/components/auth/authBackLink";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/app/(front)/components/ui/button";
@@ -18,6 +19,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/app/(front)/components/ui/input-otp";
+import { axiosInstance } from "../../lib/axios";
 export default function OtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,16 +34,10 @@ export default function OtpForm() {
     if (resendCooldown > 0 || !email) return;
 
     try {
-      const response = await fetch("/api/auth/sendOtp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+      const { data } = await axiosInstance.post("auth/send/email/otp", {
+        email: email,
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Không thể gửi lại mã");
-      }
       setResendCooldown(60);
       setError("");
     } catch (err) {
@@ -58,7 +54,6 @@ export default function OtpForm() {
     }
   }, [resendCooldown]);
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.length !== 6) return;
@@ -66,25 +61,17 @@ export default function OtpForm() {
     setError("");
     setIsLoading(true);
 
-try {
-        const response = await fetch("/api/auth/confirmOtp", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, otp }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Mã OTP không chính xác");
-        }
-       
-        setSuccess(true);
-        setTimeout(() => {
-          router.push(`/auth/register?email=${decodeURI(email)}`);
-          router.refresh();
-        }, 1500);
-      } catch (err) {
+    try {
+      await axiosInstance.post("auth/send/email/verify", {
+        email,
+        otp,
+      });
+      setSuccess(true);
+      setTimeout(() => {
+        router.push(`/auth/register?email=${decodeURI(email)}`);
+        router.refresh();
+      }, 1500);
+    } catch (err) {
       setError(err instanceof Error ? err.message : "Xác thực thất bại");
     } finally {
       setIsLoading(false);
@@ -97,7 +84,8 @@ try {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full min-w-md">
+      <Card className="w-full max-w-md shadow-2xl/20 border-0">
+        <AuthBackLink href={`/auth/login?email=${encodeURIComponent(email)}`} />
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 size-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Mail className="h-6 w-6 text-primary" />
@@ -122,13 +110,20 @@ try {
           )}
 
           {success && (
-            <div className={cn("flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg")}>
+            <div
+              className={cn(
+                "flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg",
+              )}
+            >
               <CheckCircle className="h-4 w-4 shrink-0" />
               <span>Xác thực thành công! Đang chuyển hướng...</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4 flex items-center justify-center flex-col">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4 flex items-center justify-center flex-col"
+          >
             <InputOTP
               maxLength={6}
               value={otp}
@@ -138,7 +133,11 @@ try {
             >
               <InputOTPGroup className="flex gap-2">
                 {[...new Array(6)].map((_, index) => (
-                  <InputOTPSlot key={index} index={index} className="p-6 border text-lg font-bold"/>
+                  <InputOTPSlot
+                    key={index}
+                    index={index}
+                    className="p-6 border text-lg font-bold"
+                  />
                 ))}
               </InputOTPGroup>
             </InputOTP>
@@ -170,29 +169,12 @@ try {
               disabled={resendCooldown > 0 || isLoading}
             >
               {resendCooldown > 0 ? (
-                <>
-                  Gửi lại sau {resendCooldown}s
-                </>
+                <>Gửi lại sau {resendCooldown}s</>
               ) : (
                 "Gửi lại mã"
               )}
             </Button>
           </div>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Hoặc</span>
-            </div>
-          </div>
-
-          <Button variant="outline" className="w-full p-5" asChild>
-            <Link href={`/auth/login?email=${encodeURIComponent(email)}`}>
-              Quay lại đăng nhập
-            </Link>
-          </Button>
         </CardContent>
 
         <CardFooter className="flex flex-col items-center gap-2">

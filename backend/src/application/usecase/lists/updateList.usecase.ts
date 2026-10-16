@@ -64,11 +64,7 @@ export class UpdateListUsecase
     if (list.isShareList) {
       try {
         const user = await this.userRepository.findById(userId)
-        await this.notifyMembers(list, { id: list.id, name }, userId,{
-          avatar:user?.avatar??null,
-          id:user?.id,
-          name:user?.name
-        });
+        await this.notifyMembers(list, { id: list.id, name }, userId,user?.id);
       } catch (error) {
         console.error("Gá»­i thÃ´ng bÃ¡o cáº­p nháº­t list tháº¥t báº¡i:", error);
       }
@@ -81,11 +77,7 @@ export class UpdateListUsecase
     list: IListWithId,
     payload: ListUpdatePayload,
     userId: string,
-    actor?: {
-      name?:string,
-      id?:string,
-      avatar?:string|null
-    },
+    actor?: string,
   ) {
     const members = (await this.memberRepository.findManyByIds(list.members)) ?? []
     const userIds = [
@@ -107,11 +99,7 @@ export class UpdateListUsecase
       listId: payload.id,
       listName: payload.name,
       oldListName: list.name,
-      user: {
-        id: actor?.id ?? userId,
-        name: actor?.name,
-        avatar: actor?.avatar,
-      },
+      user:actor??userId,
     });
   }
 }

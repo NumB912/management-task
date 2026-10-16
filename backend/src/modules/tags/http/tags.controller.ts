@@ -43,11 +43,12 @@ export class TagsController {
   @HttpCode(200)
   async create(
     @Req() req: AuthRequest,
-    @Body() body: { name: string; id: string },
+    @Body() body: { name: string; id: string; color?: string },
   ) {
     const createTag = await this.createTagUC.execute({
       name: body.name,
       id: body.id,
+      color: body.color,
       userId: req.user.id,
     });
     return { tag: createTag };
@@ -57,11 +58,12 @@ export class TagsController {
   async updateOnlyMe(
     @Req() req: AuthRequest,
     @Param('tagId') tagId: string,
-    @Body() body: { name: string },
+    @Body() body: { name?: string; color?: string },
   ) {
     const data = await this.updateTagOnlyMeUC.execute({
       id: tagId,
       name: body.name,
+      color: body.color,
       userId: req.user.id,
     });
     return { message: 'Thành công trong chỉnh sửa', data };
@@ -80,11 +82,12 @@ export class TagsController {
   async updateWithShare(
     @Req() req: AuthRequest,
     @Param('tagId') tagId: string,
-    @Body() body: { name: string },
+    @Body() body: { name?: string; color?: string },
   ) {
     const data = await this.updateTagWithShareUC.execute({
       id: tagId,
       name: body.name,
+      color: body.color,
       userId: req.user.id,
     });
     return { message: 'Thành công trong chỉnh sửa', data };

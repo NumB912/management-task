@@ -1,4 +1,3 @@
-// app/(front)/components/listPicker.component.tsx
 "use client";
 
 import { memo } from "react";
@@ -15,7 +14,7 @@ import {
 import { Folder, File, InboxIcon, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IListModelState } from "@/app/(front)/model";
-import { useWorkspaceStore } from "../states/workspace.state";
+import { useWorkspaceStore } from "../feature/store/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 
 export interface ListPickerSelection {

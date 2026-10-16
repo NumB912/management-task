@@ -14,7 +14,7 @@ import { ITagModel } from "../../model";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "../ui/label";
 import { useRemoveTagOnlyMe, useRemoveTagWithShare } from "../../feature/hook/useTagMutation.hook";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 
 interface DeleteTagDialogProps {
   tag: ITagModel | null;

@@ -27,26 +27,25 @@ export class UpdateRuleUsecase implements IUsecase<void> {
 
   async run(
     taskId: string,
-    data: Partial<IRule>,
+    data:Partial<IRule>,
     userId: string,
     session?: unknown,
   ): Promise<void> {
     if (!taskId || !data)
-      throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y task", 404);
+      throw new AppError("NOT_FOUND", "Không thấy dữ liệu", 404);
 
     const taskCur = await this.TaskRepository.findById(taskId, session);
     if (!taskCur?.rule)
-      throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y task Ä‘á»ƒ cáº­p nháº­t", 404);
+      throw new AppError("NOT_FOUND", "Không có dữ liệu đễ cập nhật", 404);
 
     if (data.tags) {
       if (data.tags.some((tag) => tag == undefined || tag === "")) {
-        throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y tag Ä‘á»ƒ cáº­p nháº­t", 404);
+        throw new AppError("NOT_FOUND", "Không tìm thấy tag", 404);
       }
-
       const isExists = await this.TagRepository.findTagsByName({
         nameTags: data.tags,
         userId: userId,
-      });
+      },session);
       if (!isExists) {
         throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y tag Ä‘á»ƒ cáº­p nháº­t", 404);
       }
@@ -59,7 +58,7 @@ export class UpdateRuleUsecase implements IUsecase<void> {
     if (!listOfTask) {
       throw new AppError(
         "NOT_FOUND",
-        "KhÃ´ng tÃ¬m tháº¥y danh sÃ¡ch Ä‘á»ƒ cáº­p nháº­t",
+        "Không thấy danh sách",
         404,
       );
     }

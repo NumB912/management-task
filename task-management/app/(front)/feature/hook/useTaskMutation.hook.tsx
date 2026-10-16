@@ -3,6 +3,7 @@ import { ICreateTaskDTO, ICreateTaskWithSectionDTO, IUpdateTaskDTO } from '../..
 import { taskApi } from '../api/task/task.api';
 import { IRuleModel } from '../../model/rule/rule.model';
 import { IStatus } from '../../model/type/type';
+import { ITypeColor } from '../../model/color.model';
 
 type CreateTaskInput = ICreateTaskDTO | ICreateTaskWithSectionDTO;
 
@@ -54,6 +55,12 @@ export const useRemoveTask = (listId?: string) => {
   });
 };
 
+export const useUpdateColor = ()=>{
+  return useMutation({
+    mutationFn: (dto:{id:string,color:string,type:ITypeColor}) => taskApi.updateColor(dto),
+  });
+}
+
 
 export const useUpdateTaskStatus = () => {
   return useMutation({
@@ -66,5 +73,20 @@ export const useUpdateTaskStatus = () => {
       status:IStatus
     } }) =>
       taskApi.updateStatus(taskId, data),
+ });
+};
+
+export const useUpdateTaskStatusBulk = () => {
+  return useMutation({
+    mutationFn: (data:{
+      id:string,
+      type:"recurring"|"single"
+      record:Record<string, {
+        date:Date,
+        rule:string
+      }>|undefined,
+      status:IStatus
+    }[]) =>
+      taskApi.updateStatusBulk(data),
  });
 };

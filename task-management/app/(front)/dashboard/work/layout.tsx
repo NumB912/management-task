@@ -38,13 +38,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import { useShallow } from "zustand/react/shallow";
 import NavComponent from "../../components/nav.components";
 import { EditListDialog } from "../../components/lists/editList";
@@ -58,7 +58,7 @@ import {
 } from "../../components/ui/dropdown-menu";
 import { SharedMenuItems } from "../../components/lists/menuItems";
 import { ShareModalClient } from "../../components/share/shareModelClient.component";
-import { useShareModalStore } from "../../states/share/share.state";
+import { useShareModalStore } from "../../feature/store/share/share.state";
 import EntityRow from "../../components/entity-row/entityRow";
 import { AddTagDialog } from "../../components/tags/addTags";
 import { EditTagDialog } from "../../components/tags/editTags";
@@ -68,18 +68,17 @@ import { AddFilterDialog } from "../../components/filters/addFilter.filters";
 import { EditFilterDialog } from "../../components/filters/editFilter.filters";
 import { IFilterModel } from "../../model/filter.model";
 import { DeleteFilterDialog } from "../../components/filters/deleteFilter";
-import useUserState from "../../states/user/user.state";
+import useUserState from "../../feature/store/user/user.state";
 import { IRoleMember } from "../../model/member.model";
 import useExitMemberHook from "../../feature/hook/useExitMember.hook";
 const layout = ({ children }: { children: React.ReactNode }) => {
-  const listIndex = useWorkspaceStore(useShallow((s) => s.listIndex));
-
   const {
     getTodayTaskCount,
     getNextDayCount,
     getInboxCount,
     filterIndex,
     tagIndex,
+    listIndex
   } = useWorkspaceStore();
   const { user } = useUserState();
   const pathName = usePathname();
@@ -91,6 +90,8 @@ const layout = ({ children }: { children: React.ReactNode }) => {
   const [editingList, setEditingList] = useState<{
     id: string;
     name: string;
+    color?: string;
+    isShareList?: boolean;
   } | null>(null);
   const [deletingList, setDeletingList] = useState<{
     id: string;
@@ -103,7 +104,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
   const [openAddFilter, setOpenAddFilter] = useState<boolean>(false);
   const [openAddTag, setOpenAddTag] = useState<boolean>(false);
   const [openAddList, setOpenAddList] = useState<boolean>(false);
-  const { handleExitMember, isPending } = useExitMemberHook();
+  const { handleExitMember } = useExitMemberHook();
   const route = useRouter();
   const getTaskWithFilter = useWorkspaceStore((state) => state.getTaskFilter);
   const getTaskQuantityWithList = useWorkspaceStore(
@@ -133,7 +134,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
       count: getNextDayCount(),
     },
   ];
-  const listEntries = Object.entries(listIndex);
+  const listEntries = useMemo(()=>Object.entries(listIndex),[listIndex]);
   return (
     <div className="flex h-screen relative overflow-hidden overflow-y-scroll">
       <Sidebar className={cn("absolute left-0")}>
@@ -222,7 +223,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                       icon: <Edit size={16} />,
                       label: "Chỉnh sửa",
                       onSelect: () =>
-                        setEditingList({ id: listId, name: info.name }),
+                        setEditingList({ id: listId, name: info.name, color: info.color, isShareList: info.isShareList }),
                       role: ["owner"] as IRoleMember[],
                     },
                     {
@@ -284,13 +285,14 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                               <Folder
                                 data-icon="inline-start"
                                 className={cn("w-4! h-4!")}
+                                style={{ color: info.color ?? "#3B82F6" }}
                               />
                               <span className="flex items-center gap-1 text-sm min-w-0">
-                                <span className="truncate max-w-30">
+                                <span className="truncate max-w-30" style={{ color: isActive?info.color ?? "#3B82F6":"black" }}>
                                   {info.name}
                                 </span>
                                 {info.isShareList && (
-                                  <Users size={12} className="shrink-0" />
+                                  <Users size={12} className="shrink-0" style={{ color: isActive?info.color ?? "#3B82F6":"black" }}/>
                                 )}
                               </span>
                             </span>
@@ -386,9 +388,10 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                     <EntityRow
                       key={filter.id}
                       link={`/dashboard/work/filters/${filter.id}`}
-                      icon={<Filter data-icon="inline-start" size={16} />}
+                      icon={<Filter data-icon="inline-start" size={16} style={{ color: filter.color ?? "#3B82F6" }} />}
                       name={filter.name}
                       count={getTaskWithFilter(filter.id).length}
+                      color={filter.color??"#3B82F6"}
                       actionGroups={[
                         [
                           {
@@ -466,8 +469,10 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                         <Tag
                           data-icon="inline-start"
                           className={cn("w-3! h-3!")}
+                          style={{ color: tag.color ?? "#3B82F6" }}
                         />
                       }
+                      color={tag.color??"#3B82F6"}
                       name={tag.name}
                       actionGroups={[
                         [
@@ -529,6 +534,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
                             icon={<Tag data-icon="inline-start" size={16} />}
                             name={tag.name}
                             count={getTaskQuantityWithTag(tag.name)}
+                            color={tag.color??""}
                             actionGroups={[
                               [
                                 {

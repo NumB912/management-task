@@ -7,11 +7,6 @@ import {
 } from "@/app/(front)/feature/hook/pomodoro/usePomodoroStats";
 
 export type TaskRange = "week" | "month";
-
-/**
- * Dạng tối thiểu mà thống kê cần. Hãy ánh xạ ITaskModel của bạn sang dạng này.
- * Minimal shape the stats need. Map your ITaskModel to this shape.
- */
 export interface TaskStatsItem {
   id: string;
   completed: boolean;

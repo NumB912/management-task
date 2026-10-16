@@ -3,6 +3,7 @@ import { Ipriority, ISpecials, IStatus } from "./type/type"
 export interface IFilterModel{
   id:string
     name:string,
+    color:string,
     user:string,
     tags:string[],
     description?:string

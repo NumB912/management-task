@@ -13,7 +13,7 @@ import { IListModel, IListModelState, ISectionModel, ISectionModelState } from "
 import React from "react";
 import { useCreateTag } from "../../feature/hook/useTagMutation.hook";
 import { toast } from "sonner";
-import { useWorkspaceStore } from "../../states/workspace.state";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
 
 interface TaskInputEditorProps {
   refDivInput: React.RefObject<HTMLDivElement>;

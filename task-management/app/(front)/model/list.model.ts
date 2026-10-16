@@ -4,6 +4,7 @@ import { ITaskModel } from "./task.model";
 export interface IListModel{
     id:string,
     name:string,
+    color?:string,
     order:number,
     tasks?:ITaskModel[],
     shared_tags:string[],

@@ -1,41 +1,35 @@
-import { IPriority, ISpecials, IStatus } from "../entities/filter.entity.js"
-import { ITask, ITaskWithId } from "../entities/task.entity.js"
-import { IRepository } from "./IRepository.js"
-
+import { IPriority, ISpecials, IStatus } from '../entities/filter.entity.js';
+import { ITask, ITaskWithId } from '../entities/task.entity.js';
+import { IRepository } from './IRepository.js';
 
 export interface ITaskRepository extends IRepository<ITaskWithId, string> {
-  findByIdPopulate(id: string,session?:unknown): Promise<ITask | null>
+  findByIdPopulate(id: string, session?: unknown): Promise<ITask | null>;
+  findManyPopulateByIds(ids: string[], session?: unknown): Promise<ITask[]>;
   findTasksByTagForUser(DTO: {
-    tagName: string,
-    userId: string,
-    session?: unknown
-  }): Promise<Partial<ITask>[]>
+    tagName: string;
+    userId: string;
+    session?: unknown;
+  }): Promise<Partial<ITask>[]>;
   findTasksByFilter(DTO: {
     filter: {
-      tagNames?: string[],
-      priority?: IPriority,
-      specials?: ISpecials,
-      status?: IStatus,
-      startDate?: Date|null,
-      endDate?: Date|null
-    },
-    userId: string,
-    session?: unknown
-  }): Promise<Partial<ITask>[]>
-  deleteByPath(path: string, session?: unknown): Promise<boolean>
-  findTasksByIds(DTO:{ids:string[],list:string,user:string},session?:unknown):Promise<ITask[]>
-  getToday(
-    userId: string,
+      tagNames?: string[];
+      priority?: IPriority;
+      specials?: ISpecials;
+      status?: IStatus;
+      startDate?: Date | null;
+      endDate?: Date | null;
+    };
+    userId: string;
+    session?: unknown;
+  }): Promise<Partial<ITask>[]>;
+  deleteByPath(path: string, session?: unknown): Promise<boolean>;
+  findTasksByIds(
+    DTO: { ids: string[]; list: string; user: string },
     session?: unknown,
-  ): Promise<Partial<ITask>[]>
+  ): Promise<ITask[]>;
+  getToday(userId: string, session?: unknown): Promise<Partial<ITask>[]>;
 
-  getOverdue(
-    userId: string,
-    session?: unknown,
-  ): Promise<Partial<ITask>[]>
+  getOverdue(userId: string, session?: unknown): Promise<Partial<ITask>[]>;
 
-  upComming(
-    userId: string,
-    session?: unknown,
-  ): Promise<Partial<ITask>[]> 
+  upComming(userId: string, session?: unknown): Promise<Partial<ITask>[]>;
 }

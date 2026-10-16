@@ -17,7 +17,7 @@ export class SendChangePasswordUsecase implements IUsecase<void> {
       })
 
       if (!user) {
-        return
+        return 
       }
 
       const existingToken = (await this.cache.get(
@@ -57,7 +57,6 @@ export class SendChangePasswordUsecase implements IUsecase<void> {
         { email: email },
         15 * 60 * 1000,
       );
-      console.log("SendChangePasswordUsecase -> execute -> geneToken", geneToken)
       this.publisher.pub<{ token: string; email: string }>(
         "Change.Password",
         "send.change-pass.password",
@@ -68,7 +67,7 @@ export class SendChangePasswordUsecase implements IUsecase<void> {
       console.error(error);
       throw new AppError(
         error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lá»—i trong quÃ¡ trÃ¬nh gá»­i Ä‘á»•i máº­t kháº©u",
+        error.message ?? "Lỗi trong quá trình thực thi",
         error.status ?? 500,
       );
     }

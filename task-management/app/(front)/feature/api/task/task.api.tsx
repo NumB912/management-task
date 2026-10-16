@@ -1,5 +1,6 @@
 import { axiosInstance } from '@/app/(front)/lib/axios';
 import { ITaskModel } from '@/app/(front)/model';
+import { ITypeColor } from '@/app/(front)/model/color.model';
 import { ICreateTaskDTO, ICreateTaskWithSectionDTO, IUpdateTaskDTO } from '@/app/(front)/model/DTO/task.DTO';
 import { IRuleModel } from '@/app/(front)/model/rule/rule.model';
 import { IStatus } from '@/app/(front)/model/type/type';
@@ -13,12 +14,13 @@ export const taskApi = {
   },
 
   getTaskWithIds: async (ids: string[],listId:string): Promise<ITaskModel[]> => {
+    console.log(ids,listId)
     const res = await axiosInstance.post<{
       tasks:ITaskModel[]
     }>(`lists/${listId}/tasks/by_ids`,{
       ids:ids
     });
-    console.log(res)
+    
     return res.data.tasks;
   },
   create: async (data: ICreateTaskDTO,listId:string): Promise<{
@@ -63,6 +65,29 @@ export const taskApi = {
     await axiosInstance.delete(`/tasks/${id}`);
   },
 
+updateColor: async (data: {
+  id: string;
+  color: string;
+  type: ITypeColor;
+}): Promise<void> => {
+  let endpoint: string;
+  switch (data.type) {
+    case "list":
+      endpoint = `/colors/list/${data.id}`;
+      break;
+
+    case "task":
+      endpoint = `/colors/task/${data.id}`;
+      break;
+
+    default:
+      throw new Error("Loại màu không hợp lệ");
+  }
+  await axiosInstance.patch(endpoint, {
+    color: data.color,
+  });
+},
+
 updateStatus: async (id: string, data:{
   id:string,
   record:Record<string,{
@@ -73,6 +98,19 @@ updateStatus: async (id: string, data:{
 } ): Promise<ITaskModel> => {
   const res = await axiosInstance.patch(`/tasks/${id}/status`, data)
   console.log(res)
+  return res.data.result
+}
+,
+updateStatusBulk: async (data:{
+  id:string,
+  record:Record<string,{
+    date:Date,
+    rule:string
+  }>|undefined,
+  type:"recurring"|"single"
+  status:IStatus
+}[]): Promise<ITaskModel[]> => {
+  const res = await axiosInstance.patch(`/tasks/status`, data)
   return res.data.result
 }
 };

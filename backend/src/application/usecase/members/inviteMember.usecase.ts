@@ -181,9 +181,9 @@ export class InviteMemberUsecase implements IUsecase<void> {
         this.notifier.push(chunk, "invite-member", {
           listId: dto.listId,
           listName: list.name,
-          ownerName: owner?.name ?? "Má»™t ngÆ°á»i dÃ¹ng",
+          user: owner?.id,
           status: "pending",
-        }),
+        },{}),
       ),
     );
 

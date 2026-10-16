@@ -29,7 +29,7 @@
       "@domain/entities/*": ["src/domain/entities/*"],
       "@domain/repositories/*": ["src/domain/repositories/*"],
       "@infrastructure/*": ["src/infrastructure/*"],
-      "@repositories/*": ["src/infrastructure/repositories/*"],
+      "@repositories/*": ["src/infrastructure/repositories/*"]
     }
   }
 }

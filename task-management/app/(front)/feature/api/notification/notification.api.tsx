@@ -12,9 +12,14 @@ export const notificationApi = {
     const res = await axiosInstance.patch<{
       success:boolean
     }>(`/user/me/notification`);
-
     return res.data.success;
-  }
+  },
 
+    detail:async (id:string):Promise<INotificationModel>=>{
+    const res = await axiosInstance.get<{
+      notification:INotificationModel
+    }>(`/user/me/notification/${id}`);
+    return res.data.notification;
+  }
 };
 

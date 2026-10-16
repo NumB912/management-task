@@ -53,7 +53,27 @@ export class NotificationRepository
     const {userId} = DTO
     const docs = await this.db.Notification.find({
       user:new Types.ObjectId(userId)
-    }).session(session??null).lean()
-    return docs.map((doc)=>this.NotificationMapper.toDomain(doc))
+    })  .populate({
+    path: 'data.user',
+    model: 'user',
+    select: 'name avatar',
+    strictPopulate: false, 
+  }).session(session??null).lean()
+    return docs.map((doc)=>this.NotificationMapper.toDomainPopulate(doc))
+  }
+
+    async getNotificationDetailByUser(DTO:{userId:string,id:string},session?:ClientSession):Promise<INotification|null>{
+    const {userId,id} = DTO
+    const doc = await this.db.Notification.findOne({
+      user:new Types.ObjectId(userId),
+      _id:new Types.ObjectId(id)
+    })  .populate({
+    path: 'data.user',
+    model: 'user',
+    select: 'name avatar',
+    strictPopulate: false, 
+  }).session(session??null).lean()
+    if (!doc) return null
+    return this.NotificationMapper.toDomainPopulate(doc)
   }
 }

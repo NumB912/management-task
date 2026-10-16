@@ -18,7 +18,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuItem,
 } from "../../ui/dropdown-menu";
-import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 import { ISectionModelState, ITaskModel } from "@/app/(front)/model";
 import { useDebouncedCallback } from "@/app/(front)/feature/hook/useDebounce.hook";
 

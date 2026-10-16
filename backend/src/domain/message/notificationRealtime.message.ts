@@ -1,3 +1,3 @@
 export interface IRealtimeNotifier {
-  push<T>(userIds: string[], event: string, data: T): Promise<void>;
+  push<T,U>(userIds: string[], event: string, data: T,dataPush?:U): Promise<void>;
 }

@@ -13,12 +13,9 @@ export class CheckPermissionListUsecase implements IUsecase<boolean> {
                 user: user_id,
                 status:"accept"
             })])
-
-            console.log(member?.role)
             if(list?.user===user_id || member?.role=="owner"){
                 return true
             }
-
             if(!member || !list){
                return false
             }

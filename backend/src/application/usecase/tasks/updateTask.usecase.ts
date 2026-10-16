@@ -64,6 +64,7 @@ export class UpdateTaskUsecase implements IUsecase<void> {
       const patch = {
         ...(data.name !== undefined && { name: data.name }),
         ...(data.description !== undefined && { description: data.description }),
+        ...(data.color !== undefined && { color: data.color }),
       };
       if (Object.keys(patch).length) {
         await this.TaskRepository.update(id, patch, session);

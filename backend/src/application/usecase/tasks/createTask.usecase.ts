@@ -64,7 +64,8 @@ export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> 
           path,
           list: listId,
           id: data.id,
-          rule:data.rule.id
+          rule:data.rule.id,
+          color: data.color ?? pickRandomColor(),
         },
         session,
       );
@@ -77,7 +78,6 @@ export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> 
         taskId: task.id,
         rule: {
           ...rule,
-          color: rule.color ?? pickRandomColor(),
           tags: [...tagCreateList, ...tagInList],
           task: task.id,
           path,

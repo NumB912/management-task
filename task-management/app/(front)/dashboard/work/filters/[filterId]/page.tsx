@@ -2,7 +2,7 @@
 import { SectionCard } from '@/app/(front)/components/sectionCard.component'
 import { TaskList } from '@/app/(front)/components/task/taskList.component'
 import { useHeader } from '@/app/(front)/providers/header.provider'
-import { useWorkspaceStore } from '@/app/(front)/states/workspace.state'
+import { useWorkspaceStore } from '@/app/(front)/feature/store/workspace.state'
 import { use, useEffect, useMemo } from 'react'
 import { FilterX } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'

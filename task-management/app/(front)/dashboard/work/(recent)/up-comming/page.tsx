@@ -12,7 +12,7 @@ import { useAddTask } from "@/app/(front)/feature/hook/task/addTask.hook";
 
 import { ITaskModel } from "@/app/(front)/model";
 import { useHeader } from "@/app/(front)/providers/header.provider";
-import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";

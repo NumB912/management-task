@@ -37,8 +37,12 @@ class RabbitMQ {
   }
 
   private async createChannel(): Promise<Channel> {
+    const uri = RabbitMQConfig.URI?.trim();
+    if (!uri) {
+      throw new Error("[RabbitMQ] Missing RABBITMQ_URI");
+    }
     this.connection = await amqplib.connect(
-      `amqp://${RabbitMQConfig.USER}:${RabbitMQConfig.PASS}@${RabbitMQConfig.HOST}:${RabbitMQConfig.PORT}?heartbeat=30`,
+      uri,
     );
     this.connection.on("error", (err: Error) => {
       console.error("[RabbitMQ] Lỗi kết nối:", err.message);

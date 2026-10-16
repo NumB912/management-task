@@ -1,5 +1,13 @@
 "use client";
-import { Play, Pause, SkipForward, PlayCircle, Check, CircleAlert, ArchiveRestore } from "lucide-react";
+import {
+  Play,
+  Pause,
+  SkipForward,
+  PlayCircle,
+  Check,
+  CircleAlert,
+  ArchiveRestore,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
@@ -19,13 +27,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { IStartDuration, useTimerStore } from "../../feature/store/timer.store";
+import {
+  IStartDuration,
+  useTimerStore,
+} from "../../feature/store/pomodoro/timer.store";
 import { usePomodoroQuery } from "../../feature/hook/pomodoro/usePomodoroQuery.hook";
 import { useTimer } from "../../feature/hook/pomodoro/pomodoroTimer.hook";
 import { PomodoroDetailDialog } from "../../components/Pomodoro.component";
 import { PomodoroTimelineView } from "../../components/pomodoro/pomodoroTimelineView.component";
-import { useCreatePomodoro, useDeletePomodoro, useEditPomodoro } from "../../feature/hook/pomodoro/usePomodoroMutation";
-import { getTodayStats } from "../../feature/hook/pomodoro/usePomodoroStats";
+import {
+  useCreatePomodoro,
+  useDeletePomodoro,
+  useEditPomodoro,
+} from "../../feature/hook/pomodoro/usePomodoroMutation";
 const PRESETS = {
   work: [
     { label: "25m", minutes: 25 },
@@ -62,21 +76,20 @@ const Page = () => {
     elapsedWorkSeconds,
     totalDurationWork,
     setIsOpenEnd,
-  } = useTimer()
+  } = useTimer();
 
-  
-  const { data: sessions = [] } = usePomodoroQuery()
-  const { mutate: deletePomodoro } = useDeletePomodoro()
-  const {mutate:updatePomodoro} = useEditPomodoro()
-  const {mutate:createPomodoro} = useCreatePomodoro()
-  const [defaultMinute, setDefaultMinute] = useState<number>(minutes)
-  const [openDrop, setOpenDrop] = useState<boolean>(false)
+  const { data: sessions = [] } = usePomodoroQuery();
+  const { mutate: deletePomodoro } = useDeletePomodoro();
+  const { mutate: updatePomodoro } = useEditPomodoro();
+  const { mutate: createPomodoro } = useCreatePomodoro();
+  const [defaultMinute, setDefaultMinute] = useState<number>(minutes);
+  const [openDrop, setOpenDrop] = useState<boolean>(false);
   const [taskFocus, setTaskFocus] = useState<
     Pick<ITaskModel, "id" | "name"> | undefined
-  >(undefined)
+  >(undefined);
   const [detailSession, setDetailSession] = useState<IPomodoroModel | null>(
     null,
-  )
+  );
   const presets = PRESETS[mode];
   const complete = useCallback(
     async (startDurations: IStartDuration[]) => {
@@ -96,9 +109,9 @@ const Page = () => {
   }, [complete, setOnComplete]);
 
   return (
-    <div className="w-full h-full min-h-[calc(100vh-4rem)] flex flex-col lg:flex-row overflow-hidden bg-background">
-      <div className="flex flex-col items-center justify-center flex-1/2 p-6 gap-6 overflow-y-auto ">
-        <div className="focus flex flex-col gap-2 w-full max-w-xs items-center">
+    <div className="flex h-dvh w-full min-w-0 flex-col overflow-y-auto overflow-x-hidden bg-background xl:flex-row xl:overflow-hidden">
+      <div className="flex min-w-0 shrink-0 flex-col items-center justify-center gap-5 px-3 py-8 sm:gap-6 sm:p-6 xl:flex-1 xl:overflow-y-auto">
+        <div className="focus flex w-full min-w-0 max-w-xs flex-col items-center gap-3">
           <ListCombobox onSelect={setTaskFocus} value={taskFocus} />
           <div className="flex gap-2">
             <Button
@@ -134,7 +147,7 @@ const Page = () => {
                   : "Sẵn sàng nghỉ"}
         </span>
 
-        <div className="flex gap-1 font-mono tabular-nums tracking-tight items-center">
+        <div className="flex w-full min-w-0 items-center justify-center font-mono tabular-nums tracking-tight">
           <DropdownMenu
             open={openDrop}
             onOpenChange={(open) => {
@@ -149,9 +162,9 @@ const Page = () => {
             >
               <Button
                 variant="ghost"
-                className="text-8xl focus:bg-transparent! hover:bg-transparent! disabled:opacity-100 font-bold"
+                className="h-auto max-w-full gap-1 px-0 py-2 text-[clamp(2.75rem,12vw,6rem)] font-bold leading-none focus:bg-transparent! hover:bg-transparent! disabled:opacity-100 sm:gap-2"
               >
-                {formattedMinutes} <span className="text-6xl">:</span>{" "}
+                {formattedMinutes} <span className="text-[0.7em]">:</span>{" "}
                 {formattedSeconds}
               </Button>
             </DropdownMenuTrigger>
@@ -189,12 +202,13 @@ const Page = () => {
           </DropdownMenu>
         </div>
 
-        <div className="flex gap-2">
-          {presets.map((p) => (
+        <div className="flex flex-wrap justify-center gap-2">
+          {presets?.map((p) => (
             <Button
               key={p.label}
               variant="outline"
               size="sm"
+              className="min-h-10 min-w-14"
               disabled={status === "progress"}
               onClick={() => setDuration(p.minutes, 0)}
             >
@@ -243,8 +257,8 @@ const Page = () => {
         </div>
       </div>
 
-      <div className="report flex-1/2 w-full lg:w-120 xl:w-135 2xl:w-150 max-h-dvh border-t lg:border-t-0 lg:border-l border-border/50 bg-card/30 flex flex-col p-4 overflow-hidden">
-        <div className="flex-1 min-h-0 pr-1">
+      <div className="report flex w-full min-w-0 shrink-0 flex-col border-t border-border/50 bg-card/30 p-3 sm:p-5 xl:h-full xl:w-1/2 xl:max-w-150 xl:border-t-0 xl:border-l xl:overflow-hidden">
+        <div className="min-h-0 min-w-0 xl:flex-1">
           <PomodoroTimelineView
             sessions={sessions}
             onSelectpomodoro={(id: string) =>
@@ -256,15 +270,14 @@ const Page = () => {
 
       <PomodoroDetailDialog
         deletepomodoro={async (id: string) => deletePomodoro(id)}
-        editTask={async (
-          id: string,
-          task: Pick<ITaskModel, "id" | "name">,
-        ) => updatePomodoro({
-          id:id,
-           data:{
-              task:task
-           }
-        })}
+        editTask={async (id: string, task: Pick<ITaskModel, "id" | "name">) =>
+          updatePomodoro({
+            id: id,
+            data: {
+              task: task,
+            },
+          })
+        }
         session={detailSession}
         onClose={() => {
           setDetailSession(null);
@@ -272,7 +285,7 @@ const Page = () => {
       />
 
       <AlertDialog open={isConfirmEndOpen} onOpenChange={setIsOpenEnd}>
-        <AlertDialogContent className="space-y-3 rounded-md">
+        <AlertDialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] space-y-3 overflow-y-auto rounded-md sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>
               Xác nhận kết thúc phiên làm việc
@@ -285,12 +298,29 @@ const Page = () => {
               . Phải trên 5 phút mới lưu vào được
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="bg-transparent! px-2">
-            <AlertDialogAction variant={"ghost"} className="rounded-sm" onClick={() => {reset()}}><ArchiveRestore/> Đặt lại</AlertDialogAction>
-            <AlertDialogAction onClick={() => {
-              start()
-            }} className="rounded-sm"><PlayCircle/>Tiếp tục</AlertDialogAction>
-            <AlertDialogAction onClick={confirmEnd} className="rounded-sm "><Check/>Xác nhận</AlertDialogAction>
+          <AlertDialogFooter className="flex flex-col gap-2 bg-transparent! px-2 sm:flex-row sm:flex-wrap">
+            <AlertDialogAction
+              variant={"ghost"}
+              className="rounded-sm"
+              onClick={() => {
+                reset();
+              }}
+            >
+              <ArchiveRestore /> Đặt lại
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                start();
+              }}
+              className="rounded-sm"
+            >
+              <PlayCircle />
+              Tiếp tục
+            </AlertDialogAction>
+            <AlertDialogAction onClick={confirmEnd} className="rounded-sm ">
+              <Check />
+              Xác nhận
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

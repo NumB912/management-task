@@ -51,6 +51,7 @@ export class ListsModule {
       .apply(
         CheckPermissionListMiddleware({
           'owner': ['PATCH'],
+          'can edit':['PATCH']
         }),
       )
       .forRoutes({

@@ -35,7 +35,6 @@ export class RuleRepository extends BaseRepository<IRuleDocument, IRuleWithId, s
   }): Promise<{ matchedCount: number; modifiedCount: number }> {
     const { nameTags, ruleIds, session } = DTO;
     const ruleObjectIds = ruleIds.map((taskId) => new Types.ObjectId(taskId));
-
     const result = await this.db.Rule.updateMany(
       {
         _id: { $in: ruleObjectIds },

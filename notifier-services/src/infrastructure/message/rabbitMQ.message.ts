@@ -23,7 +23,6 @@ class RabbitMQ {
   }
 
   public async getChannel(): Promise<Channel> {
-    console.log(RabbitMQConfig.HOST, RabbitMQConfig.PORT, RabbitMQConfig.USER, RabbitMQConfig.PASS);
     if (this.channel) return this.channel;
     return this.connect();
   }
@@ -41,8 +40,12 @@ class RabbitMQ {
   }
 
   private async createChannel(): Promise<Channel> {
+    const uri = RabbitMQConfig.URI?.trim();
+    if (!uri) {
+      throw new Error("[RabbitMQ] Missing RABBITMQ_URI");
+    }
     this.connection = await amqplib.connect(
-      `amqp://${RabbitMQConfig.USER}:${RabbitMQConfig.PASS}@${RabbitMQConfig.HOST}:${RabbitMQConfig.PORT}?heartbeat=30`,
+      uri,
     );
 
     this.connection.on("error", (err: Error) => {

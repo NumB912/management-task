@@ -47,11 +47,9 @@ export function checkPermissionSection(
         req.originalUrl.match(/\/sections\/([^/?#]+)/)?.[1];
 
       const user = req.user as { id: string } | undefined;
-
       if (!user || !sectionId) {
         throw new ForbiddenException('Không có quyền truy cập');
       }
-
       const allowed = await usecase.execute(
         user.id,
         sectionId,

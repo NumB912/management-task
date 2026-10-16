@@ -29,13 +29,10 @@ export function CheckPermissionTaskMiddleware(
         const taskId =
           (req.params as { taskId?: string }).taskId ??
           req.originalUrl.match(/\/tasks\/([^/?#]+)/)?.[1];
-
         const user = req.user as { id: string } | undefined;
-
         if (!user || !taskId) {
           throw new ForbiddenException('Không có quyền truy cập');
         }
-
         const allowed = await this.usecase.execute(
           user.id,
           taskId,

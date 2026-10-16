@@ -1,9 +1,9 @@
 "use client"
-import SectionList from "@/app/(front)/component/sectionList.component";
+import SectionList from "@/app/(front)/components/section/sectionList.component";
 import { useHeader } from "@/app/(front)/providers/header.provider";
-import { useWorkspaceStore } from "@/app/(front)/states/workspace.state";
+import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 import { useRouter } from "next/navigation";
-import React, { useEffect, use, useMemo } from "react";
+import { useEffect, use } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 const Page =({ params }: { params: Promise<{ listId: string }> }) => {

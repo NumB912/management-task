@@ -77,18 +77,17 @@ export class LoginWithEmailUseCase implements IUsecase<{
         throw new AppError(
           "UNVALID",
           remaining > 0
-            ? `Sai tÃ i khoáº£n hoáº·c máº­t kháº©u, báº¡n cÃ²n ${remaining} láº§n thá»­`
-            : "Báº¡n Ä‘Ã£ thá»­ Ä‘Äƒng nháº­p quÃ¡ nhiá»u láº§n, vui lÃ²ng thá»­ láº¡i sau 15 phÃºt",
+            ? `Bạn còn ${remaining} lần đăng nhập lại­`
+            : "Bạn đã sai mật khẩu quá số lần, vui lòng thử lại sau 15 phút",
           remaining > 0 ? 400 : 429,
         );
       }
-
       await this.cache.delete(attemptKey);
-
       const refreshToken = await this.tokenService.generateToken(
         {
           id: user.id,
           role: user.role,
+          email:user.email,
         },
         "1d",
       );
@@ -99,9 +98,10 @@ export class LoginWithEmailUseCase implements IUsecase<{
       );
       const token = await this.tokenService.generateToken(
         {
-          email: loginDTO.email,
+          email: user.email,
           id: user.id,
           role: user.role,
+          name:user.name
         },
         "1h",
       );

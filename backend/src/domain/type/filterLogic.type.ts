@@ -12,7 +12,7 @@ export interface IQueryFilterParser {
     parse(query: string): FilterOrGroups;
 }
 
-export const DEFAULT_RULE_COLORS = [
+export const DEFAULT_TASK_COLORS = [
   "#F87171",
   "#FB923C", 
   "#FBBF24", 
@@ -26,5 +26,5 @@ export const DEFAULT_RULE_COLORS = [
 ];
 
 export function pickRandomColor(): string {
-  return DEFAULT_RULE_COLORS[Math.floor(Math.random() * DEFAULT_RULE_COLORS.length)];
+  return DEFAULT_TASK_COLORS[Math.floor(Math.random() * DEFAULT_TASK_COLORS.length)];
 }

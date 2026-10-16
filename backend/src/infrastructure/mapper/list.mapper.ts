@@ -32,6 +32,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
       sections: doc.sections?.map((section) => section._id.toString()) ?? [],
       members: doc.members?.map((member) => member._id.toString()) ?? [],
       shared_tags: doc.shared_tags?.map((tag)=>tag.toString()) ?? [],
+      color: doc.color ?? '#3B82F6',
       created_at: doc.created_at,
       deleted_at: doc.deleted_at ?? undefined,
       updated_at: doc.updated_at ?? undefined,
@@ -50,6 +51,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     if (doc.sections) partial.sections = doc.sections.map((section) => section.toString())
     if (doc.tasks) partial.tasks = doc.tasks?.map((task)=>task.toString())
     if (doc.shared_tags) partial.shared_tags = doc.shared_tags.map((tag)=>tag.toString())
+    if (doc.color) partial.color = doc.color;
     if (doc.created_at) partial.created_at = doc.created_at;
     if (doc.updated_at) partial.updated_at = doc.updated_at ?? undefined;
     if (doc.deleted_at) partial.deleted_at = doc.deleted_at ?? undefined;
@@ -67,6 +69,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
       members: doc.members?.map((member) => this.memberMapper.toDomainPopulate(member)) ?? [],
       sections: doc.sections?.map(section => this.sectionMapper.toDomainPopulate(section)) ?? [],
       shared_tags: doc.shared_tags ? doc.shared_tags?.map((tag)=>tag.toString()) : [],
+      color: doc.color ?? '#3B82F6',
       tasks:doc.tasks?.map((task)=>this.taskMapper.toDomainPopulate(task))??[],
       created_at: doc.created_at,
       deleted_at: doc.deleted_at ?? undefined,
@@ -86,6 +89,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     if (doc.tasks) partial.tasks = doc.tasks?.map((task) => this.taskMapper.toDomainPopulate(task));
     if (doc.shared_tags!==undefined) partial.shared_tags = doc.shared_tags.map((tag)=>tag.toString())
     if (doc.isShareList) partial.isShareList = doc.isShareList
+    if (doc.color) partial.color = doc.color;
     if (doc.created_at) partial.created_at = doc.created_at;
     if (doc.updated_at) partial.updated_at = doc.updated_at ?? undefined;
     if (doc.deleted_at) partial.deleted_at = doc.deleted_at ?? undefined;
@@ -112,6 +116,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
       members: list.members.map((member) => new Types.ObjectId(member)) ?? [],
       isShareList:list.isShareList,
       shared_tags: list.shared_tags.map((s) => s.toString()) ?? [],
+      color: list.color ?? '#3B82F6',
       created_at: list.created_at,
       updated_at: list.updated_at ?? null,
       deleted_at: list.deleted_at ?? null,
@@ -130,6 +135,7 @@ export class ListMapper implements IMapper<IListDocument, IListWithId, IListPopu
     if (list.sections) update.sections = list.sections.map(s => new Types.ObjectId(s));
     if (list.members) update.members = list.members.map(s => new Types.ObjectId(s));
     if (list.shared_tags) update.shared_tags = list.shared_tags.map((s) => s.toString());
+    if (list.color) update.color = list.color;
     console.log(update)
     return update;
   }

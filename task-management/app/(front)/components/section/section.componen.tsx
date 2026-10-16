@@ -1,0 +1,378 @@
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { useWorkspaceStore } from "../../feature/store/workspace.state";
+import { useShallow } from "zustand/react/shallow";
+import { useUpdateSection } from "../../feature/hook/useSectionMutation.hook";
+import { useAddTask } from "../../feature/hook/task/addTask.hook";
+import { Card, CardContent, CardHeader } from "../ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { Edit, MoreHorizontal, Plus, Trash } from "lucide-react";
+import AddTask from "../task/addTask";
+import { TaskList } from "../task/taskList.component";
+
+
+interface SectionProp {
+  sectionId: string;
+  listId: string;
+  changePosition: (starts: string, change: string) => void;
+  savePosition: (starts: string, change: string) => void;
+  removeSection: (id: string) => void;
+}
+const MAX_SECTION_NAME_LENGTH = 50;
+
+const Section = ({
+  sectionId,
+  changePosition,
+  savePosition,
+  listId,
+  removeSection,
+}: SectionProp) => {
+  const [isFocusInput, setIsFocusInput] = useState<boolean>(false);
+  const [isOnDrag, setIsOnDrag] = useState<boolean>(false);
+  const [isHover, setIsHover] = useState<boolean>(false);
+  const offSetRef = useRef({ x: 0, y: 0 });
+  const inputRef = useRef<HTMLInputElement>(null);
+  const inputWrapper = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const lastTargetIdRef = useRef<string | null>(null);
+  const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const wasDraggingRef = useRef(false);
+  const [draftName, setDraftName] = useState<string>("");
+  const [sectionNameError, setSectionNameError] = useState<string>("");
+  const section = useWorkspaceStore(
+    useShallow((state) => state.sectionIndex[sectionId]),
+  );
+  const updateSection = useWorkspaceStore((state) => state.setSectionIndex);
+  const { mutate: mutateUpdateSection } = useUpdateSection(listId);
+  const taskIds = useWorkspaceStore(
+    useShallow((state) => state.sectionIndex[sectionId]?.tasks ?? []),
+  );
+  const {handleAddTask,isAddTask,setIsAddTask} = useAddTask();
+  const sectionExists = useWorkspaceStore(
+    (state) => !!state.sectionIndex[sectionId],
+  );
+  const taskCount = taskIds.length;
+  useEffect(() => {
+    if (isFocusInput) {
+      inputRef.current?.focus();
+    }
+  }, [isFocusInput]);
+
+  const startEdit = useCallback(() => {
+    setDraftName(section.name??"");
+    setSectionNameError("");
+    setIsFocusInput(true);
+  }, [section]);
+
+  const cancelEdit = useCallback(() => {
+    setIsFocusInput(false);
+    setSectionNameError("");
+  }, []);
+
+  useEffect(() => {
+    function clickOutSide(e: MouseEvent) {
+      if (
+        inputWrapper.current &&
+        !inputWrapper.current.contains(e.target as Node) &&
+        isFocusInput
+      ) {
+        cancelEdit();
+      }
+    }
+    addEventListener("mousedown", clickOutSide);
+    return () => removeEventListener("mousedown", clickOutSide);
+  }, [isFocusInput, cancelEdit]);
+
+  const handleEditSection = useCallback(() => {
+    const trimmed = draftName.trim();
+    if (!trimmed) {
+      setSectionNameError("Tên phần không được để trống");
+      return;
+    }
+    if (trimmed.length > MAX_SECTION_NAME_LENGTH) {
+      setSectionNameError(
+        `Tên phần không quá ${MAX_SECTION_NAME_LENGTH} ký tự`,
+      );
+      return;
+    }
+    if (trimmed === section.name) {
+      cancelEdit();
+      return;
+    }
+
+    const previousName = section.name;
+    setSectionNameError("");
+    setIsFocusInput(false);
+    updateSection(sectionId, { name: trimmed });
+
+    mutateUpdateSection(
+      { id: sectionId, name: trimmed },
+      {
+        onError: (error) => {
+          const current =
+            useWorkspaceStore.getState().sectionIndex[sectionId]?.name;
+          if (current === trimmed) {
+            updateSection(sectionId, { name: previousName });
+          }
+          setDraftName(trimmed);
+          setSectionNameError(
+            error instanceof Error ? error.message : "Cập nhật thất bại",
+          );
+          setIsFocusInput(true);
+        },
+      },
+    );
+  }, [
+    draftName,
+    section,
+    sectionId,
+    updateSection,
+    mutateUpdateSection,
+    cancelEdit,
+  ]);
+
+  const eventKeydown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        handleEditSection();
+      } else if (e.key === "Escape") {
+        cancelEdit();
+      }
+    },
+    [handleEditSection, cancelEdit],
+  );
+
+  const updatePosition = useCallback((clientX: number, clientY: number) => {
+    if (!sectionRef.current) return;
+    const x = clientX - offSetRef.current.x;
+    const y = clientY - offSetRef.current.y;
+    sectionRef.current.style.top = `${y}px`;
+    sectionRef.current.style.left = `${x}px`;
+  }, []);
+
+  const MouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const { x, y } = e.currentTarget.getBoundingClientRect();
+
+    dragTimeoutRef.current = setTimeout(() => {
+      offSetRef.current = { x: startX - x, y: startY - y };
+      if (sectionRef.current) {
+        sectionRef.current.style.position = "fixed";
+        sectionRef.current.style.top = `${y}px`;
+        sectionRef.current.style.left = `${x}px`;
+        sectionRef.current.style.zIndex = "999";
+      }
+      setIsOnDrag(true);
+      wasDraggingRef.current = true;
+    }, 300);
+  }, []);
+
+  const endDrag = useCallback(() => {
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+      dragTimeoutRef.current = null;
+    }
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (sectionRef.current) {
+      sectionRef.current.style.position = "";
+      sectionRef.current.style.top = "";
+      sectionRef.current.style.left = "";
+      sectionRef.current.style.zIndex = "";
+    }
+    if (isHover && lastTargetIdRef.current) {
+      savePosition(sectionId, lastTargetIdRef.current);
+    }
+    lastTargetIdRef.current = null;
+    setIsOnDrag(false);
+    setIsHover(false);
+    setIsFocusInput(false);
+  }, [sectionId, savePosition, isHover]);
+
+  useEffect(() => {
+    if (!isOnDrag) return;
+
+    function handleMouseMove(e: MouseEvent) {
+      if (rafRef.current) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        updatePosition(e.clientX, e.clientY);
+        const prevPointerEvents = sectionRef.current!.style.pointerEvents;
+        sectionRef.current!.style.pointerEvents = "none";
+        const aboveElement = document.elementFromPoint(e.clientX, e.clientY);
+        sectionRef.current!.style.pointerEvents = prevPointerEvents;
+        const closetElement = aboveElement?.closest("[data-section]");
+        if (closetElement) {
+          const targetId = closetElement.getAttribute("data-section");
+          setIsHover(true);
+          if (targetId) {
+            lastTargetIdRef.current = targetId;
+            changePosition(sectionId, targetId);
+          }
+        }
+      });
+    }
+    function handleMouseUp() {
+      endDrag();
+    }
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [isOnDrag, isHover, sectionId, endDrag, changePosition, updatePosition]);
+
+  if (!sectionExists) return null;
+
+  return (
+    <div
+      className={
+        isOnDrag
+          ? "max-w-[min(40vw,500px)] min-w-65 bg-gray-100 rounded-md"
+          : ""
+      }
+    >
+      <Card
+        ref={sectionRef}
+        data-section={sectionId}
+        className={cn("ring-0 rounded-0 gap-2 p-2")}
+      >
+        <CardHeader
+          className="font-bold flex text-md gap-1 justify-between z-50 px-1"
+          onMouseDown={MouseDown}
+          onMouseUp={() => {
+            if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+          }}
+          ref={inputWrapper}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="wrapper z-30 flex justify-between w-full gap-1">
+            {isFocusInput ? (
+              <div className="flex flex-col gap-0.5 w-full">
+                <Input
+                  ref={inputRef}
+                  placeholder="Phần mới"
+                  value={draftName}
+                  maxLength={MAX_SECTION_NAME_LENGTH}
+                  onChange={(e) => {
+                    setDraftName(e.target.value);
+                    if (sectionNameError) setSectionNameError("");
+                  }}
+                  onKeyDown={eventKeydown}
+                  className={cn(
+                    "text-md text-neutral-700 bg-transparent focus:outline-none! outline-none! border-b transition-colors",
+                    sectionNameError
+                      ? "border-destructive!"
+                      : "border-transparent! focus:border-gray-400",
+                  )}
+                />
+                {sectionNameError && (
+                  <span className="text-xs text-destructive">
+                    {sectionNameError}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <>
+                <Button
+                  className={cn(
+                    "flex gap-1 items-center text-start rounded-md font-bold",
+                  )}
+                  variant={"ghost"}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (wasDraggingRef.current) {
+                      wasDraggingRef.current = false;
+                      return;
+                    }
+                    startEdit();
+                  }}
+                >
+                  <span className="whitespace-nowrap text-ellipsis overflow-hidden max-w-50 min-w-0">
+                    {section.name}
+                  </span>
+                  <span className="text-neutral-400 font-normal shrink-0">
+                    {taskCount}
+                  </span>
+                </Button>
+
+                <div className="flex">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsAddTask(!isAddTask)
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="rounded hover:bg-gray-200 p-1 text-neutral-600 cursor-pointer relative bg-transparent"
+                  >
+                    <Plus />
+                  </Button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="rounded hover:bg-gray-200 p-1 text-neutral-600 cursor-pointer relative bg-transparent"
+                      >
+                        <MoreHorizontal />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem
+                        className="flex gap-2"
+                        onClick={startEdit}
+                      >
+                        <Edit /> Chỉnh sửa
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="flex gap-2"
+                        onClick={() => removeSection(sectionId)}
+                      >
+                        <Trash /> Xóa
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent
+          className={cn(
+            "p-0! gap-0.5 flex flex-col items-center",
+            "overflow-x-hidden overflow-y-auto",
+            "max-h-[min(65vh,600px)]! max-w-[min(40vw,500px)] min-w-65! h-full w-full",
+          )}
+        >
+          {isAddTask && (
+            <AddTask
+              isCreate={isAddTask}
+              setIsCreate={setIsAddTask}
+              sectionId={sectionId}
+              listId={listId}
+              onHandle={handleAddTask}
+            />
+          )}
+          <TaskList
+            tasks={taskIds ?? []}
+            className="flex-1 min-h-0 max-h-none"
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+export default Section;

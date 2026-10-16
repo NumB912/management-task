@@ -9,15 +9,24 @@ export class UpdateTagUsecase implements IUsecase<
   async execute(
     updateTagDTO: {
       id: string,
-      name: string,
+      name?: string,
+      color?: string,
       userId: string,
     }
   ): Promise<boolean> {
-    const { userId, name, id } = updateTagDTO
+    const { userId, name, id, color } = updateTagDTO
 
     const tagCur = await this.TagRepository.findOne({ id: id, user: userId })
     if (!tagCur) {
       throw new AppError("NOT_FOUND", `KhÃ´ng tÃ¬m tháº¥y`, 404);
+    }
+
+    if (name === undefined && color !== undefined) {
+      await this.TagRepository.update(id, { color });
+      return true;
+    }
+    if (name === undefined) {
+      throw new AppError("BAD_REQUEST", "Không có thuộc tính cần cập nhật", 400);
     }
 
     if (name != undefined) {
@@ -57,7 +66,8 @@ export class UpdateTagUsecase implements IUsecase<
         name: tagCur.name,
         userId: userId,
         data: {
-          name: name
+          ...(name !== undefined ? { name } : {}),
+          ...(color !== undefined ? { color } : {}),
         }
       },session)
 

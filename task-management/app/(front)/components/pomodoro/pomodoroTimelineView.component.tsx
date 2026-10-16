@@ -3,8 +3,6 @@
 import React, { useState, useMemo } from "react";
 import {
   ChevronDown,
-  Clock,
-  CalendarDays,
   LayoutDashboard,
   Zap,
   CheckCircle2,
@@ -19,11 +17,15 @@ import {
 import { formatDuration } from "../../utils/formatTimer";
 import { IPomodoroModel } from "../../model/pomodoro.model";
 import { Button } from "@/components/ui/button";
-import { getGroupedTimelineData, TimeOfDayPeriod, usePomodoroStats } from "../../feature/hook/pomodoro/usePomodoroStats";
+import {
+  getGroupedTimelineData,
+  TimeOfDayPeriod,
+  usePomodoroStats,
+} from "../../feature/hook/pomodoro/usePomodoroStats";
 
 interface PomodoroTimelineViewProps {
   sessions: IPomodoroModel[];
-  onSelectpomodoro:(id:string)=>void,
+  onSelectpomodoro: (id: string) => void;
   className?: string;
 }
 
@@ -70,7 +72,7 @@ export function PomodoroTimelineView({
   const rulerHours = [6, 8, 10, 12, 14, 16, 18, 20, 22];
   return (
     <div
-      className={`flex flex-col gap-4 w-full max-h-12/12 pr-1 overflow-y-auto ${className}`}
+      className={`@container flex w-full min-w-0 flex-col gap-4 xl:h-full xl:overflow-y-auto xl:pr-1 ${className}`}
     >
       <div className="space-y-3">
         <div className="flex items-center justify-between pb-1.5 border-b border-border/40">
@@ -83,7 +85,7 @@ export function PomodoroTimelineView({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 @min-[36rem]:grid-cols-4">
           <div className="p-3 rounded-lg border shadow-2xs space-y-1 bg-primary/10">
             <span className="text-xs font-medium text-muted-foreground">
               Thời gian tập trung
@@ -108,7 +110,7 @@ export function PomodoroTimelineView({
             </div>
           </div>
 
-                   <div className="p-3 rounded-lg border shadow-2xs space-y-1 bg-primary/10">
+          <div className="p-3 rounded-lg border shadow-2xs space-y-1 bg-primary/10">
             <span className="text-xs font-medium text-muted-foreground">
               Số phiên hôm nay
             </span>
@@ -128,12 +130,10 @@ export function PomodoroTimelineView({
               Nghỉ {pauseMinutes}m
             </div>
           </div>
-
         </div>
       </div>
 
       <div className="space-y-3 pt-2 h-fit">
-
         <div className="space-y-2 w-full">
           {overallData.days.map((day) => {
             const isOpen = !!openDays[day.dateKey];
@@ -148,9 +148,9 @@ export function PomodoroTimelineView({
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
-                    className="w-full p-3 flex items-center justify-between gap-2 text-left hover:bg-muted/40 transition-colors"
+                    className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-left transition-colors hover:bg-muted/40"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
                       <Calendar1 className="w-3.5 h-3.5 text-muted-foreground" />
                       <span className="font-bold text-[12px]">
                         {day.dateDisplay}
@@ -187,7 +187,9 @@ export function PomodoroTimelineView({
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                             <span>Thước đo 24h</span>
-                            <span>Hover xem chi tiết</span>
+                            <span className="hidden sm:inline">
+                              Hover xem chi tiết
+                            </span>
                           </div>
 
                           <div className="relative h-7 w-full bg-muted/40 rounded border border-border/50 overflow-hidden flex items-center">
@@ -204,7 +206,8 @@ export function PomodoroTimelineView({
 
                             {day.sessions.map((s) => {
                               const isHovered = hoveredSessionId === s.id;
-                              const blockColor =PERIOD_COLORS[s.period] || "#6366f1";
+                              const blockColor =
+                                PERIOD_COLORS[s.period] || "#6366f1";
 
                               return (
                                 <div
@@ -310,7 +313,7 @@ export function PomodoroTimelineView({
                                     />
                                   </div>
                                 </div>
-                                <div className="flex border-t border-border/40 mt-1 pt-1">
+                                <div className="mt-1 flex flex-wrap gap-2 border-t border-border/40 pt-1">
                                   {session.pauseCount > 0 ? (
                                     <div className="text-[10px] flex-1 text-muted-foreground flex flex-col items-start justify-end gap-1">
                                       <span>
@@ -331,10 +334,9 @@ export function PomodoroTimelineView({
                                     <Button
                                       variant={"default"}
                                       className=" px-2! rounded text-xs"
-                                      onClick={(e)=>{
-                                        e.stopPropagation()
-                                        onSelectpomodoro(session.id)
-                                        
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelectpomodoro(session.id);
                                       }}
                                     >
                                       Xem chi tiết
