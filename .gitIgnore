@@ -12,7 +12,6 @@
 **/*.tsbuildinfo
 **/next-env.d.ts
 
-# Environment files: keep example/template files versioned
 **/.env
 **/.env.*
 !**/.env.example
