@@ -73,7 +73,7 @@ const Page = () => {
   const getOverdueTasks = useWorkspaceStore(
     useShallow((s) => s.getOverdueTasks()),
   );
-  const {handleAddTask} = useAddTask();
+  const { handleAddTask } = useAddTask();
   useEffect(() => {
     setTitle("Sắp tới");
   }, []);
@@ -130,8 +130,10 @@ const Page = () => {
                   setIsCreate={setIsCreateTask}
                   sectionId={undefined}
                   listId={inbox}
-                  defaultConfirmRule={{
-                    start_date: new Date(),
+                  defaultConfirmTask={{
+                    rule: {
+                      start_date: new Date(),
+                    },
                   }}
                   onHandle={handleAddTask}
                 />
@@ -155,13 +157,15 @@ const Page = () => {
                   setIsCreate={setAddPreviousTask}
                   sectionId={undefined}
                   listId={inbox}
-                  defaultConfirmRule={{
-                    start_date: (() => {
-                      const previous = new Date();
-                      previous.setHours(0, 0, 0, 0);
-                      previous.setDate(previous.getDate() - 1);
-                      return previous;
-                    })(),
+                  defaultConfirmTask={{
+                    rule: {
+                      start_date: (() => {
+                        const previous = new Date();
+                        previous.setHours(0, 0, 0, 0);
+                        previous.setDate(previous.getDate() - 1);
+                        return previous;
+                      })(),
+                    },
                   }}
                   onHandle={handleAddTask}
                 />
@@ -183,7 +187,11 @@ const Page = () => {
                   setIsCreate={() => handleIsAddTask(dateKey)}
                   sectionId={undefined}
                   listId={inbox}
-                  defaultConfirmRule={{ start_date: new Date(dateKey) }}
+                  defaultConfirmTask={{
+                    rule: {
+                      start_date: new Date(dateKey),
+                    },
+                  }}
                   onHandle={handleAddTask}
                 />
               )}
