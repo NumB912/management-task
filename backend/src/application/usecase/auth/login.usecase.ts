@@ -2,6 +2,7 @@
 import { IUsecase } from "@/domain/usecase/IUsecase.usecase";
 import { ICache, ICredentialsService, ITokenService } from "@/domain";
 import { AppError } from "@/domain/errors/appError.errors";
+import { Logger } from "@nestjs/common";
 
 
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -61,9 +62,10 @@ export class LoginWithEmailUseCase implements IUsecase<{
       });
       if (!user) {
         await this.increaseAttempts(attemptKey, attempts);
+        Logger.warn(`Người dùng sai mật khẩu lần ${attemptKey}`)
         throw new AppError(
           "UNVALID",
-          "Sai tÃ i khoáº£n hoáº·c máº­t kháº©u vui lÃ²ng thá»­ láº¡i",
+          "Sai mật khẩu vui lòng thử lại sau",
           400,
         );
       }
@@ -74,6 +76,7 @@ export class LoginWithEmailUseCase implements IUsecase<{
       if (!compare) {
         await this.increaseAttempts(attemptKey, attempts);
         const remaining = MAX_LOGIN_ATTEMPTS - (attempts + 1);
+        Logger.warn(`Người dùng sai mật khẩu lần ${attemptKey}`)
         throw new AppError(
           "UNVALID",
           remaining > 0

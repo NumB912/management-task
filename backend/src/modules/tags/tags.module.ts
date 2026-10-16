@@ -1,4 +1,3 @@
-import { LoggerMiddleware } from '@/infrastructure/middleware/logger/logger.middleware.js';
 import { VerifyTokenMiddleware } from '@/infrastructure/middleware/auth/verifyToken.middleware.js';
 import { CheckOwnerTagMiddleware } from '@/infrastructure/middleware/permission/checkOwnerTag.middleware.js';
 import {
@@ -15,7 +14,7 @@ import { TagsController } from './http/tags.controller.js';
 export class TagsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware, VerifyTokenMiddleware)
+      .apply(VerifyTokenMiddleware)
       .forRoutes(TagsController);
 
     consumer

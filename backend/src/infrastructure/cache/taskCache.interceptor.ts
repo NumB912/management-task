@@ -4,7 +4,6 @@ import { TaskDetailCache } from '@/application/service/taskDetailCache.service.j
 
 export class TaskCacheInterceptor implements NestInterceptor {
   constructor(private readonly cache: TaskDetailCache) {}
-
   intercept(context: ExecutionContext, next: CallHandler) {
     const { method } = context.switchToHttp().getRequest<{ method: string }>();
     if (['GET', 'HEAD', 'OPTIONS'].includes(method)) return next.handle();

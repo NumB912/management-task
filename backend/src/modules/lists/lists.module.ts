@@ -1,4 +1,3 @@
-import { LoggerMiddleware } from '@/infrastructure/middleware/logger/logger.middleware.js';
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { VerifyTokenMiddleware } from '@/infrastructure/middleware/auth/verifyToken.middleware.js';
 import { ListsController } from './http/lists.controller.js';
@@ -10,7 +9,7 @@ import { CheckPermissionListMiddleware } from '@/infrastructure/middleware/permi
 export class ListsModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware, VerifyTokenMiddleware)
+      .apply(VerifyTokenMiddleware)
       .forRoutes('lists');
 
     consumer

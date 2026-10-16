@@ -1,9 +1,10 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import type { ICache } from '@/domain/index.js';
 import { createClient, type RedisClientType } from '@redis/client';
 
 @Injectable()
 export class RedisCache implements ICache {
+  private readonly logger = new Logger(RedisCache.name);
   private static instance: RedisCache;
   private client: RedisClientType;
   private connectPromise: Promise<void> | null = null;
@@ -24,7 +25,7 @@ export class RedisCache implements ICache {
         },
       });
       this.instance.client.on('error', (err) =>
-        console.error('[Redis error]', err),
+        this.instance.logger.error('Redis client error', err.stack),
       );
       this.instance.client.on('end', () => {
         this.instance.connectPromise = null;

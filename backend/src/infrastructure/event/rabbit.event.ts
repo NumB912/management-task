@@ -1,4 +1,5 @@
 import amqplib, { type Channel, type ChannelModel } from "amqplib";
+import { Logger } from '@nestjs/common';
 
 const globalRabbitInstance = globalThis as typeof globalThis & {
   _instanceRabbit?: RabbitMQ;
@@ -9,6 +10,7 @@ const BASE_RECONNECT_DELAY_MS = 1000;
 const MAX_RECONNECT_DELAY_MS = 30_000;
 
 class RabbitMQ {
+  private readonly logger = new Logger(RabbitMQ.name);
   private channel: Channel | null = null;
   private connection: ChannelModel | null = null;
   private connecting: Promise<Channel> | null = null;
@@ -48,7 +50,7 @@ class RabbitMQ {
     );
 
     this.connection.on("error", (err: Error) => {
-      console.error("[RabbitMQ] Lỗi kết nối:", err.message);
+      this.logger.error("Lỗi kết nối", err.stack);
     });
 
     this.connection.on("close", () => {
@@ -58,7 +60,7 @@ class RabbitMQ {
         this.isClosingIntentionally = false;
         return;
       }
-      console.warn("[RabbitMQ] Mất kết nối — sẽ reconnect...");
+      this.logger.warn("Mất kết nối; bắt đầu reconnect");
       this.connecting = this.reconnectWithBackoff(3)
         .then((channel) => {
           this.channel = channel;
@@ -69,23 +71,23 @@ class RabbitMQ {
         });
 
       this.connecting.catch((err: Error) =>
-        console.error("[RabbitMQ] Reconnect thất bại vĩnh viễn:", err.message),
+        this.logger.error("Reconnect thất bại vĩnh viễn", err.stack),
       );
     });
 
     const channel = await this.connection.createChannel();
 
     channel.on("error", (err) => {
-      console.error("[RabbitMQ] Channel error:", err.message);
+      this.logger.error("Channel error", err.stack);
       this.channel = null;
     });
 
     channel.on("close", () => {
-      console.warn("[RabbitMQ] Channel đóng");
+      this.logger.warn("Channel đóng");
       this.channel = null;
     });
 
-    console.log("[RabbitMQ] Kết nối thành công");
+    this.logger.log("Kết nối thành công");
     return channel;
   }
   private async reconnectWithBackoff(attempt = 1): Promise<Channel> {
@@ -93,7 +95,7 @@ class RabbitMQ {
       BASE_RECONNECT_DELAY_MS * 2 ** (attempt - 1),
       MAX_RECONNECT_DELAY_MS,
     );
-    console.warn(`[RabbitMQ] Reconnect lần ${attempt} sau ${delay}ms...`);
+    this.logger.warn(`Reconnect lần ${attempt} sau ${delay}ms...`);
     await new Promise((r) => setTimeout(r, delay));
 
     try {

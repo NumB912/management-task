@@ -1,4 +1,3 @@
-import { LoggerMiddleware } from '@/infrastructure/middleware/logger/logger.middleware.js';
 import { VerifyTokenMiddleware } from '@/infrastructure/middleware/auth/verifyToken.middleware.js';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { FiltersController } from './http/filters.controller.js';
@@ -9,7 +8,7 @@ import { FiltersController } from './http/filters.controller.js';
 export class FiltersModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware, VerifyTokenMiddleware)
+      .apply(VerifyTokenMiddleware)
       .forRoutes(FiltersController);
   }
 }

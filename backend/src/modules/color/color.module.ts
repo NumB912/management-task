@@ -1,4 +1,3 @@
-import { LoggerMiddleware } from '@/infrastructure/middleware/logger/logger.middleware.js';
 import { VerifyTokenMiddleware } from '@/infrastructure/middleware/auth/verifyToken.middleware.js';
 import { CheckOwnerMiddleware } from '@/infrastructure/middleware/permission/checkOwner.middleware.js';
 import {
@@ -17,7 +16,7 @@ import { CheckPermissionTaskMiddleware } from '@/infrastructure/middleware/permi
 export class ColorModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware, VerifyTokenMiddleware)
+      .apply(VerifyTokenMiddleware)
       .forRoutes(ColorController);
     consumer.apply(CheckPermissionListMiddleware({
       "can edit":['PATCH']

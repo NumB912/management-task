@@ -93,7 +93,6 @@ export class pomodoroMapper implements IMapper<IpomodoroDocument, IPomodoroWithI
   }
 
   toPersistence(entity: IPomodoroWithId): IpomodoroDocument {
-    console.log(entity)
     return {
       _id: new Types.ObjectId(entity.id),
       name: entity.name,
@@ -112,7 +111,6 @@ export class pomodoroMapper implements IMapper<IpomodoroDocument, IPomodoroWithI
   }
 
   toPersistencePartial(entity: Partial<IPomodoroWithId>): Partial<IpomodoroDocument> {
-       console.log(entity)
     const update: Partial<IpomodoroDocument> = {};
     if (entity.id !== undefined) update._id = new Types.ObjectId(entity.id);
     if (entity.name !== undefined) update.name = entity.name;

@@ -115,8 +115,6 @@ export abstract class BaseRepository<
       { ...this.toPresistencePartial(data) },
       { session },
     );
-    console.log(result);
-    console.log(this.toPresistencePartial(data));
     return result.deletedCount > 0;
   }
 
@@ -198,16 +196,11 @@ export abstract class BaseRepository<
     if (objectIds.length === 0) {
       return false;
     }
-
-    console.log(this.toPresistencePartial(data));
-
     const result = await this.model.updateMany(
       { _id: { $in: objectIds } },
       { $set: this.toPresistencePartial(data) },
       { session },
     );
-
-    console.log(result);
     return result.modifiedCount > 0;
   }
 

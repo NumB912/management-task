@@ -3,8 +3,10 @@ import type { Channel } from "amqplib";
 import { IConsumer } from "../../domain";
 import RabbitMQ from "./rabbit.event";
 import { type } from "../../domain/event/type.event";
+import { Logger } from '@nestjs/common';
 
 class Consumer implements IConsumer {
+  private readonly logger = new Logger(Consumer.name);
   private channel: Channel | null = null;
 
   private constructor(channel: Channel) {
@@ -50,7 +52,7 @@ class Consumer implements IConsumer {
         await callback(payload);
         this.channel?.ack(msg);
       } catch (error) {
-        console.error("[Consumer] Xử lý thất bại:", error);
+        this.logger.error("Xử lý message thất bại; message sẽ được đưa lại vào queue", error instanceof Error ? error.stack : String(error));
         this.channel?.nack(msg, false, true);
       }
     });

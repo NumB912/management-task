@@ -1,8 +1,9 @@
 import { databaseConfig } from "@/domain/config/database.config.js";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import mongoose, { Mongoose } from "mongoose";
 @Injectable()
 export class MongodbClient {
+  private readonly logger = new Logger(MongodbClient.name);
   private static instance: MongodbClient;
   private readonly client: Mongoose;
   private uri:string=""
@@ -32,21 +33,21 @@ export class MongodbClient {
     this.client.connection.removeAllListeners("disconnected");
     this.client.connection.removeAllListeners("error");
     this.client.connection.on("connected", () => {
-      console.log("[MongoDB] Đã kết nối với database");
+      this.logger.log("Đã kết nối với database");
     });
 
     this.client.connection.on("disconnected", async () => {
       if (this.isShuttingDown) return;
-      console.warn("[MongoDB] Mất kết nối với database");
+      this.logger.warn("Mất kết nối với database; bắt đầu reconnect");
       await this.reconnect();
     });
 
     this.client.connection.on("error", (err: Error) => {
-      console.error("[MongoDB] Lỗi kết nối:", err.message);
+      this.logger.error("Lỗi kết nối database", err.stack);
     });
 
     const shutdown = async (signal: string) => {
-      console.log(`[MongoDB] Nhận tín hiệu ${signal}, đang ngắt kết nối...`);
+      this.logger.log(`Nhận tín hiệu ${signal}, đang ngắt kết nối...`);
       this.isShuttingDown = true;
       await this.disconnect();
       process.exit(0);
@@ -58,7 +59,7 @@ export class MongodbClient {
 
   private async reconnect(): Promise<void> {
     if (this.isReconnecting) {
-      console.log("[MongoDB] Đang trong quá trình reconnect, bỏ qua...");
+      this.logger.warn("Đang reconnect, bỏ qua yêu cầu reconnect trùng");
       return;
     }
 
@@ -69,22 +70,17 @@ export class MongodbClient {
     try {
       for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-          console.log(
-            `[MongoDB] Thử kết nối lại lần ${attempt}/${MAX_RETRIES}...`,
-          );
+          this.logger.log(`Thử kết nối lại lần ${attempt}/${MAX_RETRIES}...`);
           await this.connect();
-          console.log("[MongoDB] Kết nối lại thành công");
+          this.logger.log("Kết nối lại thành công");
           return;
         } catch (error) {
           const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
-          console.error(error);
-          console.error(
-            `[MongoDB] Kết nối lại thất bại, thử lại sau ${delay}ms`,
-          );
+          this.logger.error(`Kết nối lại thất bại; thử lại sau ${delay}ms`, error instanceof Error ? error.stack : String(error));
           await this.sleep(delay);
         }
       }
-      console.error("[MongoDB] Hết số lần thử kết nối lại. Dừng ứng dụng.");
+      this.logger.error("Hết số lần thử kết nối lại. Dừng ứng dụng.");
       process.exit(1);
     } finally {
       this.isReconnecting = false;
@@ -106,7 +102,7 @@ export class MongodbClient {
   async disconnect(): Promise<void> {
     this.isShuttingDown = true;
     await this.client.disconnect();
-    console.log("[MongoDB] Đã ngắt kết nối");
+    this.logger.log("Đã ngắt kết nối");
   }
 
   getClient(): Mongoose {

@@ -1,11 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { serialize, deserialize } from 'node:v8';
 import type { ICache, ITask } from '@/domain';
+import { Logger } from '@nestjs/common';
 
 const VERSION_KEY = 'task:cache-version';
 const TTL_SECONDS = 60*3;
 
 export class TaskDetailCache {
+  private readonly logger = new Logger(TaskDetailCache.name);
+
   constructor(private readonly cache: ICache) {}
 
   private async bounded<T>(operation: Promise<T>): Promise<T> {
@@ -33,7 +36,8 @@ export class TaskDetailCache {
       if (entry?.version === version) {
         return deserialize(Buffer.from(entry.value, 'base64')) as Partial<ITask>;
       }
-    } catch {
+    } catch (error) {
+      this.logger.warn(`Task cache lookup failed; falling back to database (${String(error)})`);
       return readDatabase();
     }
     const task = await readDatabase();
@@ -43,17 +47,17 @@ export class TaskDetailCache {
           version, value: serialize(task).toString('base64'),
         }, TTL_SECONDS));
       } catch {
-         }
+        this.logger.warn('Task cache write failed');
+      }
     }
     return task;
   }
 
   async invalidate(): Promise<void> {
     try {
-      // Also invalidates tasks affected indirectly by list/rule/tag changes.
       await this.bounded(this.cache.set(VERSION_KEY, randomUUID()));
     } catch {
-      // Entries still expire after TTL_SECONDS if Redis is unavailable.
+      this.logger.warn(`Could not invalidate task cache version; entries will expire after ${TTL_SECONDS}s`);
     }
   }
 }

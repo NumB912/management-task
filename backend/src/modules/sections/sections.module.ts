@@ -1,4 +1,3 @@
-import { LoggerMiddleware } from '@/infrastructure/middleware/logger/logger.middleware.js';
 import { VerifyTokenMiddleware } from '@/infrastructure/middleware/auth/verifyToken.middleware.js';
 import { CheckPermissionListMiddleware } from '@/infrastructure/middleware/permission/checkPermission.middleware.js';
 import { CheckPermissionSectionMiddleware } from '@/infrastructure/middleware/permission/checkPermissionSection.middleware.js';
@@ -18,7 +17,7 @@ const EDITOR_PERMISSION: PermissionMethodMap = {
 export class SectionsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(LoggerMiddleware, VerifyTokenMiddleware)
+      .apply(VerifyTokenMiddleware)
       .forRoutes(SectionsController, ListSectionsController);
 
     consumer
