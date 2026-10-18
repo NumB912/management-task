@@ -1,4 +1,4 @@
 
 export const TokenConfig = {
-    SECRET_KEY:process.env.NEXT_PUBLIC_SECRET_KEY,
+    SECRET_KEY:process.env.SECRET_KEY,
 }
