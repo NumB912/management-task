@@ -108,6 +108,7 @@ services:
         echo >> "$${RABBITMQ_PORT:?Missing RABBITMQ_PORT}"
         nc -z -v -w 10 "$$RABBITMQ_HOST" "$$RABBITMQ_PORT"
         echo "RabbitMQ TCP: OK"
+        
 networks:
   tm-network:
     driver: bridge
