@@ -9,9 +9,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      - name: tạo env cho vps
+        shell: bash 
+        env:
+          DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
+          BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
+          FILE_SERVICES_ENV: ${{ secrets.FILE_SERVICES_ENV }}
+          EMAIL_SERVICES_ENV: ${{ secrets.EMAIL_SERVICES_ENV }}
+          NOTIFIER_SERVICES_ENV: ${{ secrets.NOTIFIER_SERVICES_ENV }}
+        run: |
+          umask 077
+          printf '%s' "$DEPENDENCIES_ENV" > .env.dependencies
+          printf '%s' "$BACKEND_ENV" > backend/.env
+          printf '%s' "$FILE_SERVICES_ENV" > file-services/.env
+          printf '%s' "$EMAIL_SERVICES_ENV" > email-services/.env
+          printf '%s' "$NOTIFIER_SERVICES_ENV" > notifier-services/.env
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
-
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}

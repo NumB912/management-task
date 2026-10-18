@@ -27,7 +27,7 @@ for (const [status, retryable] of [[422, false], [429, true], [503, true]] as co
   });
 }
 test('all templates use shared purple layout and escape user content', () => {
-  process.env.FRONT_END_URL = 'https://example.com';
+  process.env.APP_URL = 'https://example.com';
   for (const html of [otpTemplate({ userName: '<script>', otp: '123456' }),
     resetPasswordTemplate({ userName: '<script>', resetLink: 'a/b' }),
     inviteTemplate({ name: '<script>', ownerName: 'Owner', listName: '<script>', inviteLink: 'https://example.com/invite?a=1&b=2' })]) {

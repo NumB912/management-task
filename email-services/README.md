@@ -12,7 +12,7 @@ All three emails share a responsive white card, purple accents and inline styles
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_your_secret_key
 EMAIL_FROM=Task Management <no-reply@your-verified-domain.com>
-FRONT_END_URL=https://your-app.example.com
+APP_URL=https://your-app.example.com
 RABBITMQ_URI=amqp://user:password@localhost:5672/%2F
 ```
 
