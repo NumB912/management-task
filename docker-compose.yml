@@ -1,3 +1,18 @@
+x-check-common: &check-common
+  env_file:
+    - ./.env.dependencies
+  restart: "no"
+  networks:
+    - tm-network
+
+x-dependencies: &dependencies
+  check-mongo:
+    condition: service_completed_successfully
+  check-redis:
+    condition: service_completed_successfully
+  check-rabbitmq:
+    condition: service_completed_successfully
+
 services:
   file-services:
     build: "./file-services"
@@ -5,11 +20,8 @@ services:
     ports:
       - "3006:3006"
     env_file: ./file-services/.env
-    # depends_on:
-    #   rabbitmq:
-    #     condition: service_healthy
-    restart: 
-      on-failure
+    depends_on: *dependencies
+    restart: on-failure
     networks:
       - tm-network
 
@@ -19,98 +31,88 @@ services:
     ports:
       - "3001:3001"
     env_file: ./email-services/.env
-    restart: 
-      on-failure
+    depends_on: *dependencies
+    restart: on-failure
     networks:
       - tm-network
+
   notifier-services:
     build: "./notifier-services"
     container_name: task-management-notifier-services
     ports:
       - "3005:3005"
     env_file: ./notifier-services/.env
-    restart: 
-      on-failure
+    depends_on: *dependencies
+    restart: on-failure
     networks:
       - tm-network
-  # app:
-  #   build: ./task-management
-  #   ports:
-  #     - "3000:3000"
-  #   env_file: ./task-management/.env
-  #   depends_on:
-  #     mongodb:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #     mailhog:
-  #       condition: service_started
-  #     email-services:
-  #       condition: service_started
-  #   volumes:
-  #     - ./task-management:/app
-  #     - /app/node_modules
-  #     - /app/.next             
-  #   networks: [tm-network]
-  # mongodb:
-  #   image: mongo:7
-  #   container_name: task-management-mongodb
-  #   command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
-  #   ports:
-  #     - "27017:27017"
-  #   volumes:
-  #     - mongo-data:/data/db
-  #   healthcheck:
-  #     test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]}) }" | mongosh --port 27017 --quiet
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - tm-network  
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: task-management-redis
-  #   ports:
-  #     - "0.0.0.0:6379:6379"
-  #   volumes:
-  #     - redis-data:/data
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - tm-network
 
-  # rabbitmq:
-  #   image: rabbitmq:3-management
-  #   container_name: task-management-rabbitmq
-  #   ports:
-  #     - "0.0.0.0:5672:5672/tcp"
-  #     - "0.0.0.0:15672:15672/tcp"
-  #   healthcheck:
-  #     test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - tm-network
+  check-mongo:
+    <<: *check-common
+    image: mongo:7
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        : "$${MONGODB_URI:?Missing MONGODB_URI}"
+        timeout 20 mongosh "$$MONGODB_URI" --quiet \
+          --eval '
+            const result = db.runCommand({ ping: 1 });
+            if (result.ok !== 1) quit(1);
+            print("MongoDB: OK");
+          '
 
-  # mailhog:
-  #   image: mailhog/mailhog:latest
-  #   container_name: task-management-mailhog
-  #   ports:
-  #     - "0.0.0.0:3050:1025"
-  #     - "0.0.0.0:8025:8025"
-  #   networks:
-  #     - tm-network
+  check-redis:
+    <<: *check-common
+    image: redis:7-alpine
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        : "$${REDIS_URI:?Missing REDIS_URI}"
+        result="$$(timeout 15 redis-cli -u "$$REDIS_URI" PING)"
+        if [ "$$result" != "PONG" ]; then
+          echo "Redis: FAIL"
+          exit 1
+        fi
+        echo "Redis: OK"
 
-volumes:
-  mongo-data:
-  redis-data:
+  check-rabbitmq:
+    <<: *check-common
+    image: python:3.12-alpine
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        : "$${RABBITMQ_URI:?Missing RABBITMQ_URI}"
+        pip install --quiet --no-cache-dir \
+          --disable-pip-version-check \
+          --timeout 15 --retries 2 pika==1.3.2
 
+        timeout 20 python - <<'PY'
+        import os
+        import sys
+        import pika
+
+        try:
+            params = pika.URLParameters(os.environ["RABBITMQ_URI"])
+            params.connection_attempts = 1
+            params.socket_timeout = 10
+            params.stack_timeout = 15
+
+            connection = pika.BlockingConnection(params)
+            try:
+                channel = connection.channel()
+                channel.close()
+            finally:
+                connection.close()
+
+            print("RabbitMQ: OK")
+        except Exception as error:
+            print(
+                f"RabbitMQ: FAIL ({type(error).__name__})",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        PY
+Ư
 networks:
   tm-network:
     driver: bridge
