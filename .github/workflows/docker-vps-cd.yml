@@ -44,7 +44,6 @@ jobs:
               file-services \
               email-services \
               notifier-services
-
             echo "Start services"
             docker compose up -d --no-build
 
