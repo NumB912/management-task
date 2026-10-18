@@ -82,7 +82,6 @@ services:
             if (result.ok !== 1) print("Mongodb: `Error`);
             print("MongoDB: OK");
           '
-
   check-redis:
     <<: *check-common
     image: redis:7-alpine
