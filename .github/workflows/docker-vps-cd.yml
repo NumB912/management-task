@@ -18,7 +18,7 @@ jobs:
           # EMAIL_SERVICES_ENV: ${{ secrets.EMAIL_SERVICES_ENV }}
           # NOTIFIER_SERVICES_ENV: ${{ secrets.NOTIFIER_SERVICES_ENV }}
         run: |
-          printf ${{ DEPENDENCIES_ENV }}
+          echo ${{ DEPENDENCIES_ENV }}
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
