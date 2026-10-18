@@ -34,7 +34,6 @@ jobs:
 
             echo "Validate Compose configuration"
             docker compose config --quiet
-
             echo "Check MongoDB"
             docker compose run --rm --no-deps check-mongo
 
