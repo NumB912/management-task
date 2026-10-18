@@ -8,7 +8,7 @@ async function bootstrap() {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
-
+  console.log(allowedOrigins)
   app.enableCsrfProtection({ trustedOrigins: allowedOrigins });
   app.enableCors({
     origin: allowedOrigins,
