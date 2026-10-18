@@ -39,7 +39,6 @@ jobs:
             docker compose run --rm --no-deps check-redis
             echo "Check RabbitMQ"
             docker compose run --rm --no-deps check-rabbitmq
-
             echo "Build application images"
             docker compose build \
               file-services \
