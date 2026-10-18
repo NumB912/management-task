@@ -92,7 +92,6 @@ services:
           exit 1
         fi
         echo "Redis: OK"
-
   check-rabbitmq:
     <<: *check-common
     image: alpine:3.21
