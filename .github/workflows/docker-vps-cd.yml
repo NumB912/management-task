@@ -38,5 +38,4 @@ jobs:
               notifier-services
             echo "Start services"
             docker compose up -d --no-build
-
             docker compose ps
