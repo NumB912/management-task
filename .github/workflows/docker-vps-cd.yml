@@ -27,7 +27,7 @@ jobs:
           port: 22
           script: |
             set -eu
-            cd "$HOME/services/task-management"
+            cd "$HOME/services/toboco"
             git fetch origin production
             git checkout production
             git merge --ff-only origin/production
