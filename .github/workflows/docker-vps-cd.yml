@@ -37,7 +37,6 @@ jobs:
             docker compose run --rm --no-deps check-mongo
             echo "Check Redis"
             docker compose run --rm --no-deps check-redis
-
             echo "Check RabbitMQ"
             docker compose run --rm --no-deps check-rabbitmq
 
