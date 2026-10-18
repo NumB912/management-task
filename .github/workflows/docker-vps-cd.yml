@@ -12,13 +12,14 @@ jobs:
     steps:
       - name: Tạo env và deploy trên VPS
         uses: appleboy/ssh-action@master
+        env:
+          DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          envs: DEPENDENCIES_ENV
           script: |
             set -eu
             cd "$HOME/services/toboco"
