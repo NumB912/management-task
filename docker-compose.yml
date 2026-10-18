@@ -28,6 +28,7 @@ services:
         condition: service_completed_successfully
       check-rabbitmq:
         condition: service_completed_successfully
+        
   file-services:
     build: "./file-services"
     container_name: toboco-file-services
