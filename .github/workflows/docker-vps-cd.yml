@@ -1,33 +1,58 @@
-name: NodeJS with Webpack
+name: Deploy Docker Compose
 
 on:
   push:
-    branches: [ "production"]
-  pull_request:
-    branches: [ "main" ]
+    branches: ["production"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-
     steps:
-      - name: deloy-docker
-        uses: appleboy/ssh-action@master
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          userName: ${{ secrets.USERNAME }}
           port: 22
-        script: |
-          cd services/task-management
-          git fetch origin
-          git checkout production
-          docker build -t task-management
-          docker stop task-management || true
-          docker rm task-management || true
-          docker run -d --name task-management-container -p 4000:3000 task-management
+          command_timeout: 30m
+          script: |
+            set -eu
 
+            cd "$HOME/services/task-management"
+
+            git fetch origin production
+            git checkout production
+            git merge --ff-only origin/production
+
+            echo "Validate Compose configuration"
+            docker compose config --quiet
+
+            echo "Check MongoDB"
+            docker compose run --rm --no-deps check-mongo
+
+            echo "Check Redis"
+            docker compose run --rm --no-deps check-redis
+
+            echo "Check RabbitMQ"
+            docker compose run --rm --no-deps check-rabbitmq
+
+            echo "Build application images"
+            docker compose build \
+              file-services \
+              email-services \
+              notifier-services
+
+            echo "Start services"
+            docker compose up -d --no-build
+
+            docker compose ps
