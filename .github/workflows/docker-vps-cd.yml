@@ -36,7 +36,6 @@ jobs:
             docker compose config --quiet
             echo "Check MongoDB"
             docker compose run --rm --no-deps check-mongo
-
             echo "Check Redis"
             docker compose run --rm --no-deps check-redis
 
