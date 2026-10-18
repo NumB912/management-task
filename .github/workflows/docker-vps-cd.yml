@@ -9,31 +9,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Tạo các file env
-        shell: bash
-        env:
-          DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
-          # BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
-          # FILE_SERVICES_ENV: ${{ secrets.FILE_SERVICES_ENV }}
-          # EMAIL_SERVICES_ENV: ${{ secrets.EMAIL_SERVICES_ENV }}
-          # NOTIFIER_SERVICES_ENV: ${{ secrets.NOTIFIER_SERVICES_ENV }}
-        run: |
-          echo ${{ DEPENDENCIES_ENV }}
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
+        env:
+          DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          envs: DEPENDENCIES_ENV
           script: |
             set -eu
             cd "$HOME/services/toboco"
+
             git fetch origin production
             git checkout production
             git merge --ff-only origin/production
+
+            # Không ghi đè file nếu secret chưa được khai báo.
+            : "${DEPENDENCIES_ENV:?Missing DEPENDENCIES_ENV}"
+
+            umask 077
+            printf '%s' "$DEPENDENCIES_ENV" > .env.dependencies
+            chmod 600 .env.dependencies
+
             echo "Start services"
             docker compose up -d --build
             docker compose ps
