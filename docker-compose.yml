@@ -76,10 +76,13 @@ services:
         : "$${MONGODB_URI:?Missing MONGODB_URI}"
         timeout 40 mongosh "$$MONGODB_URI" --quiet \
           --eval '
-            const result = db.runCommand({ ping: 1 });
-            if (result.ok !== 1) print("Mongodb: `Error`);
-            print("MongoDB: OK");
-          '
+        const result = db.runCommand({ ping: 1 });
+        if (result.ok !== 1) {
+          print("MongoDB: ERROR");
+          quit(1);
+        }
+        print("MongoDB: OK");
+        '  
   check-redis:
     <<: *check-common
     image: redis:7-alpine
