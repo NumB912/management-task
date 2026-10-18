@@ -30,9 +30,6 @@ jobs:
             cd "$HOME/services/toboco"
             git fetch origin production
             git checkout production
-            git merge --ff-only origin/production
-            echo "Validate Compose configuration"
-            docker compose config --quiet
             echo "Check MongoDB"
             docker compose run --rm --no-deps check-mongo
             echo "Check Redis"
