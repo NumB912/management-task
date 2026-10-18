@@ -2,7 +2,8 @@
 import type IConsumer from "@domain/message/consumer.message.js";
 import type { type } from "@domain/type/message/publisher.type.js";
 import RabbitMQ from "@infrastructure/message/rabbitMQ.message.js";
-import type { Channel } from "amqplib";
+import type { ConfirmChannel as Channel } from "amqplib";
+import { EmailDeliveryError } from '../email/resend.service.js';
 
 class Consumer implements IConsumer {
   private channel: Channel | null = null;
@@ -32,6 +33,8 @@ class Consumer implements IConsumer {
     });
 
     await this.channel.assertQueue(queueName, { durable: true });
+    const failedQueue = `${queueName}.failed`;
+    await this.channel.assertQueue(failedQueue, { durable: true });
 
     for (const routingKey of routingKeys) {
       await this.channel.bindQueue(queueName, exchangeName, routingKey);
@@ -47,11 +50,30 @@ class Consumer implements IConsumer {
           msg.content.toString(),
         );
 
-        await callback(payload);
+        for (let attempt = 0; ; attempt++) {
+          try {
+            await callback(payload);
+            break;
+          } catch (error) {
+            if (attempt >= 2 || (error instanceof EmailDeliveryError && !error.retryable)) throw error;
+            await new Promise(resolve => setTimeout(resolve, 1000 * 2 ** attempt));
+          }
+        }
         this.channel?.ack(msg);
       } catch (error) {
-        console.error("[Consumer] Xử lý thất bại:", error);
-        this.channel?.nack(msg, false, true);
+        console.error(`[Consumer] Delivery failed; moving to ${failedQueue}`);
+        // Keep the original payload for manual inspection and replay.
+        try {
+          const writable = this.channel!.sendToQueue(failedQueue, msg.content, {
+            persistent: true,
+            contentType: 'application/json',
+          });
+          if (!writable) await new Promise<void>(resolve => this.channel!.once('drain', resolve));
+          await this.channel!.waitForConfirms();
+          this.channel?.ack(msg);
+        } catch {
+          this.channel?.nack(msg, false, true);
+        }
       }
     });
   }

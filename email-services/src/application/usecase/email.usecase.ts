@@ -7,7 +7,7 @@ export default class SendEmail implements IUsecase<void>{
     constructor(service:IEmailService){
         this.service = service
     }
-    async execute(email:Partial<Email>): Promise<void> {
+    async execute(email:Email): Promise<void> {
        await this.service.sendEmail(email)
     }
 }

@@ -18,6 +18,7 @@ export class GetProfileUsecase implements IUsecase<IUserWithouPassword> {
                 name: user?.name,
                 role: user?.role,
                 avatar: user?.avatar,
+                googleLinked: Boolean(user?.googleId),
                 updated_at: user?.updated_at
             } as IUserWithouPassword
 

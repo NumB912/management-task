@@ -1,0 +1,46 @@
+services:
+  backend:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX in compose.env}-backend:${IMAGE_TAG:?Set IMAGE_TAG during deployment}
+    env_file:
+      - ${ENV_DIR:?Set ENV_DIR in compose.env}/backend.env
+    environment:
+      NODE_ENV: production
+      PORT: 3010
+    ports:
+      - "127.0.0.1:3010:3010"
+    restart: unless-stopped
+    networks: [task-management]
+
+  notifier-services:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX in compose.env}-notifier-services:${IMAGE_TAG:?Set IMAGE_TAG during deployment}
+    env_file:
+      - ${ENV_DIR:?Set ENV_DIR in compose.env}/notifier-services.env
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+    ports:
+      - "127.0.0.1:3005:3005"
+    restart: unless-stopped
+    networks: [task-management]
+
+  email-services:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX in compose.env}-email-services:${IMAGE_TAG:?Set IMAGE_TAG during deployment}
+    env_file:
+      - ${ENV_DIR:?Set ENV_DIR in compose.env}/email-services.env
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    networks: [task-management]
+
+  file-services:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX in compose.env}-file-services:${IMAGE_TAG:?Set IMAGE_TAG during deployment}
+    env_file:
+      - ${ENV_DIR:?Set ENV_DIR in compose.env}/file-services.env
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    networks: [task-management]
+
+networks:
+  task-management:
+    driver: bridge

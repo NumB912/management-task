@@ -13,6 +13,7 @@ export class UserMapper implements IMapper<IUserDocument, IUser, IUserDocument, 
       avatar: doc.avatar,
       role: doc.role as IRole,
       password: doc.password,
+      googleId: doc.googleId,
       created_at: doc.created_at,
       updated_at: doc.updated_at ?? undefined,
       deleted_at: doc.deleted_at ?? undefined,
@@ -27,6 +28,7 @@ export class UserMapper implements IMapper<IUserDocument, IUser, IUserDocument, 
     if (doc.avatar) update.avatar = doc.avatar;
     if (doc.role) update.role = doc.role as IRole;
     if (doc.password) update.password = doc.password;
+    if (doc.googleId) update.googleId = doc.googleId;
     if (doc.created_at) update.created_at = doc.created_at;
     if (doc.updated_at) update.updated_at = doc.updated_at ?? undefined;
     if (doc.deleted_at) update.deleted_at = doc.deleted_at ?? undefined;
@@ -87,6 +89,7 @@ export class UserMapper implements IMapper<IUserDocument, IUser, IUserDocument, 
       avatar: entity.avatar,
       role: entity.role,
       password: entity.password,
+      googleId: entity.googleId,
       created_at: entity.created_at,
       updated_at: entity.updated_at ?? null,
       deleted_at: entity.deleted_at ?? null,
@@ -124,6 +127,7 @@ toPersistencePartial(entity: Partial<IUser>): Partial<IUserDocument> {
     if (entity.role) update.role = entity.role;
     if (entity.email) update.email = entity.email;
     if (entity.password) update.password = entity.password;
+    if (entity.googleId) update.googleId = entity.googleId;
     if (entity.deleted_at) update.deleted_at = entity.deleted_at ?? null;
     if (entity.updated_at) update.updated_at = entity.updated_at ?? null;
     return update;

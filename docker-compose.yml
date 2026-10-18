@@ -66,58 +66,58 @@ services:
   #     - /app/node_modules
   #     - /app/.next             
   #   networks: [tm-network]
-  mongodb:
-    image: mongo:7
-    container_name: task-management-mongodb
-    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    healthcheck:
-      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]}) }" | mongosh --port 27017 --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - tm-network  
-  redis:
-    image: redis:7-alpine
-    container_name: task-management-redis
-    ports:
-      - "0.0.0.0:6379:6379"
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - tm-network
+  # mongodb:
+  #   image: mongo:7
+  #   container_name: task-management-mongodb
+  #   command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongo-data:/data/db
+  #   healthcheck:
+  #     test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]}) }" | mongosh --port 27017 --quiet
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - tm-network  
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: task-management-redis
+  #   ports:
+  #     - "0.0.0.0:6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - tm-network
 
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: task-management-rabbitmq
-    ports:
-      - "0.0.0.0:5672:5672/tcp"
-      - "0.0.0.0:15672:15672/tcp"
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - tm-network
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   container_name: task-management-rabbitmq
+  #   ports:
+  #     - "0.0.0.0:5672:5672/tcp"
+  #     - "0.0.0.0:15672:15672/tcp"
+  #   healthcheck:
+  #     test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   networks:
+  #     - tm-network
 
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: task-management-mailhog
-    ports:
-      - "0.0.0.0:3050:1025"
-      - "0.0.0.0:8025:8025"
-    networks:
-      - tm-network
+  # mailhog:
+  #   image: mailhog/mailhog:latest
+  #   container_name: task-management-mailhog
+  #   ports:
+  #     - "0.0.0.0:3050:1025"
+  #     - "0.0.0.0:8025:8025"
+  #   networks:
+  #     - tm-network
 
 volumes:
   mongo-data:

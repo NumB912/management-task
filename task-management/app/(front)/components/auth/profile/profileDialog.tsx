@@ -23,6 +23,7 @@ import {
 import useUserState from "@/app/(front)/feature/store/user/user.state";
 import { MAX_VALUE_REG } from "recharts/types/util/ChartUtils";
 import AvatarEditor from "../../avatar.component";
+import { axiosInstance } from "@/app/(front)/lib/axios";
 export function getInitials(name: string, email: string) {
   const parts = (name.trim() || email).split(/\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -58,6 +59,34 @@ const ProfileDialog = ({
   const [status, setStatus] = useState<SaveStatus>("idle");
   const { setUser, user } = useUserState();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
+  const [googleMessage, setGoogleMessage] = useState("");
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const result = url.searchParams.get("google_link");
+    if (!result) return;
+    setGoogleMessage(result === "success" ? "Liên kết Google thành công. Bạn có thể đăng nhập bằng Google."
+      : result === "email_mismatch" ? "Vui lòng chọn tài khoản Google có cùng email với hồ sơ."
+      : "Liên kết chưa thành công hoặc đã bị hủy. Vui lòng thử lại.");
+    useUserState.getState().setOpen(true);
+    onOpenChange?.(true);
+    void useUserState.getState().fetchUser();
+    url.searchParams.delete("google_link");
+    window.history.replaceState(null, "", url.toString());
+  }, []);
+
+  async function linkGoogle() {
+    setLinkingGoogle(true);
+    setGoogleMessage("");
+    try {
+      const { data } = await axiosInstance.post<{ url: string }>("/auth/google/link", {});
+      window.location.assign(data.url);
+    } catch {
+      setGoogleMessage("Không thể bắt đầu liên kết. Hãy kiểm tra phiên đăng nhập và thử lại.");
+      setLinkingGoogle(false);
+    }
+  }
   const { mutate: update } = useUpdateProfile();
   const { mutateAsync: upLoadFile } = useUploadFile();
   const {mutateAsync:deleteFile} = useDeleteFile()
@@ -201,6 +230,18 @@ const ProfileDialog = ({
               <p className="truncate font-light mt-1">{email}</p>
             </div>
           </div>
+        </div>
+
+        <div className="rounded-lg border p-4 space-y-3">
+          <div className="font-medium">Liên kết Google</div>
+          <p className="text-sm text-muted-foreground">
+            {user?.googleLinked ? "Đã liên kết Google. Bạn có thể đăng nhập bằng email hoặc Google."
+              : "Chưa liên kết Google. Liên kết tài khoản Google có cùng email để đăng nhập thuận tiện hơn."}
+          </p>
+          {!user?.googleLinked && <Button type="button" variant="outline" onClick={linkGoogle} disabled={linkingGoogle || !user}>
+            {linkingGoogle ? "Đang chuyển đến Google…" : "Liên kết với Google"}
+          </Button>}
+          {googleMessage && <p role="status" className="text-sm">{googleMessage}</p>}
         </div>
 
         {onLogout && (

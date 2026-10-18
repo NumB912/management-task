@@ -17,7 +17,7 @@ export default class SendOtpUsecase implements IUsecase<void> {
 
   async handle(event: { email: string; otp: string }) {
     console.log(">>> [OTP CONSUMER] Nhận được tin nhắn:");
-    this.mailService.execute(
+    await this.mailService.execute(
       new Email({
         from: MailConfig.AUTH,
         to: event.email,
@@ -32,7 +32,7 @@ export default class SendOtpUsecase implements IUsecase<void> {
   }
 
   async execute(): Promise<void> {
-    this.consumer.sub<{
+    await this.consumer.sub<{
       email: string;
       otp: string;
     }>(

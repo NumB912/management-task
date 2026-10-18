@@ -23,7 +23,7 @@ export default class SendMailInviteConsumer implements IUsecase<void> {
   }
 
   async handle(event: InviteTemplateParams) {
-    this.mailService.execute(
+    await this.mailService.execute(
       new Email({
         from: MailConfig.AUTH,
         to: event.email,
@@ -40,7 +40,7 @@ export default class SendMailInviteConsumer implements IUsecase<void> {
   }
 
   async execute(): Promise<void> {
-    this.consumer.sub<InviteTemplateParams>(
+    await this.consumer.sub<InviteTemplateParams>(
       "exchange.invite.member",
       "queue.invite.member",
       ["member.invite"],

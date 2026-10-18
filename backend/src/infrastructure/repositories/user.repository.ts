@@ -11,6 +11,19 @@ import { Inject, Injectable } from "@nestjs/common"
 
 @Injectable()
 export class UserRepository extends BaseRepository<IUserDocument, IUser> implements IUserRepository {
+  async linkGoogle(id: string, googleId: string): Promise<boolean> {
+    const result = await this.db.User.updateOne(
+      { _id: id, deleted_at: null, $or: [{ googleId: { $exists: false } }, { googleId: null }] },
+      { $set: { googleId } },
+    );
+    return result.modifiedCount === 1;
+  }
+
+  async findByEmailCaseInsensitive(email: string): Promise<IUser | null> {
+    const doc = await this.db.User.findOne({ email }).collation({ locale: 'en', strength: 2 });
+    return doc ? this.UserMapper.toDomain(doc) : null;
+  }
+
   protected toDomain(doc: IUserDocument): IUser {
     return this.UserMapper.toDomain(doc)
   }

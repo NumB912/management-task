@@ -1,0 +1,24 @@
+services:
+  backend:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}-backend:${IMAGE_TAG:?Set IMAGE_TAG}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+  notifier-services:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}-notifier-services:${IMAGE_TAG:?Set IMAGE_TAG}
+    build:
+      context: ./notifier-services
+      dockerfile: dockerfile
+
+  email-services:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}-email-services:${IMAGE_TAG:?Set IMAGE_TAG}
+    build:
+      context: ./email-services
+      dockerfile: dockerfile
+
+  file-services:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}-file-services:${IMAGE_TAG:?Set IMAGE_TAG}
+    build:
+      context: ./file-services
+      dockerfile: dockerfile

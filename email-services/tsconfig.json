@@ -12,12 +12,13 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "strict": true,
-    "baseUrl": ".",
+
     "paths":{
-      "@domain/*":["src/domain/*"],
-      "@infrastructure/*":["src/infrastructure/*"],
-      "@application/*":["src/application/*"],
-      "@adapter/*":["src/adapter/*"]
+      "src/*":["./src/*"],
+      "@domain/*":["./src/domain/*"],
+      "@infrastructure/*":["./src/infrastructure/*"],
+      "@application/*":["./src/application/*"],
+      "@adapter/*":["./src/adapter/*"]
     },
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,

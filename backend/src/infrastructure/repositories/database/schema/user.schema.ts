@@ -7,6 +7,9 @@ export type UserDocument = IUserDocument;
 export interface IUserWithoutPasswordDocument extends Omit<IUserDocument,"password">{}
 @Schema()
 export class User extends BaseSchema {
+  @Prop({ type: String, unique: true, sparse: true })
+  googleId?: string;
+
   @Prop({ type: String, required: true })
   name: string;
 

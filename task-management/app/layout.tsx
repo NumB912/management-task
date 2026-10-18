@@ -2,8 +2,6 @@ import { Toaster } from "sonner";
 import QueryProvider from "./(front)/providers/query.provider";
 import "./globals.css";
 import { Roboto } from "next/font/google";
-import { AudioProvider } from "./(front)/providers/audio.provider";
-
 const font = Roboto({
   subsets: ["vietnamese", "latin"],
   weight: "400",

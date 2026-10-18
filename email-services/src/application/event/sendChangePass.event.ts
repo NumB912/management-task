@@ -16,8 +16,8 @@ export default class SendChangePassConsumer implements IUsecase<void> {
 
   async handle(event: { email: string; token: string }) {
 
-    console.log("NAH")
-    this.mailService.execute(
+
+    await this.mailService.execute(
       new Email({
         from: MailConfig.AUTH,
         to: event.email,
@@ -32,7 +32,7 @@ export default class SendChangePassConsumer implements IUsecase<void> {
   }
 
   async execute(): Promise<void> {
-    this.consumer.sub<{
+    await this.consumer.sub<{
       email: string;
       token: string;
     }>(

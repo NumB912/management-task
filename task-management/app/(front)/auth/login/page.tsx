@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useMutation } from "@tanstack/react-query"
@@ -11,6 +11,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Mail, Lock, AlertCircle, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import useUserState from "../../feature/store/user/user.state"
+import Image from "next/image"
+
 
 function getLoginErrorMessage(error: unknown): string {
   const err = error as {
@@ -39,6 +41,31 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [googleError, setGoogleError] = useState("")
+  const [googlePending, setGooglePending] = useState(false)
+
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    const error = url.searchParams.get("google_error")
+    if (!error) return
+    setGoogleError(error === "email_exists"
+      ? "Email này đã có tài khoản. Hãy đăng nhập bằng mật khẩu, sau đó mở Profile để liên kết Google."
+      : error === "unavailable"
+        ? "Đăng nhập Google chưa được cấu hình. Vui lòng thử cách đăng nhập bằng email."
+        : "Đăng nhập Google chưa thành công hoặc đã bị hủy. Vui lòng thử lại.")
+    url.searchParams.delete("google_error")
+    window.history.replaceState(null, "", url.toString())
+  }, [])
+
+  const loginGoogle = () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    if (!apiUrl) {
+      setGoogleError("Chưa cấu hình địa chỉ máy chủ đăng nhập.")
+      return
+    }
+    setGooglePending(true)
+    window.location.assign(`${apiUrl.replace(/\/$/, "")}/auth/google`)
+  }
 
   const fetchUser = useUserState((state) => state.fetchUser)
   const loginFn = useUserState((state) => state.login)
@@ -79,6 +106,14 @@ export default function LoginPage() {
         </CardHeader>
 
         <CardContent className="space-y-4 pt-5 px-10">
+          {googleError && <p role="alert" className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">{googleError}</p>}
+          <Button type="button" variant="outline" className="w-full" onClick={loginGoogle} disabled={isPending || googlePending}>
+            {googlePending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Image src="/google.svg" alt="" width={20} height={20} /> Tiếp tục với Google
+          </Button>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />hoặc đăng nhập bằng email<span className="h-px flex-1 bg-border" />
+          </div>
           {isError && (
             <div
               role="alert"

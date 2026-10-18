@@ -11,12 +11,14 @@ import { FiltersModule } from './modules/filters/filters.module.js';
 import { pomodoroModule } from './modules/pomodoro/pomodoro.module.js';
 import { WorkspaceModule } from './modules/workspace/workspace.module.js';
 import { ContainerModule } from './modules/container/container.module.js';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TaskDetailCache } from './application/service/taskDetailCache.service.js';
 import { TaskCacheInterceptor } from './infrastructure/cache/taskCache.interceptor.js';
 import { HttpExceptionFilter } from './modules/error/exception-filter.error.js';
 import { ColorModule } from './modules/color/color.module.js';
 import { StatisticsModule } from './modules/statistics/statistics.module.js';
+
 @Module({
   imports: [
     ContainerModule,
@@ -31,9 +33,16 @@ import { StatisticsModule } from './modules/statistics/statistics.module.js';
     pomodoroModule,
     WorkspaceModule,
     ColorModule,
-    StatisticsModule
+    StatisticsModule,
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 120 }],
+      errorMessage: 'Bạn gửi quá nhiều yêu cầu. Vui lòng thử lại sau.',
+    }),
   ],
   providers: [{
+    provide: APP_GUARD,
+    useClass: ThrottlerGuard,
+  }, {
     provide: APP_INTERCEPTOR,
     inject: [TaskDetailCache],
     useFactory: (cache: TaskDetailCache) => new TaskCacheInterceptor(cache),

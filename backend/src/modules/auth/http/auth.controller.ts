@@ -8,7 +8,7 @@ import {
   SendOtpUsecase,
 } from '@/application/usecase/auth/index.js';
 import { LogoutUseCase } from '@/application/usecase/auth/logout.usecase';
-import { AppError } from '@/domain';
+import { AppError, RATE_LIMIT_CONFIG } from '@/domain';
 import { ZodValidationPipe } from '@/infrastructure/pipe/zod.pipe.js';
 import { TYPES } from '@/infrastructure/types/dependency.type.js';
 import {
@@ -38,10 +38,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { setLoginCookies } from '../login-cookies';
+import { Throttle } from '@nestjs/throttler';
 
 const isProd = process.env.NODE_ENV === 'production';
 
 @Controller('auth')
+@Throttle({ default: RATE_LIMIT_CONFIG.AUTH_RATE_LIMIT })
 export class AuthController {
   constructor(
     @Inject(TYPES.LoginWithEmailUseCase)
@@ -75,23 +78,7 @@ export class AuthController {
       if(!token || !refresh_token){
         throw new AppError("NOT_FOUND","Lỗi không lấy được dữ liệu",500)
       }
-
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 1000,
-      });
-
-      res.cookie('refresh_token', refresh_token, {
-        httpOnly: true,
-        secure: isProd,
-        sameSite: 'lax',
-        path: '/api/v1/auth/refresh',
-        maxAge: 24 * 60 * 60 * 1000,
-      });
-
+      setLoginCookies(res, { token, refresh_token });
       return { message: 'Đăng nhập thành công' };
   }
 

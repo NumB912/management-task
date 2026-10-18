@@ -16,6 +16,7 @@ export class RegisterEmailUsecase implements IUsecase<void> {
     password: string;
     name: string;
     email: string;
+    googleId?: string;
   }): Promise<void> {
     try {
       const user = await this.userRepository.findOne({
@@ -29,6 +30,7 @@ export class RegisterEmailUsecase implements IUsecase<void> {
       const passwordHash = await this.CredentialsService.hash(registerForm.password)
       const userCreate = await this.userRepository.create({
         password: passwordHash,
+        googleId: registerForm.googleId,
         email: registerForm.email,
         name: registerForm.name,
         role: "user"

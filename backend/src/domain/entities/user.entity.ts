@@ -1,6 +1,7 @@
 export type IRole="user"|"admin"
 
 export interface IUser{
+    googleId?:string,
     id:string,
     email:string,
     password:string,
@@ -12,4 +13,4 @@ export interface IUser{
     deleted_at?:Date|null
 }
 
-export type IUserWithouPassword = Omit<IUser,"password">
+export type IUserWithouPassword = Omit<IUser,"password"> & { googleLinked?: boolean }

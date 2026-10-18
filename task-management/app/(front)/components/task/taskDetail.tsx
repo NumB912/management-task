@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Calendar1, CalendarArrowUp, Inbox, Plus, Repeat } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import TaskDescriptionEditor from "./TaskDescriptionEditor";
 
 import TagCombobox from "@/app/(front)/components/tagCompobox";
 import PriorityDropdown from "@/app/(front)/components/piorityCombobox";
@@ -137,10 +137,10 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
               />
             </div>
             <div className="w-full">
-              <Textarea
-                placeholder="Nhập chi tiết"
-                rows={4}
-                className="pl-10 w-full max-w-full min-h-24 max-h-60 overflow-y-auto overflow-x-hidden border-0 bg-transparent! text-md resize-none! whitespace-pre-wrap wrap-break-word focus-visible:ring-0 focus-visible:ring-offset-0"
+              <TaskDescriptionEditor
+                key={taskId}
+                value={task.description ?? ""}
+                onSave={(description) => handleUpdateTask(taskId, { description })}
               />
             </div>
           </div>

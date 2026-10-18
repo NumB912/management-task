@@ -47,9 +47,9 @@ export default function StatsPage() {
               if (v === "task" || v === "pomodoro") setSection(v);
             }}
           >
-            <TabsList>
-              <TabsTrigger value="task">Nhiệm vụ</TabsTrigger>
-              <TabsTrigger value="pomodoro">Pomodoro</TabsTrigger>
+            <TabsList className="p-1">
+              <TabsTrigger value="task" className={section=="task"?`bg-white!`:""}>Nhiệm vụ</TabsTrigger>
+              <TabsTrigger value="pomodoro" className={section=="pomodoro"?`bg-white!`:""}>Pomodoro</TabsTrigger>
             </TabsList>
           </Tabs>
           <div className="flex flex-wrap items-center gap-3">
@@ -60,8 +60,8 @@ export default function StatsPage() {
               }}
             >
               <TabsList>
-                <TabsTrigger value="week">Theo tuần</TabsTrigger>
-                <TabsTrigger value="month">Theo tháng</TabsTrigger>
+                <TabsTrigger value="week" className={range=="week"?`bg-white!`:""}>Theo tuần</TabsTrigger>
+                <TabsTrigger value="month" className={range=="month"?`bg-white!`:""}>Theo tháng</TabsTrigger>
               </TabsList>
             </Tabs>
             <label className="flex items-center gap-2 text-sm">

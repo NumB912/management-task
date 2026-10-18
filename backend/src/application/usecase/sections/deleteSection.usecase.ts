@@ -32,16 +32,12 @@ export class DeleteSectionUsecase implements IUsecase<ISectionWithId | null> {
     const section = await this.SectionRepository.findById(sectionId);
 
     if (!section) {
-      throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y section", 404);
+      throw new AppError("NOT_FOUND", "Không thấy section", 404);
     }
     const list = await this.ListRepository.findById(section.list);
 
     if (!list) {
-      throw new AppError("NOT_FOUND", "list khÃ´ng tá»“n táº¡i", 404);
-    }
-
-    if (list.sections.length == 1) {
-      throw new AppError("CAN_NOT_DELETE", "KhÃ´ng thá»ƒ xÃ³a section", 404);
+      throw new AppError("NOT_FOUND", "list Không tồn tại", 404);
     }
 
     try {
@@ -52,7 +48,7 @@ export class DeleteSectionUsecase implements IUsecase<ISectionWithId | null> {
         session,
       );
       if (!deleteSection) {
-        throw new AppError("NOT_FOUND", "lá»—i trong quÃ¡ trÃ¬nh thá»±c thi", 404);
+        throw new AppError("NOT_FOUND", "Xóa không thành công", 404);
       }
       const pathSection = `${section?.path}/section-${sectionId}`;
       await this.RuleRepository.deleteByPath(pathSection, session);

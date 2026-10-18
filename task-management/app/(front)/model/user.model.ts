@@ -1,4 +1,5 @@
 export interface IUserModel{
+    googleLinked?: boolean,
     id:string,
     name:string,
     avatar?:string,

@@ -1,4 +1,4 @@
-import amqplib, { type Channel, type ChannelModel } from "amqplib";
+import amqplib, { type ConfirmChannel as Channel, type ChannelModel } from "amqplib";
 import { RabbitMQConfig } from "src/config.js";
 
 const globalRabbitInstance = globalThis as typeof globalThis & {
@@ -74,7 +74,7 @@ class RabbitMQ {
       );
     });
 
-    const channel = await this.connection.createChannel();
+    const channel = await this.connection.createConfirmChannel();
 
     channel.on("error", (err) => {
       console.error("[RabbitMQ] Channel error:", err.message);
