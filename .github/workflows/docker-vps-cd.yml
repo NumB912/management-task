@@ -31,11 +31,6 @@ jobs:
             git fetch origin production
             git checkout production
             git merge --ff-only origin/production
-            echo "Build application images"
-            docker compose build \
-              file-services \
-              email-services \
-              notifier-services
             echo "Start services"
-            docker compose up -d --no-build
+            docker compose up -d --build
             docker compose ps
