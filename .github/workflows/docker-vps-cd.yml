@@ -27,9 +27,7 @@ jobs:
           command_timeout: 30m
           script: |
             set -eu
-
             cd "$HOME/services/task-management"
-
             git fetch origin production
             git checkout production
             git merge --ff-only origin/production
