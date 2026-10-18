@@ -14,13 +14,17 @@ jobs:
         uses: appleboy/ssh-action@master
         env:
           DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
+          BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
+          FILE_ENV: ${{ secrets.FILE_ENV }}
+          EMAIL_ENV: ${{ secrets.EMAIL_ENV }}
+          NOTIFIER_ENV: ${{ secrets.NOTIFIER_ENV }}
         with:
-          envs: DEPENDENCIES_ENV
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
+          envs: DEPENDENCIES_ENV,BACKEND_ENV,FILE_ENV,EMAIL_ENV,NOTIFIER_ENV
           script: |
             set -eu
             cd "$HOME/services/toboco"
@@ -30,14 +34,29 @@ jobs:
             git merge --ff-only origin/production
 
             : "${DEPENDENCIES_ENV:?Missing DEPENDENCIES_ENV}"
+            : "${BACKEND_ENV:?Missing BACKEND_ENV}"
+            : "${FILE_ENV:?Missing FILE_ENV}"
+            : "${EMAIL_ENV:?Missing EMAIL_ENV}"
+            : "${NOTIFIER_ENV:?Missing NOTIFIER_ENV}"
 
             test -d backend
+            test -d file-services
+            test -d email-services
+            test -d notifier-services
 
             umask 077
             printf '%s' "$DEPENDENCIES_ENV" > .env.dependencies
+            printf '%s' "$BACKEND_ENV" > backend/.env
+            printf '%s' "$FILE_ENV" > file-services/.env
+            printf '%s' "$EMAIL_ENV" > email-services/.env
+            printf '%s' "$NOTIFIER_ENV" > notifier-services/.env
 
             chmod 600 \
               .env.dependencies \
+              backend/.env \
+              file-services/.env \
+              email-services/.env \
+              notifier-services/.env
 
             echo "Start services"
             docker compose up -d --build
