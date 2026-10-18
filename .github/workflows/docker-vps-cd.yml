@@ -9,9 +9,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      - name: tạo env cho vps
-        shell: bash 
+      - name: Tạo các file env
+        shell: bash
         env:
           DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
           BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
@@ -19,6 +18,8 @@ jobs:
           EMAIL_SERVICES_ENV: ${{ secrets.EMAIL_SERVICES_ENV }}
           NOTIFIER_SERVICES_ENV: ${{ secrets.NOTIFIER_SERVICES_ENV }}
         run: |
+          pwd
+          ls -la
           umask 077
           printf '%s' "$DEPENDENCIES_ENV" > .env.dependencies
           printf '%s' "$BACKEND_ENV" > backend/.env
