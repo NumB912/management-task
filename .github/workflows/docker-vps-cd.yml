@@ -15,6 +15,7 @@ jobs:
         env:
           DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
         with:
+          envs: DEPENDENCIES_ENV
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
