@@ -5,44 +5,67 @@ x-check-common: &check-common
   networks:
     - tm-network
 
-x-dependencies: &dependencies
+x-dependencies:
   check-mongo:
     condition: service_completed_successfully
   check-redis:
     condition: service_completed_successfully
   check-rabbitmq:
     condition: service_completed_successfully
+    
 
 services:
+
+  back-end:
+    build: "./backend"
+    container_name: toboco-backend
+    env_file: ./backend/.env
+    ports:
+      - "3010:3010"
+    depends_on:
+      check-mongo:
+        condition: service_completed_successfully
+      check-redis:
+        condition: service_completed_successfully
+      check-rabbitmq:
+        condition: service_completed_successfully
+
+
   file-services:
     build: "./file-services"
-    container_name: task-management-file-services
+    container_name: toboco-file-services
     ports:
       - "3006:3006"
     env_file: ./file-services/.env
-    depends_on: *dependencies
+    depends_on: 
+      check-rabbitmq:
+        condition: service_completed_successfully
     restart: on-failure
     networks:
       - tm-network
 
   email-services:
     build: "./email-services"
-    container_name: task-management-email-services
+    container_name: toboco-email-services
     ports:
       - "3001:3001"
     env_file: ./email-services/.env
-    depends_on: *dependencies
+    depends_on: 
+      check-rabbitmq:
+        condition: service_completed_successfully
     restart: on-failure
     networks:
       - tm-network
 
   notifier-services:
     build: "./notifier-services"
-    container_name: task-management-notifier-services
+    container_name: toboco-notifier-services
     ports:
       - "3005:3005"
     env_file: ./notifier-services/.env
-    depends_on: *dependencies
+    depends_on: 
+      check-rabbitmq:
+        condition: service_completed_successfully
     restart: on-failure
     networks:
       - tm-network
@@ -77,42 +100,16 @@ services:
 
   check-rabbitmq:
     <<: *check-common
-    image: python:3.12-alpine
+    image: alpine:3.21
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
-        : "$${RABBITMQ_URI:?Missing RABBITMQ_URI}"
-        pip install --quiet --no-cache-dir \
-          --disable-pip-version-check \
-          --timeout 15 --retries 2 pika==1.3.2
-
-        timeout 20 python - <<'PY'
-        import os
-        import sys
-        import pika
-
-        try:
-            params = pika.URLParameters(os.environ["RABBITMQ_URI"])
-            params.connection_attempts = 1
-            params.socket_timeout = 10
-            params.stack_timeout = 15
-
-            connection = pika.BlockingConnection(params)
-            try:
-                channel = connection.channel()
-                channel.close()
-            finally:
-                connection.close()
-
-            print("RabbitMQ: OK")
-        except Exception as error:
-            print(
-                f"RabbitMQ: FAIL ({type(error).__name__})",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        PY
-
+        : "$${RABBITMQ_HOST:?Missing RABBITMQ_HOST}"
+        : "$${RABBITMQ_PORT:?Missing RABBITMQ_PORT}"
+        echo >> "$${RABBITMQ_PORT:?Missing RABBITMQ_PORT}"
+        nc -z -v -w 10 "$$RABBITMQ_HOST" "$$RABBITMQ_PORT"
+        echo "RabbitMQ TCP: OK"
+        
 networks:
   tm-network:
     driver: bridge
