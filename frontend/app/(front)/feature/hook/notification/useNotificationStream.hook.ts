@@ -13,6 +13,7 @@ import { NotificationConfig } from "@/app/(front)/config/notification.config";
 
 
 interface RealtimePayload {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
