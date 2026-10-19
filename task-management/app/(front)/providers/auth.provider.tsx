@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import useUserState from "../feature/store/user/user.state";
+import { isAccountBlockedError } from '../lib/account-status';
 
 export function AuthProvider({
   children,
@@ -17,6 +18,7 @@ export function AuthProvider({
     queryFn: fetchUser,
     enabled: hasHydrated,
     retry: (count, err) => {
+      if (isAccountBlockedError(err)) return false;
       if (axios.isAxiosError(err) && err.response?.status === 401) return false;
       return count < 2;
     },

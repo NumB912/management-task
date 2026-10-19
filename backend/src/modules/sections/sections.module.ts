@@ -1,3 +1,8 @@
+import { CheckAccountStatusMiddleware } from '@/infrastructure/middleware/auth/checkAccountStatus.middleware.js';
+import { PersistenceModule } from '@/modules/platform/persistence.module.js';
+import { MessagingModule } from '@/modules/platform/messaging.module.js';
+import { SecurityModule } from '@/modules/security/security.module.js';
+import { sectionsProviders } from './sections.providers.js';
 import { VerifyTokenMiddleware } from '@/infrastructure/middleware/auth/verifyToken.middleware.js';
 import { CheckPermissionListMiddleware } from '@/infrastructure/middleware/permission/checkPermission.middleware.js';
 import { CheckPermissionSectionMiddleware } from '@/infrastructure/middleware/permission/checkPermissionSection.middleware.js';
@@ -12,12 +17,14 @@ const EDITOR_PERMISSION: PermissionMethodMap = {
 };
 
 @Module({
+  imports: [PersistenceModule, MessagingModule, SecurityModule],
+  providers: sectionsProviders,
   controllers: [SectionsController, ListSectionsController],
 })
 export class SectionsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(VerifyTokenMiddleware)
+      .apply(VerifyTokenMiddleware, CheckAccountStatusMiddleware)
       .forRoutes(SectionsController, ListSectionsController);
 
     consumer

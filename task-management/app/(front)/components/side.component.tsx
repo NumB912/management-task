@@ -1,5 +1,5 @@
 "use client";
-import { Calendar, Circle, Clock, Home, List, LogOut, User, User2 } from "lucide-react";
+import { Calendar, Circle, Clock, Home, List, LogOut, ShieldCheck, User, User2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import useUserState from "../feature/store/user/user.state";
@@ -35,6 +35,7 @@ const Side = () => {
     },
     { href: "/dashboard/pomodoro", label: "Pomodoro", Icon: Clock },
     { href: "/dashboard/calendar", label: "Calendar", Icon: Calendar },
+    ...(user?.role === "admin" ? [{ href: "/admin", label: "Quản trị", Icon: ShieldCheck }] : []),
   ];
 
   function isNavActive(
@@ -94,6 +95,8 @@ const Side = () => {
           return (
             <Link
               href={nav.href}
+              aria-label={nav.label}
+              title={nav.label}
               key={nav.href}
               className={`${isActive ? "text-primary bg-white" : "text-white"} p-2 rounded-sm`}
             >

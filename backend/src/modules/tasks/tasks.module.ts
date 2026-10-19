@@ -1,3 +1,12 @@
+import { CheckAccountStatusMiddleware } from '@/infrastructure/middleware/auth/checkAccountStatus.middleware.js';
+import { PersistenceModule } from '@/modules/platform/persistence.module.js';
+import { RulesModule } from '@/modules/rules/rules.module.js';
+import { TagsModule } from '@/modules/tags/tags.module.js';
+import { MessagingModule } from '@/modules/platform/messaging.module.js';
+import { CacheModule } from '@/modules/platform/cache.module.js';
+import { CoreServicesModule } from '@/modules/platform/core-services.module.js';
+import { SecurityModule } from '@/modules/security/security.module.js';
+import { tasksProviders } from './tasks.providers.js';
 import { VerifyTokenMiddleware } from '@/infrastructure/middleware/auth/verifyToken.middleware.js';
 import { CheckPermissionListMiddleware } from '@/infrastructure/middleware/permission/checkPermission.middleware.js';
 import { CheckPermissionTaskMiddleware } from '@/infrastructure/middleware/permission/checkPermissionTask.middleware.js';
@@ -17,12 +26,22 @@ const EDITOR_PERMISSION: PermissionMethodMap = {
 };
 
 @Module({
+  imports: [
+    PersistenceModule,
+    RulesModule,
+    TagsModule,
+    MessagingModule,
+    CacheModule,
+    CoreServicesModule,
+    SecurityModule,
+  ],
+  providers: tasksProviders,
   controllers: [TasksController, ListTasksController],
 })
 export class TasksModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(VerifyTokenMiddleware)
+      .apply(VerifyTokenMiddleware, CheckAccountStatusMiddleware)
       .forRoutes(TasksController, ListTasksController);
     consumer
       .apply(CheckPermissionListMiddleware(EDITOR_PERMISSION))

@@ -26,6 +26,16 @@ function setup() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Google authentication', () => {
+  it.each([
+    [undefined, 'state', 'context', 'GOOGLE_CODE_MISSING'],
+    ['code', undefined, 'context', 'GOOGLE_STATE_MISSING'],
+    ['code', 'state', undefined, 'GOOGLE_CONTEXT_MISSING'],
+    ['code', 'state', '', 'GOOGLE_CONTEXT_MISSING'],
+  ])('identifies missing callback input without exchanging credentials (%s, %s)', async (code, state, context, expected) => {
+    const t = setup();
+    await expect(t.service.complete(code, state, context)).rejects.toMatchObject({ code: expected });
+    expect(t.fetchMock).not.toHaveBeenCalled();
+  });
   it('links Google to the authenticated account without creating a user or replacing tokens', async () => {
     const t = setup();
     const token = jwt.sign({ id: 'user1' }, 'test-secret-only', { expiresIn: '1h' });

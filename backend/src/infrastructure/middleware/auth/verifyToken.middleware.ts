@@ -1,4 +1,9 @@
-import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NestMiddleware,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Request, Response } from 'express';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
@@ -17,7 +22,7 @@ declare module 'express-serve-static-core' {
 export class VerifyTokenMiddleware implements NestMiddleware {
   private readonly secret: string;
 
-  constructor(config: ConfigService) {
+  constructor(@Inject(ConfigService) config: ConfigService) {
     this.secret = config.getOrThrow<string>('SECRET_KEY');
   }
 
@@ -25,19 +30,19 @@ export class VerifyTokenMiddleware implements NestMiddleware {
     delete req.user;
     const token = req.cookies?.['token'];
     if (!token) {
-      throw new UnauthorizedException('Vui lòng đăng nhập')
+      throw new UnauthorizedException('Vui lòng đăng nhập');
     }
 
     try {
       const payload = jwt.verify(token, this.secret, { algorithms: ['HS256'] });
       if (typeof payload === 'string') throw new Error('payload không hợp lệ');
       req.user = payload as AuthUser;
-      next();
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
         throw new UnauthorizedException('Phiên đăng nhập đã hết hạn');
       }
       throw new UnauthorizedException('Token không hợp lệ');
     }
+    next();
   }
 }

@@ -52,6 +52,8 @@ export default function LoginPage() {
       ? "Email này đã có tài khoản. Hãy đăng nhập bằng mật khẩu, sau đó mở Profile để liên kết Google."
       : error === "unavailable"
         ? "Đăng nhập Google chưa được cấu hình. Vui lòng thử cách đăng nhập bằng email."
+        : error === "session_missing"
+          ? "Không nhận được cookie đăng nhập Google. Hãy bắt đầu lại trên cùng địa chỉ máy chủ và cho phép cookie."
         : "Đăng nhập Google chưa thành công hoặc đã bị hủy. Vui lòng thử lại.")
     url.searchParams.delete("google_error")
     window.history.replaceState(null, "", url.toString())
@@ -63,6 +65,7 @@ export default function LoginPage() {
       setGoogleError("Chưa cấu hình địa chỉ máy chủ đăng nhập.")
       return
     }
+    console.log(apiUrl)
     setGooglePending(true)
     window.location.assign(`${apiUrl.replace(/\/$/, "")}/auth/google`)
   }

@@ -11,6 +11,14 @@ import SendOtp from '../src/application/event/sendOtp.event.js';
 import SendChange from '../src/application/event/sendChangePass.event.js';
 import SendInvite from '../src/application/event/sendInviteMember.event.js';
 import type IConsumer from '../src/domain/message/consumer.message.js';
+import { createEmailService } from '../src/infrastructure/service/email/email.factory.js';
+
+test('factory creates Resend directly and requires a configured sender and API key', () => {
+  assert.ok(createEmailService({ AUTH: 'Toboco <noreply@toboco.click>', RESEND_API_KEY: 're_test_placeholder' }) instanceof ResendEmailService);
+  assert.throws(() => createEmailService({ AUTH: '', RESEND_API_KEY: 're_test_placeholder' }), /EMAIL_FROM/);
+  assert.throws(() => createEmailService({ AUTH: 'sender@example.com', RESEND_API_KEY: undefined }), /RESEND_API_KEY/);
+  assert.throws(() => createEmailService({ AUTH: 'sender@example.com', RESEND_API_KEY: '  ' }), /RESEND_API_KEY/);
+});
 
 const email = new Email({ from: 'sender@example.com', to: 'user@example.com', title: 'Test', html: '<p>Hello</p>' });
 const client = (result: unknown) => ({ emails: { send: async (payload: unknown) => {
@@ -19,6 +27,10 @@ const client = (result: unknown) => ({ emails: { send: async (payload: unknown) 
 
 test('Resend sends existing email payload', async () => {
   await new ResendEmailService(client({ data: { id: 'email-1' }, error: null })).sendEmail(email);
+});
+test('Resend rejects a response without a delivery ID', async () => {
+  await assert.rejects(new ResendEmailService(client({ data: null, error: null })).sendEmail(email),
+    (error: unknown) => error instanceof EmailDeliveryError && error.retryable);
 });
 for (const [status, retryable] of [[422, false], [429, true], [503, true]] as const) {
   test(`Resend classifies HTTP ${status}`, async () => {
@@ -47,4 +59,30 @@ test('all three event handlers propagate delivery failures before acknowledgemen
   await assert.rejects(new SendOtp(uc, consumer).handle({ email: 'user@example.com', otp: '123456' }), /delivery failed/);
   await assert.rejects(new SendChange(uc, consumer).handle({ email: 'user@example.com', token: 'token' }), /delivery failed/);
   await assert.rejects(new SendInvite(uc, consumer).handle({ email: 'user@example.com', name: 'A', ownerName: 'B', listName: 'C', inviteLink: 'https://example.com/invite' }), /delivery failed/);
+});
+
+test('OTP, reset and invitation events all send through the email use case', async () => {
+  const { MailConfig } = await import('../src/config.js');
+  const previous = MailConfig.AUTH;
+  const previousAppUrl = process.env.APP_URL;
+  process.env.APP_URL = 'https://example.com';
+  MailConfig.AUTH = 'Toboco <noreply@toboco.click>';
+  const sent: Email[] = [];
+  const usecase = new SendEmail({ sendEmail: async email => { sent.push(email); } });
+  const consumer = {} as IConsumer;
+  try {
+    await new SendOtp(usecase, consumer).handle({ email: 'user@example.com', otp: '123456' });
+    await new SendChange(usecase, consumer).handle({ email: 'user@example.com', token: 'reset-token' });
+    await new SendInvite(usecase, consumer).handle({ email: 'user@example.com', name: 'Alice', ownerName: 'Bob', listName: 'Team', inviteLink: 'https://example.com/invite' });
+    assert.equal(sent.length, 3);
+    for (const message of sent) {
+      assert.equal(message.info.from, 'Toboco <noreply@toboco.click>');
+      assert.equal(message.info.to, 'user@example.com');
+    }
+    assert.ok(sent[1]!.info.html.includes('https://example.com/auth/reset-password/reset-token'));
+  } finally {
+    MailConfig.AUTH = previous;
+    if (previousAppUrl === undefined) delete process.env.APP_URL;
+    else process.env.APP_URL = previousAppUrl;
+  }
 });

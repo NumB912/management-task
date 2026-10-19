@@ -31,11 +31,13 @@ import { ITagDocument } from "./schema/tag.schema.js";
 import { IUserDocument } from "./schema/user.schema.js";
 import { IpomodoroDocument } from "./schema/pomodoro.schema.js";
 import { AppError } from "@/domain/index.js";
+import { TaskCommentSchema, type TaskCommentDocument } from './schema/taskComment.schema.js';
 
 
 export class DatabaseModels {
   private static instance:DatabaseModels
   readonly Task: Model<ITaskDocument>;
+  readonly TaskComment: Model<TaskCommentDocument>;
   readonly Rule: Model<IRuleDocument>;
   readonly Section: Model<ISectionDocument>;
   readonly List: Model<IListDocument>;
@@ -48,6 +50,7 @@ export class DatabaseModels {
   readonly Color:Model<IColorDocument>
 
   private constructor(client: Mongoose) {
+    this.TaskComment = this.getOrCreate<TaskCommentDocument>(client, 'task_comment', TaskCommentSchema);
     this.Task = this.getOrCreate<TaskDocument>(client, "task", TaskSchema);
     this.Rule = this.getOrCreate<RuleDocument>(client, "rule", RuleSchema);
     this.Section = this.getOrCreate<ISectionDocument>(

@@ -14,7 +14,6 @@ x-dependencies:
     condition: service_completed_successfully
     
 services:
-
   back-end:
     build: "./backend"
     container_name: toboco-backend
@@ -96,7 +95,6 @@ services:
           exit 1
         fi
         echo "Redis: OK"
-        
   check-rabbitmq:
     <<: *check-common
     image: alpine:3.21
@@ -108,7 +106,7 @@ services:
         echo >> "$${RABBITMQ_PORT:?Missing RABBITMQ_PORT}"
         nc -z -v -w 10 "$$RABBITMQ_HOST" "$$RABBITMQ_PORT"
         echo "RabbitMQ TCP: OK"
-        
+
 networks:
   tm-network:
     driver: bridge

@@ -9,23 +9,25 @@ All three emails share a responsive white card, purple accents and inline styles
 2. Configure the server environment (never put the key in frontend variables):
 
 ```dotenv
-EMAIL_PROVIDER=resend
 RESEND_API_KEY=re_your_secret_key
-EMAIL_FROM=Task Management <no-reply@your-verified-domain.com>
+EMAIL_FROM=Toboco <noreply@toboco.click>
 APP_URL=https://your-app.example.com
 RABBITMQ_URI=amqp://user:password@localhost:5672/%2F
 ```
 
 3. Run `npm ci`, `npm run typecheck`, `npm test`, then `npm start`.
-   For Docker production, set these in the `email-services.env` deployment file.
+   With the current Docker Compose configuration, set these in `email-services/.env`.
 4. Trigger an OTP, reset or invitation from the application using a controlled test recipient.
    API acceptance does not guarantee inbox delivery; inspect delivery status in Resend.
 
-## Local SMTP
-
-Use `EMAIL_PROVIDER=smtp`, `EMAIL_FROM=developer@example.com`, `HOST_SMTP`
-and `PORT_SMTP` for your local mail catcher. `AUTH_GOOGLE_EMAIL` remains a
-legacy fallback for the sender. Existing SMTP transport is intended for local use.
+The service uses the Resend HTTPS API exclusively, behind the domain
+`IEmailService` interface. Nodemailer and SMTP configuration are no longer used.
+Startup fails before connecting to RabbitMQ if `EMAIL_FROM` or `RESEND_API_KEY`
+is missing. `EMAIL_FROM` must use a domain verified in your Resend account;
+the Toboco address above is an example, not an already verified sender.
+`APP_URL` controls the password-reset link (legacy `FRONT_END_URL` remains a fallback).
+Use the `.env.*.example` files as templates and keep actual credentials in `.env`
+or your deployment secret store.
 
 ## Failures
 

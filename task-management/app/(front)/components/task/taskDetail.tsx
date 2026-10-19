@@ -14,6 +14,7 @@ import {
 import { Calendar1, CalendarArrowUp, Inbox, Plus, Repeat } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import TaskDescriptionEditor from "./TaskDescriptionEditor";
+import { TaskComments } from './task-comments';
 
 import TagCombobox from "@/app/(front)/components/tagCompobox";
 import PriorityDropdown from "@/app/(front)/components/piorityCombobox";
@@ -143,6 +144,7 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
                 onSave={(description) => handleUpdateTask(taskId, { description })}
               />
             </div>
+            <TaskComments key={taskId} taskId={taskId} />
           </div>
 
           <div className="max-w-70 w-full flex flex-col gap-3 p-5 bg-primary/5">

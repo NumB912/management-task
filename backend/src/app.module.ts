@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AdminModule } from './modules/admin/admin.module.js';
 
 import { UserModule } from './modules/user/user.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -10,7 +11,8 @@ import { TagsModule } from './modules/tags/tags.module.js';
 import { FiltersModule } from './modules/filters/filters.module.js';
 import { pomodoroModule } from './modules/pomodoro/pomodoro.module.js';
 import { WorkspaceModule } from './modules/workspace/workspace.module.js';
-import { ContainerModule } from './modules/container/container.module.js';
+import { ConfigModule } from '@nestjs/config';
+import { CacheModule } from './modules/platform/cache.module.js';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TaskDetailCache } from './application/service/taskDetailCache.service.js';
@@ -18,10 +20,13 @@ import { TaskCacheInterceptor } from './infrastructure/cache/taskCache.intercept
 import { HttpExceptionFilter } from './modules/error/exception-filter.error.js';
 import { ColorModule } from './modules/color/color.module.js';
 import { StatisticsModule } from './modules/statistics/statistics.module.js';
+import { TaskCommentsModule } from './modules/task-comments/task-comments.module.js';
 
 @Module({
   imports: [
-    ContainerModule,
+    ConfigModule.forRoot({ isGlobal: true }),
+    CacheModule,
+    AdminModule,
     UserModule,
     AuthModule,
     ListsModule,
@@ -34,21 +39,26 @@ import { StatisticsModule } from './modules/statistics/statistics.module.js';
     WorkspaceModule,
     ColorModule,
     StatisticsModule,
+    TaskCommentsModule,
     ThrottlerModule.forRoot({
       throttlers: [{ ttl: 60_000, limit: 120 }],
       errorMessage: 'Bạn gửi quá nhiều yêu cầu. Vui lòng thử lại sau.',
     }),
   ],
-  providers: [{
-    provide: APP_GUARD,
-    useClass: ThrottlerGuard,
-  }, {
-    provide: APP_INTERCEPTOR,
-    inject: [TaskDetailCache],
-    useFactory: (cache: TaskDetailCache) => new TaskCacheInterceptor(cache),
-  }, {
-    provide:APP_FILTER,
-    useClass:HttpExceptionFilter
-  }],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      inject: [TaskDetailCache],
+      useFactory: (cache: TaskDetailCache) => new TaskCacheInterceptor(cache),
+    },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}

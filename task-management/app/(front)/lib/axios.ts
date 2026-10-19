@@ -1,4 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { isAccountBlockedError } from './account-status';
+import { useAccountAccessState } from '../feature/store/account-access.state';
 
 interface ApiErrorBody {
   code: string;
@@ -39,6 +41,10 @@ let refreshPromise: Promise<void> | null = null;
 axiosInstance.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
+    if (isAccountBlockedError(error)) {
+      useAccountAccessState.getState().markBlocked();
+      return Promise.reject(error);
+    }
     const config = error.config as RetryableRequestConfig | undefined;
     const requestUrl = config?.url ?? '';
     const isAuthRequest = /\/auth\/(login|logout|refresh)(\?|$)/.test(requestUrl);
