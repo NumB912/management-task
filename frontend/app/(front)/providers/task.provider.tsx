@@ -5,6 +5,7 @@ import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 
 import { ITaskModel } from "../model";
 import { useUpdateTaskStatusBulk } from "../feature/hook/useTaskMutation.hook";
+import { appendRecurringRecord } from "./task-status-records";
 
 export type Pending = {
   status: ITaskModel["status"];
@@ -57,6 +58,7 @@ export function TaskStatusBatchProvider({ children }: { children: React.ReactNod
 
   const canSchedule = useMemo(() => {
     const now =new Date().getTime();
+    console.log("hello")
     // eslint-disable-next-line react-hooks/refs
     if (now - lastClickAt.current < MIN_CLICK_GAP){
       return false
@@ -78,11 +80,7 @@ export function TaskStatusBatchProvider({ children }: { children: React.ReactNod
       }
       
       if (recurring) {
-        p.record = {}
-        p.record[recurring.tempId] = {
-          date: new Date(recurring.date),
-          rule: recurring.rule,
-        };
+        p.record = appendRecurringRecord(p.record, recurring);
       }
 
       clearTimeout(timer.current!);
