@@ -11,7 +11,7 @@ export function resetPasswordTemplate({
   resetLink,
   expiresInMinutes = 30,
 }: ResetPasswordTemplateProps): string {
-  const baseUrl = (process.env.FRONT_END_URL || '').replace(/\/+$/, '');
+  const baseUrl = (process.env.APP_URL || process.env.FRONT_END_URL || '').replace(/\/+$/, '');
   const url = escapeHtml(`${baseUrl}/auth/reset-password/${encodeURIComponent(resetLink)}`);
 
   return authEmailLayout({

@@ -24,6 +24,9 @@ export class User extends BaseSchema {
 
   @Prop({ type: String, enum: ['user', 'admin'], default: 'user' })
   role: string;
+
+  @Prop({ type: Boolean, default: false })
+  blocked: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

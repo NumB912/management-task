@@ -23,7 +23,7 @@ describe('TaskDetailCache', () => {
     expect(cached).toEqual(task);
     expect(cached?.created_at).toBeInstanceOf(Date);
     expect(database).toHaveBeenCalledTimes(1);
-    expect(cache.set).toHaveBeenCalledWith('task:a', expect.any(Object), 60);
+    expect(cache.set).toHaveBeenCalledWith('task:a', expect.any(Object), 180);
   });
 
   it('does not cache tasks that do not exist', async () => {

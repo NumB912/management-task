@@ -44,13 +44,16 @@ export class GoogleAuthController {
       setLoginCookies(res, result);
       return res.redirect(this.google.frontend('/dashboard'));
     } catch (error) {
+      // Log presence only: never log OAuth codes, state values, cookies or tokens.
+      const reason = error instanceof Error && 'code' in error ? String(error.code) : error instanceof Error ? error.name : 'UnknownError';
+      this.logger.warn(`Google OAuth callback failed: reason=${reason} codePresent=${typeof req.query.code === 'string' && !!req.query.code} statePresent=${typeof req.query.state === 'string' && !!req.query.state} cookiePresent=${typeof req.cookies?.google_oauth === 'string' && !!req.cookies.google_oauth}`);
       if (linking) {
         const mismatch = error instanceof Error && 'code' in error && error.code === 'GOOGLE_EMAIL_MISMATCH';
         return res.redirect(this.google.frontend(`/dashboard?google_link=${mismatch ? 'email_mismatch' : 'failed'}`));
       }
       const exists = error instanceof Error && 'code' in error && error.code === 'GOOGLE_EMAIL_EXISTS';
-      this.logger.warn('Google sign-in failed');
-      return res.redirect(this.google.frontend(`/auth/login?google_error=${exists ? 'email_exists' : 'failed'}`));
+      const missingContext = reason === 'GOOGLE_CONTEXT_MISSING';
+      return res.redirect(this.google.frontend(`/auth/login?google_error=${exists ? 'email_exists' : missingContext ? 'session_missing' : 'failed'}`));
     }
   }
 }

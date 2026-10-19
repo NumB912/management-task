@@ -78,13 +78,18 @@ export class GoogleAuthService {
   }
 
   async complete(code: unknown, state: unknown, context: unknown, sessionToken?: unknown) {
-    if (
-      typeof code !== 'string' ||
-      !code ||
-      typeof state !== 'string' ||
-      typeof context !== 'string'
-    )
-      throw new Error('Invalid OAuth callback');
+
+    console.log(code,state)
+
+    if (typeof code !== 'string' || !code) {
+      throw new AppError('GOOGLE_CODE_MISSING', 'Google callback thiếu authorization code', 400);
+    }
+    if (typeof state !== 'string' || !state) {
+      throw new AppError('GOOGLE_STATE_MISSING', 'Google callback thiếu state', 400);
+    }
+    if (typeof context !== 'string' || !context) {
+      throw new AppError('GOOGLE_CONTEXT_MISSING', 'Không nhận được cookie phiên đăng nhập Google', 400);
+    }
     const payload = jwt.verify(
       context,
       this.config.getOrThrow<string>('SECRET_KEY'),

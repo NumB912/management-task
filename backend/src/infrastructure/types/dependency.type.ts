@@ -1,6 +1,7 @@
 import { ColorRepository } from "../repositories";
 
 export const TYPES = {
+  AdminRepository: Symbol.for("AdminRepository"),
   DatabaseType: Symbol.for("DatabaseClient"),
   MessageQueue:Symbol.for("MessageQueue"),
   Publisher:Symbol.for("Publisher"),

@@ -28,7 +28,6 @@ export class TaskDetailCache {
   async load(id: string, readDatabase: () => Promise<Partial<ITask> | null>) {
     let version: string;
     try {
-      
       const current = await this.bounded(this.cache.get<string>(VERSION_KEY));
       version = current || randomUUID();
       if (!current) await this.bounded(this.cache.set(VERSION_KEY, version));

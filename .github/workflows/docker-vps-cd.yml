@@ -1,89 +1,149 @@
-name: Docker Compose CI/CD to VPS
+name: Deploy Docker Compose
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
+    branches: ["production"]
 
 permissions:
   contents: read
 
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
 jobs:
-  build-push:
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, email-services]
+    defaults:
+      run:
+        working-directory: ${{ matrix.service }}
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set image prefix
-        id: image
-        shell: bash
-        run: echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
+      - name: Check email service types
+        if: matrix.service == 'email-services'
+        run: npm run typecheck
 
-      - name: Build all service images with Compose
-        env:
-          IMAGE_PREFIX: ${{ steps.image.outputs.prefix }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: docker compose -f docker-compose.images.yml build
+  build:
+    name: Build images on VPS
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 35
 
-      - name: Push all service images with Compose
-        if: github.event_name != 'pull_request'
+    steps:
+      - name: Prepare environment and build images
+        uses: appleboy/ssh-action@v1.2.0
+        
         env:
-          IMAGE_PREFIX: ${{ steps.image.outputs.prefix }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: docker compose -f docker-compose.images.yml push
+          DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
+          BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
+          FRONTEND_ENV: ${{ secrets.FRONTEND_ENV }}
+          FILE_ENV: ${{ secrets.FILE_ENV }}
+          EMAIL_ENV: ${{ secrets.EMAIL_ENV }}
+          NOTIFIER_ENV: ${{ secrets.NOTIFIER_ENV }}
+          DEPLOY_SHA: ${{ github.sha }}
+        
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          command_timeout: 30m
+          envs: DEPENDENCIES_ENV,BACKEND_ENV,FILE_ENV,EMAIL_ENV,NOTIFIER_ENV,FRONTEND_ENV,DEPLOY_SHA
+          script: |
+            set -eu
+            cd "$HOME/services/toboco"
+
+            # Older checkouts tracked these files; preserve VPS values before updating.
+            umask 077
+            for env_file in email-services/.env notifier-services/.env; do
+              if git ls-files --error-unmatch -- "$env_file" >/dev/null 2>&1; then
+                backup_dir="$(mktemp -d "$HOME/toboco-env-backup.XXXXXX")"
+                if [ -f "$env_file" ]; then
+                  cp "$env_file" "$backup_dir/$(dirname "$env_file").env"
+                fi
+                git checkout HEAD -- "$env_file"
+                printf 'Backed up legacy env to %s\n' "$backup_dir"
+              fi
+            done
+
+            git fetch origin production
+            git checkout production
+            git merge --ff-only origin/production
+            test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
+
+            : "${DEPENDENCIES_ENV:?Missing DEPENDENCIES_ENV}"
+            : "${BACKEND_ENV:?Missing BACKEND_ENV}"
+            : "${FRONTEND_ENV:?Missing FRONTEND_ENV}"
+            : "${FILE_ENV:?Missing FILE_ENV}"
+            : "${EMAIL_ENV:?Missing EMAIL_ENV}"
+            : "${NOTIFIER_ENV:?Missing NOTIFIER_ENV}"
+
+            test -d backend
+            test -d frontend
+            test -d file-services
+            test -d email-services
+            test -d notifier-services
+
+            umask 077
+            printf '%s' "$DEPENDENCIES_ENV" > .env.dependencies
+            printf '%s' "$BACKEND_ENV" > backend/.env
+            printf '%s' "$FRONTEND_ENV" > frontend/.env.local
+            printf '%s' "$FILE_ENV" > file-services/.env
+            printf '%s' "$EMAIL_ENV" > email-services/.env
+            printf '%s' "$NOTIFIER_ENV" > notifier-services/.env
+
+            chmod 600 \
+              .env.dependencies \
+              backend/.env \
+              file-services/.env \
+              email-services/.env \
+              notifier-services/.env \
+              frontend/.env.local
+
+            docker compose config --quiet
+            docker compose build --pull
+            printf '%s' "$DEPLOY_SHA" > .deploy-built-sha
 
   deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: build-push
+    name: Deploy
+    needs: build
     runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
     steps:
-      - name: Checkout deployment config
-        uses: actions/checkout@v4
-
-      - name: Load VPS SSH key
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Start the built images
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
         with:
-          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-
-      - name: Add VPS host key
-        env:
-          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$VPS_KNOWN_HOSTS" >> ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-      - name: Copy production Compose file to VPS
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-        run: |
-          ssh "$VPS_USER@$VPS_HOST" 'mkdir -p /opt/task-management'
-          scp docker-compose.production.yml "$VPS_USER@$VPS_HOST:/opt/task-management/docker-compose.production.yml"
-
-      - name: Pull and restart services on VPS
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          ssh "$VPS_USER@$VPS_HOST" "cd /opt/task-management && IMAGE_TAG='$IMAGE_TAG' docker compose --env-file compose.env -f docker-compose.production.yml pull && IMAGE_TAG='$IMAGE_TAG' docker compose --env-file compose.env -f docker-compose.production.yml up -d --remove-orphans"
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          command_timeout: 10m
+          envs: DEPLOY_SHA
+          script: |
+            set -eu
+            cd "$HOME/services/toboco"
+            test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
+            test "$(cat .deploy-built-sha)" = "$DEPLOY_SHA"
+            docker compose up -d --no-build
+            docker compose ps

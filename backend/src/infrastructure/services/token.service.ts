@@ -1,6 +1,8 @@
 
 import { ITokenService } from "@/domain";
+import { TokenConfig } from "@/domain/config/token.config";
 import { Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import jwt from "jsonwebtoken";
 
 
@@ -8,11 +10,8 @@ import jwt from "jsonwebtoken";
 export default class TokenService implements ITokenService {
   private readonly SecretKey: string;
 
-  constructor() {
-    if (!process.env.SECRET_KEY) {
-      throw new Error("SECRET_KEY is required");
-    }
-    this.SecretKey = process.env.SECRET_KEY;
+  constructor(config: ConfigService) {
+     this.SecretKey = config.getOrThrow<string>('SECRET_KEY');
   }
 
   async generateToken(payload:object,expireIn:string|number|any="5m"): Promise<string> {

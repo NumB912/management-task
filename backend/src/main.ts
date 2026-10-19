@@ -4,11 +4,11 @@ import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const allowedOrigins = (process.env.FRONTEND_URL ?? 'http://localhost:3000')
+  const allowedOrigins = (process.env.APP_URL ?? 'http://localhost:3000')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
-
+  console.log(allowedOrigins)
   app.enableCsrfProtection({ trustedOrigins: allowedOrigins });
   app.enableCors({
     origin: allowedOrigins,
