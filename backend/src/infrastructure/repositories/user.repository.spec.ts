@@ -13,7 +13,6 @@ describe('UserRepository', () => {
     const db = { User: { find } } as any;
     const mapper = { toDomainWithoutPassword: vi.fn((d: any) => d) } as any;
     const repo = new UserRepository(db, mapper);
-
     const result = await repo.searchByEmail('a@test.com');
 
     expect(find).toHaveBeenCalled();
