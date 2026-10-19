@@ -73,11 +73,12 @@ export class AuthController {
     @Body(new ZodValidationPipe(LoginSchemaDTO)) dto: LoginDTO,
     @Res({ passthrough: true }) res: Response,
   ) {
-      const { token, refresh_token } = await this.loginUC.execute(dto);
+      const result = await this.loginUC.execute(dto);
 
-      if(!token || !refresh_token){
+      if(!result?.token || !result?.refresh_token){
         throw new AppError("NOT_FOUND","Lỗi không lấy được dữ liệu",500)
       }
+      const { token, refresh_token } = result;
       setLoginCookies(res, { token, refresh_token });
       return { message: 'Đăng nhập thành công' };
   }
