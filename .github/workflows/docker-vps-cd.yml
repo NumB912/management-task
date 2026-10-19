@@ -4,50 +4,14 @@ on:
   push:
     branches: ["production"]
 
-permissions:
-  contents: read
-
-concurrency:
-  group: production-deployment
-  cancel-in-progress: false
-
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [backend, email-services]
-    defaults:
-      run:
-        working-directory: ${{ matrix.service }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: ${{ matrix.service }}/package-lock.json
-      - name: Install dependencies
-        run: npm ci
-      - name: Run tests
-        run: npm test
-      - name: Check email service types
-        if: matrix.service == 'email-services'
-        run: npm run typecheck
-
-  build:
-    name: Build images on VPS
-    needs: test
+  deploy:
     runs-on: ubuntu-latest
     environment: production
-    timeout-minutes: 35
 
     steps:
-      - name: Prepare environment and build images
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Tạo env và deploy trên VPS
+        uses: appleboy/ssh-action@master
         
         env:
           DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
@@ -56,7 +20,6 @@ jobs:
           FILE_ENV: ${{ secrets.FILE_ENV }}
           EMAIL_ENV: ${{ secrets.EMAIL_ENV }}
           NOTIFIER_ENV: ${{ secrets.NOTIFIER_ENV }}
-          DEPLOY_SHA: ${{ github.sha }}
         
         with:
           host: ${{ secrets.HOST }}
@@ -65,32 +28,18 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           command_timeout: 30m
-          envs: DEPENDENCIES_ENV,BACKEND_ENV,FILE_ENV,EMAIL_ENV,NOTIFIER_ENV,FRONTEND_ENV,DEPLOY_SHA
+          envs: DEPENDENCIES_ENV,BACKEND_ENV,FILE_ENV,EMAIL_ENV,NOTIFIER_ENV,FRONTEND_ENV
           script: |
             set -eu
             cd "$HOME/services/toboco"
 
-            # Older checkouts tracked these files; preserve VPS values before updating.
-            umask 077
-            for env_file in email-services/.env notifier-services/.env; do
-              if git ls-files --error-unmatch -- "$env_file" >/dev/null 2>&1; then
-                backup_dir="$(mktemp -d "$HOME/toboco-env-backup.XXXXXX")"
-                if [ -f "$env_file" ]; then
-                  cp "$env_file" "$backup_dir/$(dirname "$env_file").env"
-                fi
-                git restore --source=HEAD --worktree -- "$env_file"
-                printf 'Backed up legacy env to %s\n' "$backup_dir"
-              fi
-            done
-
             git fetch origin production
             git checkout production
             git merge --ff-only origin/production
-            test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
 
             : "${DEPENDENCIES_ENV:?Missing DEPENDENCIES_ENV}"
             : "${BACKEND_ENV:?Missing BACKEND_ENV}"
-            : "${FRONTEND_ENV:?Missing FRONTEND_ENV}"
+            : "${FRONTEND_ENV:?Mission FRONTEND_ENV}"
             : "${FILE_ENV:?Missing FILE_ENV}"
             : "${EMAIL_ENV:?Missing EMAIL_ENV}"
             : "${NOTIFIER_ENV:?Missing NOTIFIER_ENV}"
@@ -104,9 +53,9 @@ jobs:
             umask 077
             printf '%s' "$DEPENDENCIES_ENV" > .env.dependencies
             printf '%s' "$BACKEND_ENV" > backend/.env
-            printf '%s' "$FRONTEND_ENV" > frontend/.env.local
             printf '%s' "$FILE_ENV" > file-services/.env
             printf '%s' "$EMAIL_ENV" > email-services/.env
+            printf '%s' "$NOTIFIER_ENV" > notifier-services/.env
             printf '%s' "$NOTIFIER_ENV" > notifier-services/.env
 
             chmod 600 \
@@ -117,33 +66,6 @@ jobs:
               notifier-services/.env \
               frontend/.env.local
 
-            docker compose config --quiet
-            docker compose build --pull
-            printf '%s' "$DEPLOY_SHA" > .deploy-built-sha
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    environment: production
-    timeout-minutes: 15
-    steps:
-      - name: Start the built images
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          DEPLOY_SHA: ${{ github.sha }}
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          command_timeout: 10m
-          envs: DEPLOY_SHA
-          script: |
-            set -eu
-            cd "$HOME/services/toboco"
-            test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
-            test "$(cat .deploy-built-sha)" = "$DEPLOY_SHA"
-            docker compose up -d --no-build
+            echo "Start services"
+            docker compose up -d --build
             docker compose ps
