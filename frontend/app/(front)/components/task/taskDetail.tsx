@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import {useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +27,6 @@ import { IRuleModel } from "@/app/(front)/model";
 import { formatDate } from "@/app/(front)/utils/getDayOfMonth.utils";
 import { formatTimer } from "@/app/(front)/utils/formatTimer";
 import { useTask } from "@/app/(front)/feature/hook/task/task.hook";
-import { useTaskStatusBatch } from "../../providers/task.provider";
-
 interface TaskDetailProps {
   taskId: string;
 }
@@ -57,13 +55,8 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
   useEffect(() => {
     if (!task || isEditingName.current) return;
     setName(task.name ?? "");
-  }, [taskId, task?.name]);
-
-  useEffect(() => {
-    setColor(colorStore?colorStore.color:task?.color);
-  }, [taskId]);
-
-  const commitName = () => {
+  }, [taskId, task.name, task]);
+  const commitName = useCallback(() => {
     if (!task) return;
     const newName = name.trim();
     if (!newName) {
@@ -72,7 +65,7 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
     }
     if (newName === task.name) return;
     handleUpdateTask(taskId, { name: newName });
-  };
+  },[handleUpdateTask, name, task, taskId]);
 
   useEffect(() => {
     if (!task) return;
@@ -80,7 +73,7 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
     if (!newName || newName === task.name) return;
     const t = setTimeout(commitName, 1000);
     return () => clearTimeout(t);
-  }, [name, task?.name]);
+  }, [commitName, name, task, task.name]);
 
   
   useEffect(() => {
@@ -91,7 +84,7 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
       handleUpdateColorTask(taskId,color);
     }, 500);
     return () => clearTimeout(t);
-  }, [color]);
+  }, [color, colorStore, handleUpdateColorTask, task, taskId]);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) router.back();
