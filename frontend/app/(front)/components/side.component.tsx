@@ -8,8 +8,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import NotificationBell from "../components/notifier/notificationBell";
+} from "./ui/dropdown-menu";
+import NotificationBell from "./notifier/notificationBell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "../utils/actor.utils";
 import { FileConfig } from "../config/file.config";
