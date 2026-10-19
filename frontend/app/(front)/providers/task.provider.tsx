@@ -1,6 +1,5 @@
-// feature/provider/taskStatusBatch.provider.tsx
 "use client";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
 
@@ -46,6 +45,7 @@ export function TaskStatusBatchProvider({ children }: { children: React.ReactNod
         onError: () => {
            batch.forEach(({ id, snapshot, record }) => {
             updateTaskStore(id, snapshot);
+            // eslint-disable-next-line @typescript-eslint/no-unused-expressions
             record && Object.keys(record).forEach((tempId) => removeTaskStore(tempId));
           });
           toast.error("Không thể cập nhật trạng thái task");
@@ -55,14 +55,17 @@ export function TaskStatusBatchProvider({ children }: { children: React.ReactNod
   }, [mutate, updateTaskStore, removeTaskStore]);
 
 
-  const canSchedule = useCallback(() => {
-    const now = performance.now();
+  const canSchedule = useMemo(() => {
+    const now =new Date().getTime();
+    // eslint-disable-next-line react-hooks/refs
     if (now - lastClickAt.current < MIN_CLICK_GAP){
       return false
     };
+    // eslint-disable-next-line react-hooks/refs
     lastClickAt.current = now;
     return true;
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastClickAt.current]);
 
   const schedule = useCallback<ScheduleFn>(
     (id, status, snapshot,type, recurring) => {
@@ -88,7 +91,7 @@ export function TaskStatusBatchProvider({ children }: { children: React.ReactNod
     [flushAll],
   );
 
-  const value = useMemo(() => ({ schedule, flushAll, canSchedule}), [schedule, flushAll]);
+  const value = useMemo(() => ({ schedule, flushAll, canSchedule}), [schedule, flushAll, canSchedule]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

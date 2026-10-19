@@ -72,6 +72,7 @@ export function TaskCheckbox({
     <Button
       onClick={(e) => {
         e.stopPropagation();
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         canSchedule()&&onHandle();
       }}
       onMouseEnter={() => setIsHover(true)}
