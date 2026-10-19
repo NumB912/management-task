@@ -72,12 +72,11 @@ export function TaskCheckbox({
     <Button
       onClick={(e) => {
         e.stopPropagation();
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        canSchedule&&onHandle();
+        if (canSchedule) onHandle();
       }}
       onMouseEnter={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
-      disabled={!!canSchedule}
+      disabled={!canSchedule}
       className={cn(
         `w-5! h-5! aspect-square! z-20 bg-transparent border flex items-center justify-center cursor-pointer hover:bg-gray-300 text-neutral-900`,
         priority
