@@ -21,7 +21,7 @@ type ScheduleFn = (
   recurring?: { tempId: string; rule: string; date: Date },
 ) => void;
 
-const Ctx = createContext<{ schedule: ScheduleFn; flushAll: () => void,canSchedule:()=>boolean } | null>(null);
+const Ctx = createContext<{ schedule: ScheduleFn; flushAll: () => void,canSchedule:boolean } | null>(null);
 
 const DELAY = 500;
 const MIN_CLICK_GAP=200
