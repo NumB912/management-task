@@ -71,7 +71,6 @@ describe('application module wiring', () => {
       await module.resolve(TYPES.UnitWork, ContextIdFactory.create()),
     ).not.toBe(unitWork);
     const app = module.createNestApplication();
-    // Set a parsed cookie without depending on a particular cookie-parser export shape.
     app.use(
       (
         req: { headers: { cookie?: string }; cookies?: Record<string, string> },
