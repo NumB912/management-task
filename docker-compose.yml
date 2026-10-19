@@ -48,8 +48,6 @@ services:
     restart: on-failure
     networks:
       - tm-network
-
-
   email-services:
     build: "./email-services"
     container_name: toboco-email-services
