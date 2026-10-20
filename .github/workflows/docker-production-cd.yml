@@ -95,7 +95,7 @@ jobs:
             printf '%s' "$EMAIL_ENV" > email-services/.env.production
             printf '%s' "$NOTIFIER_ENV" > notifier-services/.env.production
             printf '%s' "$FRONTEND_ENV" > frontend/.env.production
-            
+
             chmod 600 \
               .env.dependencies \
               backend/.env.production \
