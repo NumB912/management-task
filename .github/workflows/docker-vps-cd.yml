@@ -70,19 +70,6 @@ jobs:
             set -eu
             cd "$HOME/services/toboco"
 
-            # Older checkouts tracked these files; preserve VPS values before updating.
-            umask 077
-            for env_file in email-services/.env notifier-services/.env; do
-              if git ls-files --error-unmatch -- "$env_file" >/dev/null 2>&1; then
-                backup_dir="$(mktemp -d "$HOME/toboco-env-backup.XXXXXX")"
-                if [ -f "$env_file" ]; then
-                  cp "$env_file" "$backup_dir/$(dirname "$env_file").env"
-                fi
-                git checkout HEAD -- "$env_file"
-                printf 'Backed up legacy env to %s\n' "$backup_dir"
-              fi
-            done
-
             git fetch origin production
             git checkout production
             git merge --ff-only origin/production
