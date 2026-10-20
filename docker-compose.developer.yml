@@ -1,0 +1,63 @@
+name: toboco-dev
+
+x-node-dev: &node-dev
+  image: node:24.15.0-alpine
+  working_dir: /app
+  init: true
+  environment:
+    NODE_ENV: development
+    APP_ENV: development
+
+services:
+  back-end:
+    <<: *node-dev
+    env_file: ./backend/.env.development
+    command: sh -c "npm ci --include=dev && npm run start:dev"
+    environment:
+      NODE_ENV: development
+      PORT: "3010"
+      TSC_WATCHFILE: DynamicPriorityPolling
+    ports:
+      - "3010:3010"
+    volumes:
+      - ./backend:/app
+      - backend-node-modules:/app/node_modules
+      - backend-dist:/app/dist
+
+  front-end:
+    <<: *node-dev
+    env_file: ./frontend/.env.development
+    command: sh -c "npm ci --include=dev && npm run dev:development -- --webpack"
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - frontend-next:/app/.next
+    depends_on:
+      - back-end
+
+  file-services:
+    <<: *node-dev
+    env_file: ./file-services/.env.development
+    command: sh -c "npm ci --include=dev && ./node_modules/.bin/tsx watch src/index.ts"
+    environment:
+      NODE_ENV: development
+      APP_ENV: development
+      PORT: "3006"
+    ports:
+      - "3006:3006"
+    volumes:
+      - ./file-services:/app
+      - files-node-modules:/app/node_modules
+
+volumes:
+  backend-node-modules:
+  backend-dist:
+  frontend-node-modules:
+  frontend-next:
+  files-node-modules:

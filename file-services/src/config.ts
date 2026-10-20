@@ -1,9 +1,9 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "./config-env.js";
 
 export const RabbitMQConfig = {
     URI: process.env.RABBITMQ_URI,
 };
+
 
 export const UploadConfig = {
   DIR: process.env.UPLOAD_DIR || "uploads",

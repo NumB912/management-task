@@ -1,3 +1,4 @@
+import "./config-env.js";
 import { Module } from '@nestjs/common';
 import { AdminModule } from './modules/admin/admin.module.js';
 
@@ -24,7 +25,10 @@ import { TaskCommentsModule } from './modules/task-comments/task-comments.module
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      ignoreEnvFile: true,
+    }),
     CacheModule,
     AdminModule,
     UserModule,

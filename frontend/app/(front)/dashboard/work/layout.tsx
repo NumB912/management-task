@@ -20,12 +20,10 @@ import {
   Calendar,
   CalendarDays,
   ChevronDown,
-  Copy,
   Edit,
   Filter,
   Folder,
   Inbox,
-  List,
   LogOutIcon,
   MoreHorizontal,
   Pencil,
@@ -38,14 +36,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {useMemo, useState } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useWorkspaceStore } from "../../feature/store/workspace.state";
-import { useShallow } from "zustand/react/shallow";
 import NavComponent from "../../components/nav.components";
 import { EditListDialog } from "../../components/lists/editList";
 import { DeleteListDialog } from "../../components/lists/deleteList";
@@ -71,7 +68,7 @@ import { DeleteFilterDialog } from "../../components/filters/deleteFilter";
 import useUserState from "../../feature/store/user/user.state";
 import { IRoleMember } from "../../model/member.model";
 import useExitMemberHook from "../../feature/hook/useExitMember.hook";
-const layout = ({ children }: { children: React.ReactNode }) => {
+const WorkLayout = ({ children }: { children: React.ReactNode }) => {
   const {
     getTodayTaskCount,
     getNextDayCount,
@@ -142,7 +139,7 @@ const layout = ({ children }: { children: React.ReactNode }) => {
           <SidebarGroup className={"border-b border-black/10"}>
             <SidebarMenu className={cn("gap-1")}>
               {tabs.map((tab) => {
-                const isActive = pathName == tab.href;
+                const isActive = pathName === tab.href;
                 return (
                   <SidebarMenuItem key={tab.href}>
                     <SidebarMenuButton
@@ -597,4 +594,4 @@ const layout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export default layout;
+export default WorkLayout;

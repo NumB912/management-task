@@ -22,10 +22,10 @@ type ScheduleFn = (
   recurring?: { tempId: string; rule: string; date: Date },
 ) => void;
 
-const Ctx = createContext<{ schedule: ScheduleFn; flushAll: () => void,canSchedule:boolean } | null>(null);
+const Ctx = createContext<{ schedule: ScheduleFn; flushAll: () => void,canSchedule:()=>boolean } | null>(null);
 
-const DELAY = 500;
-const MIN_CLICK_GAP=200
+const DELAY = 800;
+const MIN_CLICK_GAP=180
 
 export function TaskStatusBatchProvider({ children }: { children: React.ReactNode }) {
   const { mutate } = useUpdateTaskStatusBulk();
@@ -56,19 +56,16 @@ export function TaskStatusBatchProvider({ children }: { children: React.ReactNod
   }, [mutate, updateTaskStore, removeTaskStore]);
 
 
-  const canSchedule = useMemo(() => {
-    const now =new Date().getTime();
-    console.log("hello")
-    // eslint-disable-next-line react-hooks/refs
-    if (now - lastClickAt.current < MIN_CLICK_GAP){
-      return false
-    };
-    // eslint-disable-next-line react-hooks/refs
-    lastClickAt.current = now;
-    return true;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastClickAt.current]);
+const canSchedule = useCallback(() => {
+  const now = Date.now();
 
+  if (now - lastClickAt.current < MIN_CLICK_GAP) {
+    return false;
+  }
+
+  lastClickAt.current = now;
+  return true;
+}, []);
   const schedule = useCallback<ScheduleFn>(
     (id, status, snapshot,type, recurring) => {
       const cur = pendings.current.get(id);

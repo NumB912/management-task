@@ -1,3 +1,4 @@
+import "./config-env.js";
 import routerNotifier from "@infrastructure/api/express/route/route.js";
 import cors from 'cors'
 import express, { type Request, type Response } from 'express'

@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint ."
+    "dev": "node scripts/run-env.mjs local dev -H 0.0.0.0",
+    "build": "node scripts/run-env.mjs production build",
+    "start": "node scripts/run-env.mjs production start",
+    "lint": "eslint .",
+    "dev:development": "node scripts/run-env.mjs development dev -H 0.0.0.0"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

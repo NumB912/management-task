@@ -174,7 +174,6 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const refreshToken = req.cookies['refresh_token'];
-
     if (!refreshToken) {
       throw new AppError('UNAUTHORIZED', 'Refresh token không tồn tại', 401);
     }
@@ -182,7 +181,7 @@ export class AuthController {
     res.cookie('token', result.token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'none',
+      sameSite: 'lax',
       path: '/',
       maxAge: 60 * 15 * 1000,
     });

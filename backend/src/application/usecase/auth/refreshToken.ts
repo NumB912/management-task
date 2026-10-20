@@ -64,7 +64,7 @@ export class RefreshTokenUseCase implements IUsecase<{
       }
       throw new AppError(
         error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lá»—i trong quÃ¡ trÃ¬nh refresh token",
+        error.message ?? "Lỗi trong quá trình thực thi",
         error.status ?? 500,
       );
     }

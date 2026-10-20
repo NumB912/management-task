@@ -102,9 +102,9 @@ export class UpdateStatusUsecase implements IUsecase<void> {
     taskById = new Map<
       string,
       Awaited<ReturnType<ITaskRepository['findByIdPopulate']>>
-    >(),
-  ) {
-    if (groupRecurring.length === 0) return;
+    >()
+  ):Promise<string[]> {
+    if (groupRecurring.length === 0) return [];
     const tasks = [
       ...new Set(groupRecurring.map((item) => taskById.get(item.id))),
     ].filter((task): task is NonNullable<typeof task> => Boolean(task));
@@ -216,12 +216,16 @@ export class UpdateStatusUsecase implements IUsecase<void> {
     );
     await this.taskRepository.updateManyByIds(taskUpdates, session);
     await this.ruleRepository.updateManyByIds(ruleUpdates, session);
+
+    const taskSet = new Set([...tasksToCreate,...taskUpdates])
+    
+    return [...taskSet].map((task)=>task.id)
   }
   private async handleSingle(
     groupSingle: PayloadUpdateStatus[],
     session?: unknown,
-  ): Promise<void> {
-    if (groupSingle.length === 0) return;
+  ): Promise<string[]> {
+    if (groupSingle.length === 0) return [];
     const byStatus = new Map<IStatusTask, string[]>();
     for (const { status, id } of groupSingle) {
       const ids = byStatus.get(status);
@@ -232,6 +236,7 @@ export class UpdateStatusUsecase implements IUsecase<void> {
     for (const [status, ids] of byStatus) {
       await this.taskRepository.updateMany(ids, { status }, session);
     }
+    return groupSingle.map((value)=>value.id)
   }
   private async runInTransactionAttempt(
     DTO: IUpdateStatusDTO,
@@ -268,11 +273,11 @@ export class UpdateStatusUsecase implements IUsecase<void> {
         (value) => !!value.record && value.type == 'recurring',
       );
 
-      await this.handleSingle(groupSingle, session);
-      await this.handlRecurring(groupRecurring, userId, session, taskById);
+      const singleIDs = await this.handleSingle(groupSingle, session);
+      const recurringIDs = await this.handlRecurring(groupRecurring, userId, session, taskById);
       await this.unitWork.commitTransaction();
       return {
-        taskIds: data.map((value) => value.id),
+        taskIds: [...singleIDs,...recurringIDs],
         listId,
       };
     } catch (error: any) {

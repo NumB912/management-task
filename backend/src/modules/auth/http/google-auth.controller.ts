@@ -27,7 +27,7 @@ export class GoogleAuthController {
       const { url, context } = this.google.start();
       res.cookie('google_oauth', context, { ...cookieOptions, maxAge: 600000 });
       return res.redirect(url);
-    } catch {
+    } catch(error) {
       this.logger.warn('Google OAuth configuration is missing or invalid');
       return res.redirect(this.google.frontend('/auth/login?google_error=unavailable'));
     }
@@ -44,7 +44,6 @@ export class GoogleAuthController {
       setLoginCookies(res, result);
       return res.redirect(this.google.frontend('/dashboard'));
     } catch (error) {
-      // Log presence only: never log OAuth codes, state values, cookies or tokens.
       const reason = error instanceof Error && 'code' in error ? String(error.code) : error instanceof Error ? error.name : 'UnknownError';
       this.logger.warn(`Google OAuth callback failed: reason=${reason} codePresent=${typeof req.query.code === 'string' && !!req.query.code} statePresent=${typeof req.query.state === 'string' && !!req.query.state} cookiePresent=${typeof req.cookies?.google_oauth === 'string' && !!req.cookies.google_oauth}`);
       if (linking) {

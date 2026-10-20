@@ -79,8 +79,6 @@ export class GoogleAuthService {
 
   async complete(code: unknown, state: unknown, context: unknown, sessionToken?: unknown) {
 
-    console.log(code,state)
-
     if (typeof code !== 'string' || !code) {
       throw new AppError('GOOGLE_CODE_MISSING', 'Google callback thiếu authorization code', 400);
     }

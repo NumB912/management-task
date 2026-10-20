@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config-env.js";
 import Consumer from "@infrastructure/service/message/consumer.message.js";
 import { createEmailService } from "@infrastructure/service/email/email.factory.js";
 import SendEmail from "@application/usecase/email.usecase.js";

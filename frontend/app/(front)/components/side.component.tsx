@@ -12,12 +12,8 @@ import {
 import NotificationBell from "./notifier/notificationBell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "../utils/actor.utils";
-import { FileConfig } from "../config/file.config";
-import { useShallow } from "zustand/react/shallow";
-import { useWorkspaceStore } from "../feature/store/workspace.state";
 import { resolveSrc } from "../utils/readURL.utils";
 import NotificationStream from "../feature/hook/notification/notificationStream.hook";
-import { NotificationConfig } from "../config/notification.config";
 
 const Side = () => {
    const pathName = usePathname();

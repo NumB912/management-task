@@ -49,6 +49,7 @@ type WorkspaceData = Pick<
   | "taskIndex"
   | "notificationIndex"
   | "colorIndex"
+  | "isHasHydrate"
 >;
 
 interface IWorkspaceState {
@@ -63,6 +64,7 @@ interface IWorkspaceState {
   taskIndex: Record<string, ITaskModel>;
   notificationIndex: Record<string, INotificationModel>;
   colorIndex: Record<string, IColorModel>;
+  isHasHydrate:boolean,
   updateFilter: (filterId: string, data: Partial<IFilterModel>) => void;
   addFilter: (data: IFilterModel) => void;
   setInboxCount: (inboxCount: number) => void;
@@ -241,7 +243,9 @@ const applyUpdateTask = (
   }
 
   const hasChange = Object.keys(patch).some((key) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const newVal = (patch as any)[key];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const oldVal = (current as any)[key];
     return typeof newVal === "object" && newVal !== null
       ? JSON.stringify(newVal) !== JSON.stringify(oldVal)
@@ -308,6 +312,7 @@ const applyAddTask = (
 const initialState: WorkspaceData = {
   inboxCount: 0,
   todayCount: 0,
+  isHasHydrate:false,
   inbox: null,
   nextDayCount: 0,
   listIndex: {},
@@ -981,7 +986,6 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
     const listIndex: Record<string, infoList> = {};
     const sectionIndex: Record<string, ISectionModelState> = {};
     const taskIndex: Record<string, ITaskModel> = {};
-    console.log(data.colors);
     for (const list of data.lists ?? []) {
       listIndex[list.id] = {
         id: list.id,
@@ -1030,8 +1034,10 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
       colorIndex: Object.fromEntries(
         (data.colors ?? []).map((color) => [color.refId, color]),
       ),
+      isHasHydrate:true,
     });
-  },
+  }
+  ,
   getTag(name) {
     const { tagIndex } = get();
 

@@ -1,5 +1,6 @@
 import amqplib, { type Channel, type ChannelModel } from "amqplib";
 import { Logger } from '@nestjs/common';
+import { QueueConfig } from "@/domain/config/queue.config";
 
 const globalRabbitInstance = globalThis as typeof globalThis & {
   _instanceRabbit?: RabbitMQ;
@@ -41,7 +42,7 @@ class RabbitMQ {
   }
 
   private async createChannel(): Promise<Channel> {
-    const uri = process.env.RABBITMQ_URI?.trim();
+    const uri = QueueConfig.RABBITMQ_URI?.trim();
     if (!uri) {
       throw new Error("[RabbitMQ] Missing RABBITMQ_URI");
     }

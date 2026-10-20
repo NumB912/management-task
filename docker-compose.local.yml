@@ -1,0 +1,108 @@
+name: toboco-local
+
+x-worker: &worker
+  image: node:24.15.0-alpine
+  working_dir: /app
+  init: true
+  command: sh -c "npm ci --include=dev && ./node_modules/.bin/tsx watch src/index.ts"
+  depends_on:
+    rabbitmq:
+      condition: service_healthy
+
+services:
+  mongodb:
+    image: mongo:7
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status() } catch (e) { if (e.code === 94) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}) } else { throw e } }; quit(db.hello().isWritablePrimary ? 0 : 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: taskdev
+      RABBITMQ_DEFAULT_PASS: taskdev
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  file-services:
+    <<: *worker
+    env_file:
+      - path: ./file-services/.env.local
+    environment:
+      NODE_ENV: development
+      APP_ENV: local
+      RABBITMQ_URI: amqp://taskdev:taskdev@rabbitmq:5672/%2F?heartbeat=30
+    volumes:
+      - ./file-services:/app
+      - files-node-modules:/app/node_modules
+
+
+  email-services:
+    <<: *worker
+    env_file:
+      - path: ./email-services/.env.local
+    environment:
+      NODE_ENV: development
+      APP_ENV: local
+      RABBITMQ_URI: amqp://taskdev:taskdev@rabbitmq:5672/%2F?heartbeat=30
+    volumes:
+      - ./email-services:/app
+      - email-node-modules:/app/node_modules
+
+  notifier-services:
+    <<: *worker
+    command: sh -c "npm ci --include=dev && npm install --no-save --package-lock=false tsx@4.23.15 && ./node_modules/.bin/tsx watch src/index.ts"
+    env_file:
+      - path: ./notifier-services/.env.local
+    environment:
+      NODE_ENV: development
+      APP_ENV: local
+      RABBITMQ_URI: amqp://taskdev:taskdev@rabbitmq:5672/%2F?heartbeat=30
+    ports:
+      - "3005:3005"
+    volumes:
+      - ./notifier-services:/app
+      - notifier-node-modules:/app/node_modules
+
+volumes:
+  mongo-data:
+  redis-data:
+  rabbitmq-data:
+  files-node-modules:
+  email-node-modules:
+  notifier-node-modules:

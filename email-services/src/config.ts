@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
-dotenv.config();
+import "./config-env.js";
+
 export const MailConfig = {
     AUTH:process.env.EMAIL_FROM?.trim() || '',
     RESEND_API_KEY:process.env.RESEND_API_KEY,

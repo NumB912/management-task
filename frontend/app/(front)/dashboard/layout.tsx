@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { CircleAlert, LoaderCircle, RotateCcw } from "lucide-react";
+import { CircleAlert, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -22,10 +22,11 @@ import Image from "next/image";
 
 type Props = { children: React.ReactNode; modal: React.ReactNode };
 
-function DashboardContent({ children, modal }: Props) {
+function DashboardContent({ children, modal }: Props) 
+{
   const hydrate = useWorkspaceStore((s) => s.hydrate);
+  const isHasHydrate = useWorkspaceStore((s)=>s.isHasHydrate)
   const { data, isSuccess, isError, isFetching, failureCount, refetch } = useWorkspace();
-  const [hasHydratedWorkspace, setHasHydratedWorkspace] = useState(false);
   const [isManualRetry, setIsManualRetry] = useState(false);
   const { user, setOpen, open, status } = useUserState();
   const onLogout = useUserState((state) => state.logout);
@@ -63,7 +64,6 @@ function DashboardContent({ children, modal }: Props) {
         notifications:data.notifications,
         colors:data.colors
       });
-      setHasHydratedWorkspace(true);
     }
   }, [isSuccess, data, hydrate]);
 
@@ -71,7 +71,7 @@ function DashboardContent({ children, modal }: Props) {
     if (status === "unauthenticated") route.replace("/auth/login");
   }, [route, status]);
 
-  if (!hasHydratedWorkspace) {
+  if (!isHasHydrate) {
     const hasFailed = isError && !isFetching;
     const isRetrying = isManualRetry || failureCount > 0;
 

@@ -1,3 +1,4 @@
+import "./config-env.js";
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
@@ -8,7 +9,6 @@ async function bootstrap() {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
-  console.log(allowedOrigins)
   app.enableCsrfProtection({ trustedOrigins: allowedOrigins });
   app.enableCors({
     origin: allowedOrigins,

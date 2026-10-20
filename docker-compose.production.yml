@@ -1,46 +1,131 @@
-# services:
-#   backend:
-#     image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX in compose.env}-backend:${IMAGE_TAG:?Set IMAGE_TAG during deployment}
-#     env_file:
-#       - ${ENV_DIR:?Set ENV_DIR in compose.env}/backend.env
-#     environment:
-#       NODE_ENV: production
-#       PORT: 3010
-#     ports:
-#       - "127.0.0.1:3010:3010"
-#     restart: unless-stopped
-#     networks: [task-management]
+x-check-common: &check-common
+  env_file:
+    - ./.env.dependencies
+  restart: "no"
+  networks:
+    - tm-network
 
-#   notifier-services:
-#     image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX in compose.env}-notifier-services:${IMAGE_TAG:?Set IMAGE_TAG during deployment}
-#     env_file:
-#       - ${ENV_DIR:?Set ENV_DIR in compose.env}/notifier-services.env
-#     environment:
-#       NODE_ENV: production
-#       PORT: 3005
-#     ports:
-#       - "127.0.0.1:3005:3005"
-#     restart: unless-stopped
-#     networks: [task-management]
+x-dependencies:
+  check-mongo:
+    condition: service_completed_successfully
+  check-redis:
+    condition: service_completed_successfully
+  check-rabbitmq:
+    condition: service_completed_successfully
+services:
+  back-end:
+    environment:
+      NODE_ENV: production
+    build: "./backend"
+    container_name: toboco-backend
+    env_file: ./backend/.env.production
+    ports:
+      - "3010:3010"
+    depends_on:
+      check-mongo:
+        condition: service_completed_successfully
+      check-redis:
+        condition: service_completed_successfully
+      check-rabbitmq:
+        condition: service_completed_successfully
 
-#   email-services:
-#     image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX in compose.env}-email-services:${IMAGE_TAG:?Set IMAGE_TAG during deployment}
-#     env_file:
-#       - ${ENV_DIR:?Set ENV_DIR in compose.env}/email-services.env
-#     environment:
-#       NODE_ENV: production
-#     restart: unless-stopped
-#     networks: [task-management]
+  front-end:
+    environment:
+      NODE_ENV: production
+    build: "./frontend"
+    env_file: "./frontend/.env.production"
+    container_name: toboco-frontend
+    ports:
+     - "3000:3000"
+    depends_on:
+     - back-end
 
-#   file-services:
-#     image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX in compose.env}-file-services:${IMAGE_TAG:?Set IMAGE_TAG during deployment}
-#     env_file:
-#       - ${ENV_DIR:?Set ENV_DIR in compose.env}/file-services.env
-#     environment:
-#       NODE_ENV: production
-#     restart: unless-stopped
-#     networks: [task-management]
+  file-services:
+    environment:
+      NODE_ENV: production
+    build: "./file-services"
+    container_name: toboco-file-services
+    ports:
+      - "3006:3006"
+    env_file: ./file-services/.env.production
+    depends_on:
+      check-rabbitmq:
+        condition: service_completed_successfully
+    restart: on-failure
+    networks:
+      - tm-network
 
-# networks:
-#   task-management:
-#     driver: bridge
+  email-services:
+    environment:
+      NODE_ENV: production
+    build: "./email-services"
+    container_name: toboco-email-services
+    ports:
+      - "3001:3001"
+    env_file: ./email-services/.env.production
+    depends_on:
+      check-rabbitmq:
+        condition: service_completed_successfully
+    restart: on-failure
+    networks:
+      - tm-network
+  notifier-services:
+    environment:
+      NODE_ENV: production
+    build: "./notifier-services"
+    container_name: toboco-notifier-services
+    ports:
+      - "3005:3005"
+    env_file: ./notifier-services/.env.production
+    depends_on:
+      check-rabbitmq:
+        condition: service_completed_successfully
+    restart: on-failure
+    networks:
+      - tm-network
+
+  check-mongo:
+    <<: *check-common
+    image: mongo:7
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        : "$${MONGODB_URI:?Missing MONGODB_URI}"
+        timeout 40 mongosh "$$MONGODB_URI" --quiet \
+          --eval '
+        const result = db.runCommand({ ping: 1 });
+        if (result.ok !== 1) {
+          print("MongoDB: ERROR");
+          quit(1);
+        }
+        print("MongoDB: OK");
+        '
+  check-redis:
+    <<: *check-common
+    image: redis:7-alpine
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        : "$${REDIS_URI:?Missing REDIS_URI}"
+        result="$$(timeout 15 redis-cli -u "$$REDIS_URI" PING)"
+        if [ "$$result" != "PONG" ]; then
+          echo "Redis: FAIL"
+          exit 1
+        fi
+        echo "Redis: OK"
+
+  check-rabbitmq:
+    <<: *check-common
+    image: alpine:3.21
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        : "$${RABBITMQ_HOST:?Missing RABBITMQ_HOST}"
+        : "$${RABBITMQ_PORT:?Missing RABBITMQ_PORT}"
+        echo >> "$${RABBITMQ_PORT:?Missing RABBITMQ_PORT}"
+        nc -z -v -w 10 "$$RABBITMQ_HOST" "$$RABBITMQ_PORT"
+        echo "RabbitMQ TCP: OK"
+
+networks:
+  tm-network:
+    driver: bridge
