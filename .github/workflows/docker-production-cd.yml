@@ -64,7 +64,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           command_timeout: 30m
-          envs: DEPENDENCIES_ENV,BACKEND_ENV,FILE_ENV,EMAIL_ENV,NOTIFIER_ENV,FRONTEND_ENV,DEPLOY_SHA
+          envs: DEPENDENCIES_ENV,BACKEND_ENV,FILE_ENV,EMAIL_ENV,NOTIFIER_ENV,FRONTEND_ENV
           script: |
             set -eu
             cd "$HOME/services/toboco"
@@ -104,7 +104,6 @@ jobs:
 
             docker compose -f docker-compose.production.yml config --quiet
             docker compose -f docker-compose.production.yml build --pull
-            printf '%s' "$DEPLOY_SHA" > .deploy-built-sha
 
   deploy:
     name: Deploy
