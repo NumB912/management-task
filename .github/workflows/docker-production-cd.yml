@@ -115,8 +115,6 @@ jobs:
     steps:
       - name: Start the built images
         uses: appleboy/ssh-action@v1.2.0
-        env:
-          DEPLOY_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
