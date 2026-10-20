@@ -79,6 +79,7 @@ jobs:
             : "${FILE_ENV:?Missing FILE_ENV}"
             : "${EMAIL_ENV:?Missing EMAIL_ENV}"
             : "${NOTIFIER_ENV:?Missing NOTIFIER_ENV}"
+            : "${FRONTEND_ENV:?Missing FRONTEND_ENV}"
 
             test -d backend
             test -d frontend
@@ -93,7 +94,8 @@ jobs:
             printf '%s' "$FILE_ENV" > file-services/.env.production
             printf '%s' "$EMAIL_ENV" > email-services/.env.production
             printf '%s' "$NOTIFIER_ENV" > notifier-services/.env.production
-
+            printf '%s' "$FRONTEND_ENV" > frontend/.env.production
+            
             chmod 600 \
               .env.dependencies \
               backend/.env.production \
