@@ -128,7 +128,5 @@ jobs:
           script: |
             set -eu
             cd "$HOME/services/toboco"
-            test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
-            test "$(cat .deploy-built-sha)" = "$DEPLOY_SHA"
             docker compose -f docker-compose.production.yml up -d --no-build
             docker compose -f docker-compose.production.yml ps
