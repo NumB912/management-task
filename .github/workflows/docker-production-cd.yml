@@ -3,7 +3,7 @@ name: Deploy Docker Compose
 on:
   push:
     branches: ["production"]
-  
+
 permissions:
   contents: read
 
@@ -50,13 +50,12 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         
         env:
-          DEPENDENCIES_ENV: ${{ secrets.DEPENDENCIES_ENV }}
-          BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
-          FRONTEND_ENV: ${{ secrets.FRONTEND_ENV }}
-          FILE_ENV: ${{ secrets.FILE_ENV }}
-          EMAIL_ENV: ${{ secrets.EMAIL_ENV }}
-          NOTIFIER_ENV: ${{ secrets.NOTIFIER_ENV }}
-          DEPLOY_SHA: ${{ github.sha }}
+          DEPENDENCIES_ENV: ${{ secrets.DEPENDENCES_PRODUCTION_ENV }}
+          BACKEND_ENV: ${{ secrets.BACK_END_PRODUCTION_ENV }}
+          FRONTEND_ENV: ${{ secrets.FRONT_END_PRODUCTION_ENV }}
+          FILE_ENV: ${{ secrets.FILE_PRODUCTION_ENV }}
+          EMAIL_ENV: ${{ secrets.EMAIL_PRODUCTION_ENV }}
+          NOTIFIER_ENV: ${{ secrets.NOTIFIER_PRODUCTION_ENV }}
         
         with:
           host: ${{ secrets.HOST }}
@@ -73,7 +72,6 @@ jobs:
             git fetch origin production
             git checkout production
             git merge --ff-only origin/production
-            test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
 
             : "${DEPENDENCIES_ENV:?Missing DEPENDENCIES_ENV}"
             : "${BACKEND_ENV:?Missing BACKEND_ENV}"
@@ -90,22 +88,22 @@ jobs:
 
             umask 077
             printf '%s' "$DEPENDENCIES_ENV" > .env.dependencies
-            printf '%s' "$BACKEND_ENV" > backend/.env
-            printf '%s' "$FRONTEND_ENV" > frontend/.env.local
-            printf '%s' "$FILE_ENV" > file-services/.env
-            printf '%s' "$EMAIL_ENV" > email-services/.env
-            printf '%s' "$NOTIFIER_ENV" > notifier-services/.env
+            printf '%s' "$BACKEND_ENV" > backend/.env.production
+            printf '%s' "$FRONTEND_ENV" > frontend/.env.production
+            printf '%s' "$FILE_ENV" > file-services/.env.production
+            printf '%s' "$EMAIL_ENV" > email-services/.env.production
+            printf '%s' "$NOTIFIER_ENV" > notifier-services/.env.production
 
             chmod 600 \
               .env.dependencies \
-              backend/.env \
-              file-services/.env \
-              email-services/.env \
-              notifier-services/.env \
-              frontend/.env.local
+              backend/.env.production \
+              file-services/.env.production \
+              email-services/.env.production \
+              notifier-services/.env.production \
+              frontend/.env.production
 
-            docker compose config --quiet
-            docker compose build --pull
+            docker compose -f docker-compose.production.yml config --quiet
+            docker compose -f docker-compose.production.yml build --pull
             printf '%s' "$DEPLOY_SHA" > .deploy-built-sha
 
   deploy:
@@ -132,5 +130,5 @@ jobs:
             cd "$HOME/services/toboco"
             test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
             test "$(cat .deploy-built-sha)" = "$DEPLOY_SHA"
-            docker compose up -d --no-build
-            docker compose ps
+            docker compose -f docker-compose.production.yml up -d --no-build
+            docker compose -f docker-compose.production.yml ps

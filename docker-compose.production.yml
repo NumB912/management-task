@@ -1,6 +1,8 @@
 x-check-common: &check-common
   env_file:
     - ./.env.dependencies
+  environment:
+    NODE_ENV: production
   restart: "no"
   networks:
     - tm-network
@@ -12,6 +14,7 @@ x-dependencies:
     condition: service_completed_successfully
   check-rabbitmq:
     condition: service_completed_successfully
+
 services:
   back-end:
     environment:
@@ -21,6 +24,8 @@ services:
     env_file: ./backend/.env.production
     ports:
       - "3010:3010"
+    networks:
+      - tm-network
     depends_on:
       check-mongo:
         condition: service_completed_successfully
@@ -39,6 +44,8 @@ services:
      - "3000:3000"
     depends_on:
      - back-end
+    networks:
+      - tm-network
 
   file-services:
     environment:
@@ -122,7 +129,6 @@ services:
       - |
         : "$${RABBITMQ_HOST:?Missing RABBITMQ_HOST}"
         : "$${RABBITMQ_PORT:?Missing RABBITMQ_PORT}"
-        echo >> "$${RABBITMQ_PORT:?Missing RABBITMQ_PORT}"
         nc -z -v -w 10 "$$RABBITMQ_HOST" "$$RABBITMQ_PORT"
         echo "RabbitMQ TCP: OK"
 

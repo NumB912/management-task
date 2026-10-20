@@ -32,9 +32,9 @@ useEffect(() => {
   });
 
   
-}, [hasUnread]);
+}, [hasUnread, notifications, setNotifications, updateRead]);
 const leaveTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
-
+ 
 useEffect(() => {
   clearTimeout(leaveTimerRef.current!); 
   return () => {
@@ -42,7 +42,7 @@ useEffect(() => {
       markAllRead()
     }, 0);
   };
-}, []);
+}, [markAllRead]);
 
   const handleItemClick = (n: INotificationModel) => {
     if (!NAVIGABLE_EVENTS.includes(n.event)) return;

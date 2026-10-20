@@ -6,7 +6,6 @@ x-node-dev: &node-dev
   init: true
   environment:
     NODE_ENV: development
-    APP_ENV: development
 
 services:
   back-end:
