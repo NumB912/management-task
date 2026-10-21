@@ -42,7 +42,7 @@ jobs:
     name: Build images on VPS
     needs: test
     runs-on: ubuntu-latest
-    environment: production
+    environment: development
     timeout-minutes: 35
 
     steps:
@@ -56,7 +56,6 @@ jobs:
           FILE_ENV: ${{ secrets.FILE_ENV }}
           EMAIL_ENV: ${{ secrets.EMAIL_ENV }}
           NOTIFIER_ENV: ${{ secrets.NOTIFIER_ENV }}
-          DEPLOY_SHA: ${{ github.sha }}
         
         with:
           host: ${{ secrets.HOST }}
@@ -65,15 +64,15 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           command_timeout: 30m
-          envs: DEPENDENCIES_ENV,BACKEND_ENV,FILE_ENV,EMAIL_ENV,NOTIFIER_ENV,FRONTEND_ENV,DEPLOY_SHA
+          envs: DEPENDENCIES_ENV,BACKEND_ENV,FILE_ENV,EMAIL_ENV,NOTIFIER_ENV,FRONTEND_ENV
           script: |
             set -eu
             cd "$HOME/services/toboco"
 
-            git fetch origin production
-            git checkout production
-            git merge --ff-only origin/production
-            test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
+            git fetch origin development
+            git checkout development
+            git merge --ff-only origin/development
+            test "$(git rev-parse HEAD)" = "$"
 
             : "${DEPENDENCIES_ENV:?Missing DEPENDENCIES_ENV}"
             : "${BACKEND_ENV:?Missing BACKEND_ENV}"
@@ -106,7 +105,6 @@ jobs:
 
             docker compose config --quiet
             docker compose build --pull
-            printf '%s' "$DEPLOY_SHA" > .deploy-built-sha
 
   deploy:
     name: Deploy
@@ -118,7 +116,7 @@ jobs:
       - name: Start the built images
         uses: appleboy/ssh-action@v1.2.0
         env:
-          DEPLOY_SHA: ${{ github.sha }}
+          : ${{ github.sha }}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
@@ -126,11 +124,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           command_timeout: 10m
-          envs: DEPLOY_SHA
           script: |
             set -eu
             cd "$HOME/services/toboco"
-            test "$(git rev-parse HEAD)" = "$DEPLOY_SHA"
-            test "$(cat .deploy-built-sha)" = "$DEPLOY_SHA"
             docker compose up -d --no-build
             docker compose ps

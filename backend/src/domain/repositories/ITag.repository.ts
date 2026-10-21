@@ -3,6 +3,7 @@ import { IRepository } from "./IRepository.js";
 
 
 export interface ITagRepository extends IRepository<ITagWithId, string> {
+  deleteSharedTagsInLists(DTO: { name: string; listIds: string[] }, session?: unknown): Promise<void>
   findTagByName(DTO: { name: string, userId: string }, session?: unknown): Promise<ITagWithId | null>
   findTagsByName(DTO: { nameTags: string[], userId: string }, session?: unknown): Promise<ITagWithId[]>
   updateByName(DTO: { name: string, userId: string; data: Partial<ITagWithId>; }, session?: unknown ): Promise<ITagWithId | null>

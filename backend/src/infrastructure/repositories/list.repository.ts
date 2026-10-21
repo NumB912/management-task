@@ -307,23 +307,16 @@ export class ListRepository
   }
 
   async pushTagsIntoList(pushTagDTO: {
-    share_tags: {
-      tag: string;
-      created_by: string;
-    }[];
+    share_tags:string[];
     listId: string;
     session?: ClientSession;
   }): Promise<void> {
     await this.db.List.updateOne(
-      { _id: pushTagDTO.listId },
+      { _id: new Types.ObjectId(pushTagDTO.listId) },
       {
         $addToSet: {
           shared_tags: {
-            $each: pushTagDTO.share_tags.map((share_tag) => ({
-              tag: share_tag.tag,
-              created_by: share_tag.created_by,
-              created_at: new Date(),
-            })),
+            $each: pushTagDTO.share_tags.map((share_tag) => (share_tag)),
           },
         },
       },
@@ -341,7 +334,7 @@ export class ListRepository
       { _id: { $in: listIds.map((id) => new Types.ObjectId(id)) } },
       {
         $pull: {
-          shared_tags: { tag: { $in: nameTags } },
+          shared_tags: { $in: nameTags },
         },
       },
       { session, collation: { locale: 'vi', strength: 2 } },
@@ -412,10 +405,11 @@ export class ListRepository
     };
   }
 
-  async getListByUser(DTO: { userId: string }): Promise<IListWithId[]> {
-    const { userId } = DTO;
-
-    const getLists = await this.db.List.aggregate([
+  async getListByUser({ userId, session }: {
+    userId: string;
+    session?: ClientSession;
+  }): Promise<IListWithId[]> {
+    const lists = await this.db.List.aggregate<IListDocument>([
       {
         $lookup: {
           from: 'members',
@@ -426,19 +420,25 @@ export class ListRepository
       },
       {
         $match: {
-          'membersData.user': new Types.ObjectId(userId),
+          membersData: {
+            $elemMatch: {
+              user: new Types.ObjectId(userId),
+              status: 'accept',
+            },
+          },
         },
       },
-    ]);
+    ]).session(session ?? null);
 
-    return getLists.map((list) => this.toDomain(list));
+    return lists.map((list) => this.toDomain(list));
   }
 
   async getListByTagNameAndUserId(DTO: {
     tagName: string[];
     userId: string;
+    session?: ClientSession
   }): Promise<IListWithId[]> {
-    const { tagName, userId } = DTO;
+    const { tagName, userId,session } = DTO;
     const docs = await this.db.List.aggregate(
       [
         {
@@ -452,15 +452,15 @@ export class ListRepository
         {
           $match: {
             'membersData.user': new Types.ObjectId(userId),
-            'shared_tags.tag': { $in: tagName },
+            shared_tags: { $in: tagName },
           },
         },
       ],
       {
         collation: { locale: 'vi', strength: 2 },
       },
-    );
-
+    ).session(session??null);
+    console.log(docs)
     return docs.map((doc) => this.toDomain(doc));
   }
 
@@ -474,15 +474,15 @@ export class ListRepository
     await this.db.List.updateMany(
       {
         _id: { $in: listIds.map((listId) => new Types.ObjectId(listId)) },
-        'shared_tags.tag': currentName.toLocaleLowerCase(),
+        shared_tags: currentName,
       },
       {
-        $set: { 'shared_tags.$[elem].tag': newName },
+        $set: { 'shared_tags.$[elem]': newName },
       },
       {
         session,
         collation: { locale: 'vi', strength: 2 },
-        arrayFilters: [{ 'elem.tag': currentName.toLocaleLowerCase() }],
+        arrayFilters: [{ elem: currentName }],
       },
     );
   }
@@ -612,7 +612,7 @@ export class ListRepository
     const { listId, session } = DTO;
     const s = session ?? null;
     const ruleDocs = await this.db.Rule.find({
-      list: listId,
+      list: new Types.ObjectId(listId),
       deleted_at: undefined,
     }).session(s);
     const tagsOfRule = ruleDocs.flatMap((doc) => doc.tags ?? []);

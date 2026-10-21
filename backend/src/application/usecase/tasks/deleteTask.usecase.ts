@@ -24,24 +24,24 @@ export class DeleteTaskUsecase implements IUsecase<ITaskWithId | null> {
   ) {}
   async execute(id: string, userId: string): Promise<ITaskWithId | null> {
     if (!id) {
-      throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y task", 404);
+      throw new AppError("NOT_FOUND", "Không tìm thấy task", 404);
     }
     try {
       await this.unitWork.startTransaction();
       const session = await this.unitWork.getSession();
       const task = await this.TaskRepository.findById(id, session);
       if (!task) {
-        throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y task", 404);
+        throw new AppError("NOT_FOUND", "Không tìm thấy task", 404);
       }
 
       const list = await this.ListRepository.findById(task.list, session);
 
       if (!list) {
-        throw new AppError("NOT FOUND", "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u", 400);
+        throw new AppError("NOT FOUND", "Không tìm thấy dá»¯ liá»‡u", 400);
       }
       const deleteTask = await this.TaskRepository.delete(id, session);
       if (!deleteTask) {
-        throw new AppError("NOT FOUND", "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u", 400);
+        throw new AppError("NOT FOUND", "Không tìm thấy dá»¯ liá»‡u", 400);
       }
 
       await this.RuleRepository.deleteBy({ id: task.rule }, session);

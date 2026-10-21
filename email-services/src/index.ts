@@ -5,11 +5,16 @@ import SendEmail from "@application/usecase/email.usecase.js";
 import SendChangePassConsumer from "@application/event/sendChangePass.event.js";
 import SendOtpUsecase from "@application/event/sendOtp.event.js";
 import SendMailInviteConsumer from "@application/event/sendInviteMember.event.js";
+import { MailConfig } from "./config.js";
 async function bootstraping() {
   try {
-    const emailService = createEmailService();
+    const emailService = createEmailService({
+      AUTH:MailConfig.AUTH,
+      RESEND_API_KEY:MailConfig.RESEND_API_KEY
+    });
+    
     const consumer = await Consumer.create();
-    console.log("Consumer connected to RabbitMQ successfully");
+    console.log("Kết nối RabbitMQ thành công");
     const sendMailUC = new SendEmail(emailService)
     const sendOtp = new SendOtpUsecase(sendMailUC,consumer)
     const sendChangePassEvent = new SendChangePassConsumer(sendMailUC,consumer)

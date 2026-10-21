@@ -15,14 +15,14 @@ export class UpdateFilterUsecase implements IUsecase<Partial<
   ): Promise<Partial<Omit<IFilterWithId, "id">> | null> {
     const { data, id, user_id } = updateFilterDTO
     if (!id) {
-      throw new AppError("NOT_FOUND", `KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u`, 404);
+      throw new AppError("NOT_FOUND", `Không tìm thấy dá»¯ liá»‡u`, 404);
     }
     const isExistFilter = await this.filterRepository.findOne({
       id: id,
       user: user_id
     })
     if (!isExistFilter) {
-      throw new AppError("NOT_FOUND", `KhÃ´ng tÃ¬m tháº¥y filter`, 404);
+      throw new AppError("NOT_FOUND", `Không tìm thấy filter`, 404);
     }
 
     if (data.name != undefined) {
@@ -39,7 +39,7 @@ export class UpdateFilterUsecase implements IUsecase<Partial<
       console.error(error);
       throw new AppError(
         "ERROR_UPDATE",
-        `Lá»—i trong quÃ¡ trÃ¬nh cáº­p nháº­t tag:${error}`,
+        `Lỗi trong quá trình thực thi tag:${error}`,
         500,
       );
     }

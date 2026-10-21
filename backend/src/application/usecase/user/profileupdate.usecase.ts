@@ -19,13 +19,13 @@ export class PutProfileUsecase implements IUsecase<boolean> {
             const session = this.unitwork.getSession()
 
             if(!userId || !data){
-                throw new AppError("NOT_FOUND","KhÃ´ng tÃ¬m tháº¥y Ä‘á»§ dá»¯ liá»‡u",404)
+                throw new AppError("NOT_FOUND","Không tìm thấy Ä‘á»§ dá»¯ liá»‡u",404)
             }
 
             const user = await this.userRepository.findById(userId,session)
 
             if(!user){
-                throw new AppError("NOT_FOUND","KhÃ´ng tÃ¬m tháº¥y Ä‘á»§ dá»¯ liá»‡u",404)
+                throw new AppError("NOT_FOUND","Không tìm thấy Ä‘á»§ dá»¯ liá»‡u",404)
             }
 
             const updateUser = await this.userRepository.update(userId,{

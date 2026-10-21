@@ -62,8 +62,7 @@ class Consumer implements IConsumer {
         this.channel?.ack(msg);
       } catch (error) {
         console.error(`[Consumer] Delivery failed; moving to ${failedQueue}`);
-        // Keep the original payload for manual inspection and replay.
-        try {
+         try {
           const writable = this.channel!.sendToQueue(failedQueue, msg.content, {
             persistent: true,
             contentType: 'application/json',

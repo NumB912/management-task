@@ -3,6 +3,8 @@ name: toboco-local
 x-worker: &worker
   image: node:24.15.0-alpine
   working_dir: /app
+  environment:
+    NODE_ENV: local
   init: true
   command: sh -c "npm ci --include=dev && ./node_modules/.bin/tsx watch src/index.ts"
   depends_on:
@@ -64,9 +66,9 @@ services:
     env_file:
       - path: ./file-services/.env.local
     environment:
-      NODE_ENV: development
-      APP_ENV: local
-      RABBITMQ_URI: amqp://taskdev:taskdev@rabbitmq:5672/%2F?heartbeat=30
+      NODE_ENV: local
+    depends_on:
+      - rabbitmq
     volumes:
       - ./file-services:/app
       - files-node-modules:/app/node_modules
@@ -77,9 +79,9 @@ services:
     env_file:
       - path: ./email-services/.env.local
     environment:
-      NODE_ENV: development
-      APP_ENV: local
-      RABBITMQ_URI: amqp://taskdev:taskdev@rabbitmq:5672/%2F?heartbeat=30
+      NODE_ENV: local
+    depends_on:
+      - rabbitmq
     volumes:
       - ./email-services:/app
       - email-node-modules:/app/node_modules
@@ -90,11 +92,13 @@ services:
     env_file:
       - path: ./notifier-services/.env.local
     environment:
-      NODE_ENV: development
-      APP_ENV: local
-      RABBITMQ_URI: amqp://taskdev:taskdev@rabbitmq:5672/%2F?heartbeat=30
+      NODE_ENV: local
+      RABBITMQ_URI: amqp://taskdev:taskdev@rabbitmq:5672
     ports:
       - "3005:3005"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ./notifier-services:/app
       - notifier-node-modules:/app/node_modules

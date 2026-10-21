@@ -5,10 +5,12 @@
   ITask,
   IListRepository,
   IPublisher,
+  IRule,
 } from "@/domain";
 import { IUnitWork } from "@/domain/entities/unitwork.entity";
 import { UpdateRuleUsecase, MoveToSectionUsecase } from "./index";
 import { IMemberRepository } from "@/domain/repositories/IMember.repository";
+import { IUpdateRuleDTO } from "@/domain/DTO/rule/rule.DTO";
 
 export class UpdateTaskUsecase implements IUsecase<void> {
   constructor(
@@ -36,7 +38,7 @@ export class UpdateTaskUsecase implements IUsecase<void> {
 
   async execute(DTO: {
     id: string;
-    data: Partial<Omit<ITask, "id" | "status" | "done_at">>;
+    data: Partial<Omit<ITask, "id" | "status" | "done_at" | "rule">> & { rule?: IUpdateRuleDTO };
     userId: string;
   }): Promise<void> {
     const { data, id, userId } = DTO;
@@ -53,12 +55,12 @@ export class UpdateTaskUsecase implements IUsecase<void> {
 
       const taskCur = await this.TaskRepository.findByIdPopulate(id, session);
       if (!taskCur) {
-        throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y task Ä‘á»ƒ cáº­p nháº­t", 404);
+        throw new AppError("NOT_FOUND", "Không tìm thấy task Ä‘á»ƒ cáº­p nháº­t", 404);
       }
 
       const oldList = await this.ListRepository.findById(taskCur.list, session);
       if (!oldList) {
-        throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u", 404);
+        throw new AppError("NOT_FOUND", "Không tìm thấy dá»¯ liá»‡u", 404);
       }
 
       const patch = {
@@ -69,15 +71,18 @@ export class UpdateTaskUsecase implements IUsecase<void> {
       if (Object.keys(patch).length) {
         await this.TaskRepository.update(id, patch, session);
       }
-      const isListChanged =
+        const isListChanged =
         data.list !== undefined && String(data.list) !== String(taskCur.list);
-      const isSectionChanged = String(data.section) !== String(taskCur.section);
+        const isSectionChanged = Object.prototype.hasOwnProperty.call(data, 'section') &&
+        String(data.section ?? '') !== String(taskCur.section ?? '');
 
-      if (data.rule) {
+      if (data.rule || isListChanged) {
         const rulePayload = {
           ...data.rule,
           ...(isListChanged ? { list: data.list } : undefined),
         };
+
+        console.log(rulePayload)
         await this.UpdateRuleUsecase.run(id, rulePayload, userId, session);
       }
 
@@ -89,10 +94,7 @@ export class UpdateTaskUsecase implements IUsecase<void> {
             sectionId: data.section,
           },
           session,
-
-          
         );
-                  console.log(data.section)
       }
 
       const updated = await this.TaskRepository.findByIdPopulate(id, session);
@@ -101,7 +103,7 @@ export class UpdateTaskUsecase implements IUsecase<void> {
         ? await this.ListRepository.findById(data.list!, session)
         : oldList;
       if (!newList) {
-        throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y list Ä‘Ã­ch", 404);
+        throw new AppError("NOT_FOUND", "Không tìm thấy list Ä‘Ã­ch", 404);
       }
       const newIds = await this.getRecipientIds(newList, userId, session);
       const oldIds = isListChanged
@@ -132,7 +134,7 @@ export class UpdateTaskUsecase implements IUsecase<void> {
       if (error instanceof AppError) throw error;
       throw new AppError(
         error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lá»—i trong quÃ¡ trÃ¬nh cáº­p nháº­t task",
+        error.message ?? "Lỗi trong quá trình thực thi task",
         error.status ?? 500,
       );
     }

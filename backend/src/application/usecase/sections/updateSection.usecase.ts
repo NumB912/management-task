@@ -26,7 +26,7 @@ export class UpdateSectionUsecase implements IUsecase<
     data: Partial<Omit<ISectionWithId, "id">>,
   ): Promise<Partial<ISectionWithId | null>> {
     if (!id) {
-      throw new AppError("NOT_FOUND", `KhÃ´ng tÃ¬m tháº¥y section`, 404);
+      throw new AppError("NOT_FOUND", `Không tìm thấy section`, 404);
     }
 
     try {
@@ -35,13 +35,13 @@ export class UpdateSectionUsecase implements IUsecase<
       const section = await this.sectionRepository.findById(id,session)
 
       if(!section){
-         throw new AppError("NOT_FOUND", `KhÃ´ng tÃ¬m tháº¥y section`, 404);
+         throw new AppError("NOT_FOUND", `Không tìm thấy section`, 404);
       }
 
       const list = await this.ListRepository.findById(section?.list,session)
 
       if(!list){
-         throw new AppError("NOT_FOUND", `KhÃ´ng tÃ¬m tháº¥y danh saÌch`, 404);
+         throw new AppError("NOT_FOUND", `Không tìm thấy danh saÌch`, 404);
       }
 
       const updateSection = await this.sectionRepository.update(

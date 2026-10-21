@@ -2,7 +2,7 @@ import { axiosInstance } from '@/app/(front)/lib/axios';
 import { ITaskModel } from '@/app/(front)/model';
 import { ITypeColor } from '@/app/(front)/model/color.model';
 import { ICreateTaskDTO, ICreateTaskWithSectionDTO, IUpdateTaskDTO } from '@/app/(front)/model/DTO/task.DTO';
-import { IRuleModel } from '@/app/(front)/model/rule/rule.model';
+import { IUpdateRuleDTO } from '@/app/(front)/model/DTO/rule.DTO';
 import { IStatus } from '@/app/(front)/model/type/type';
 
 export const taskApi = {
@@ -55,11 +55,8 @@ export const taskApi = {
   },
 
 
-  ruleUpdate:async (id:string,data:Partial<IRuleModel>):Promise<{rule:IRuleModel}>=>{
-    const res = await axiosInstance.patch<{
-      rule:ITaskModel
-    }>(`/tasks/${id}/rule`, data);
-    return res.data.rule;
+  ruleUpdate:async (id:string,data:IUpdateRuleDTO):Promise<void>=>{
+    await axiosInstance.patch(`/tasks/${id}/rule`, data);
   },
   remove: async (id: string): Promise<void> => {
     await axiosInstance.delete(`/tasks/${id}`);

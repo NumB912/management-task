@@ -8,6 +8,7 @@ import {
   UpdateTagUsecase,
 } from '@/application';
 import { TYPES } from '@/infrastructure/types/dependency.type';
+import { NotifySharedTagChangeUsecase } from '@/application/usecase/tag/notifySharedTagChange.usecase';
 import type { AuthRequest } from '@/modules/common/types/authRequest.type';
 import {
   Body,
@@ -26,6 +27,7 @@ import {
 @Controller('tags')
 export class TagsController {
   constructor(
+    private readonly sharedTagChanges: NotifySharedTagChangeUsecase,
     @Inject(TYPES.CreateTagUsecase)
     private readonly createTagUC: CreateTagUsecase,
     @Inject(TYPES.UpdateTagOnlyMeUsecase)
@@ -84,12 +86,12 @@ export class TagsController {
     @Param('tagId') tagId: string,
     @Body() body: { name?: string; color?: string },
   ) {
-    const data = await this.updateTagWithShareUC.execute({
+    const data = await this.sharedTagChanges.execute({ userId: req.user.id, tagId, operation: 'update' }, () => this.updateTagWithShareUC.execute({
       id: tagId,
       name: body.name,
       color: body.color,
       userId: req.user.id,
-    });
+    }));
     return { message: 'Thành công trong chỉnh sửa', data };
   }
 
@@ -98,10 +100,10 @@ export class TagsController {
     @Req() req: AuthRequest,
     @Param('tagId') tagId: string,
   ) {
-    const data = await this.deleteTagWithShareUC.execute({
+    const data = await this.sharedTagChanges.execute({ userId: req.user.id, tagId, operation: 'delete' }, () => this.deleteTagWithShareUC.execute({
       id: tagId,
       userId: req.user.id,
-    });
+    }));
     return { message: 'Thành công', data };
   }
 }

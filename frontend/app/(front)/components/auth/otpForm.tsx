@@ -83,21 +83,21 @@ export default function OtpForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-2xl/20 border-0">
+    <div className="flex w-full min-w-0 justify-center">
+      <Card className="w-full min-w-0 min-h-dvh max-w-none break-words rounded-none border-0 shadow-none ring-0 sm:min-h-0 sm:max-w-md sm:rounded-xl sm:shadow-2xl/20 sm:ring-1">
         <AuthBackLink href={`/auth/login?email=${encodeURIComponent(email)}`} />
-        <CardHeader className="text-center">
+        <CardHeader className="min-w-0 px-4 text-center sm:px-6">
           <div className="mx-auto mb-4 size-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Mail className="h-6 w-6 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold">Xác thực email</CardTitle>
           <CardDescription className="mt-2">
             Chúng tôi đã gửi mã 6 số đến{" "}
-            <strong className="text-foreground">{email}</strong>
+            <strong className="break-all text-foreground">{email}</strong>
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="min-w-0 space-y-4 px-4 sm:px-6">
           {error && (
             <div
               className={cn(
@@ -130,13 +130,14 @@ export default function OtpForm() {
               onChange={handleOtpChange}
               disabled={isLoading || success}
               className="w-full"
+              containerClassName="w-full min-w-0"
             >
-              <InputOTPGroup className="flex gap-2">
+              <InputOTPGroup className="grid w-full min-w-0 grid-cols-6 gap-1.5 sm:gap-2">
                 {[...new Array(6)].map((_, index) => (
                   <InputOTPSlot
                     key={index}
                     index={index}
-                    className="p-6 border text-lg font-bold"
+                    className="h-11 w-full min-w-0 border p-0 text-lg font-bold sm:h-12"
                   />
                 ))}
               </InputOTPGroup>
@@ -144,7 +145,7 @@ export default function OtpForm() {
 
             <Button
               type="submit"
-              className="w-full p-5"
+              className="h-11 w-full px-4 py-2"
               size="lg"
               disabled={isLoading || success || otp.length !== 6}
             >
@@ -177,7 +178,7 @@ export default function OtpForm() {
           </div>
         </CardContent>
 
-        <CardFooter className="flex flex-col items-center gap-2">
+        <CardFooter className="flex flex-col items-center gap-2 text-center">
           <p className="text-sm text-muted-foreground">
             Sai email?{" "}
             <Link

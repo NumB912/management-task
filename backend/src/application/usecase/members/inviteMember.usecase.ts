@@ -47,7 +47,7 @@ export class InviteMemberUsecase implements IUsecase<void> {
       user: dto.userId,
     });
     if (!list) {
-      throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y danh sÃ¡ch", 404);
+      throw new AppError("NOT_FOUND", "Không tìm thấy danh sÃ¡ch", 404);
     }
 
     const owner = await this.userRepository.findById(dto.userId);

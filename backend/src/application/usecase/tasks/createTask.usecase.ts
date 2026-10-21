@@ -87,12 +87,10 @@ export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> 
       });
 
       if (tagCreateList.length > 0) {
+        
         await this.ListRepository.pushTagsIntoList({
           listId,
-          share_tags: tagCreateList.map((tag) => ({
-            created_by: userId,
-            tag,
-          })),
+          share_tags: tagCreateList.map((tag)=>tag.toString()),
           session,
         });
       }
@@ -117,7 +115,6 @@ export class CreateTaskUsecase implements IUsecase<Partial<ITaskWithId> | null> 
         await this.AddTagsForMemberUsecase.execute({
           listIds: [list.id],
           newTags: userTags,
-          
         },session);
 
         const members = await this.MemberRepository.findManyByIds(

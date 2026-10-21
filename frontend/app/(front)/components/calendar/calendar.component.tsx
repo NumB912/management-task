@@ -1,10 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { Calendar } from "@/app/(front)/components/ui/calendar";
-import {
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenu,
-} from "@/app/(front)/components/ui/dropdown-menu";
+import ResponsiveCalendarPanel from "./responsive-calendar-panel";
 import CustomMonthCaption from "./ui/customMonthCaption.ui";
 import { Button } from "@/app/(front)/components/ui/button";
 import Repeat from "./repeat/Repeat";
@@ -105,7 +101,7 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
     defaultRepeat,
     chooseTomorrow,
     setEndTimer,
-  } = useCalendar({ 
+  } = useCalendar({
     selectedDate: rule?.start_date
       ? new Date(rule.start_date)
       : normalizeDate(new Date()),
@@ -153,13 +149,14 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
       end_date: null,
       start_date: null,
       timer: null,
-      endTimer:null
+      endTimer: null,
     });
     setIsOpen(false);
   };
 
   return (
-    <DropdownMenu
+    <ResponsiveCalendarPanel
+      trigger={trigger}
       open={isOpen}
       onOpenChange={(open) => {
         setIsOpen(open);
@@ -173,212 +170,197 @@ const CalendarComponent = ({ trigger, rule, onChangeSubmit }: CalendarProp) => {
         }
       }}
     >
-      <DropdownMenuTrigger
-        asChild
-        style={{ zIndex: 10 }}
-        className={cn("p-0!")}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {trigger}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        style={{ zIndex: 60 }}
-        className="w-full"
-        align="start"
-        side="left"
-      >
-        <div className="p-2 text-sm">
-          <div className="flex flex-col gap-1 py-3 border-gray-200">
-            <div
-              onClick={chooseToday}
-              className={cn(
-                "flex gap-2 items-center border border-gray-200 hover:bg-neutral-300 px-2 py-2 rounded cursor-pointer",
-              )}
-            >
-              <Calendar1 className="w-5 h-5" />
-              <p>Hôm nay</p>
-            </div>
-
-            <div
-              onClick={chooseTomorrow}
-              className="flex gap-2 items-center border border-gray-200 hover:bg-gray-300 px-2 py-2 rounded cursor-pointer"
-            >
-              <Sunrise className="w-5 h-5" />
-              <p>Ngày mai</p>
-            </div>
-            <div
-              onClick={chooseNextWeek}
-              className="flex gap-2 items-center border border-gray-200 hover:bg-gray-300 px-2 py-2 rounded cursor-pointer"
-            >
-              <ArrowRight className="w-5 h-5" />
-              <p>Tuần sau</p>
-            </div>
-          </div>
-          <Calendar
-            locale={vi}
-            required={true}
-            selected={selectedDate ?? new Date()}
-            mode="single"
-            onSelect={setSelectedDate}
-            weekStartsOn={1}
-            showOutsideDays
-            month={new Date(year, month)}
-            onMonthChange={(month) => {
-              setMonth(month.getMonth());
-              setYear(month.getFullYear());
-            }}
-            className={cn("p-0 [--cell-size:--spacing(10)] w-full")}
-            modifiers={{
-              endDate: (date) => {
-                return dayjs(selectedEndDate).isSame(date, "day");
-              },
-              UtilDate:(date)=>{
-                return dayjs(repeat?.until).isSame(date, "day");
-              },
-              startDate: (date) => {
-                return (
-                  dayjs(selectedDate).isSame(date, "day") && !!selectedEndDate
-                );
-              },
-              notInRange: (date) =>
-                date <= selectedDate! ||
-                date.getTime() < Date.now() ||
-                !selectedEndDate ||
-                selectedEndDate <= date,
-              InRange: (date) => date > selectedDate!,
-              Repeat: (date) => {
-                if (
-                  date.getTime() <=
-                    Math.max(selectedDate!.getTime(), Date.now()) ||
-                  !repeat.every
-                )
-                  return false;
-                const d1 = new Date(
-                  date.getFullYear(),
-                  date.getMonth(),
-                  date.getDate(),
-                );
-
-                const d2 = new Date(
-                  selectedDate!.getFullYear(),
-                  selectedDate!.getMonth(),
-                  selectedDate!.getDate(),
-                );
-
-                return (
-                  factoryCalendar(repeat, d2, d1) &&
-                  (!repeat.until || date < repeat.until)
-                );
-              },
-
-              selectedDateLessToday: (date) =>
-                selectedDate!.getTime() < Date.now() &&
-                dayjs(date).isSame(dayjs(), "day"),
-            }}
-            modifiersClassNames={{
-              notInRange: "text-gray-500",
-              Repeat: "bg-primary/20 rounded w-fit",
-              endDate:
-                "bg-primary! hover:bg-primary! text-white! hover:text-white! rounded-r-full!",
-              startDate:
-                "bg-primary! hover:bg-primary! text-white hover:text-white rounded-l-full!",
-              UtilDate: "bg-primary! hover:bg-primary! text-white! hover:text-white! rounded-r-full!",
-            }}
-            classNames={{
-              day: "m-0.5",
-              day_button:
-                "w-fit p-2 group-data-[focused=true]/day:ring-[1px] group-data-[focused=true]/day:ring-gray-200 !rounded-full cursor-pointer",
-              today: "rounded-full! text-primary! bg-primary/10!",
-            }}
-            components={{
-              MonthCaption: CustomMonthCaption,
-              Nav(props) {
-                return <></>;
-              },
-            }}
-          />
-
-          <div className="w-full grid grid-cols-1 py-2 gap-2 justify-center items-center border-gray-200">
-            <div className="flex gap-2">
-              <TimeRangePicker
-                endTimer={endTimer}
-                onChange={(value) => {
-                  setEndTimer(value.endTimer ?? undefined);
-                  setTimer(value.timer ?? undefined);
-                }}
-                timer={timer}
-                className=""
-              />
-            </div>
-            <RepeatProvider
-              value={{
-                setRepeat,
-                selectedDate,
-                setDefaultRepeat,
-                defaultRepeat,
-                repeat,
-                setSelectedDate,
-                setSelectedEndDate
-              }}
-            >
-              <Repeat />
-            </RepeatProvider>
-            <>
-              {repeat?.mode != "none" && (
-                <End
-                  placeholder="Ngày dừng lặp"
-                  addTitleDate="Ngày dừng"
-                  endDate={repeat?.until??null}
-                  selectedDate={selectedDate ?? new Date()}
-                  setEndDate={(selectUtil:Date|null)=>{
-                    setRepeat({...repeat, until: selectUtil})
-                    setSelectedEndDate(null)
-                  }}
-                />
-              )}
-              {repeat?.mode == "none" && (
-                <End
-                  placeholder="Ngày kết thúc"
-                  addTitleDate="Cho tới ngày"
-                  endDate={selectedEndDate}
-                  selectedDate={selectedDate ?? new Date()}
-                  setEndDate={(endDate)=>{
-                               setSelectedEndDate(endDate)
-                    setRepeat({...repeat, until: null})
-                  }}
-                />
-              )}
-            </>
+      <div className="p-3 text-sm">
+        <div className="flex flex-col gap-1 py-3 border-gray-200">
+          <div
+            onClick={chooseToday}
+            className={cn(
+              "flex gap-2 items-center border border-gray-200 hover:bg-neutral-300 px-2 py-2 rounded cursor-pointer",
+            )}
+          >
+            <Calendar1 className="w-5 h-5" />
+            <p>Hôm nay</p>
           </div>
 
-          <div className="flex gap-2 w-full">
-            <Button
-              className="flex-1 cursor-pointer"
-              variant={"outline"}
-              onClick={handleClear}
-            >
-              Xóa
-            </Button>
-            <Button
-              className="flex-1 cursor-pointer"
-              onClick={() => {
-                onChangeSubmit({
-                  ...rule,
-                  end_date: selectedEndDate,
-                  repeat: repeat,
-                  start_date: selectedDate,
-                  timer: timer,
-                  endTimer: endTimer,
-                });
-                setIsOpen(false);
-              }}
-            >
-              Xác nhận
-            </Button>
+          <div
+            onClick={chooseTomorrow}
+            className="flex gap-2 items-center border border-gray-200 hover:bg-gray-300 px-2 py-2 rounded cursor-pointer"
+          >
+            <Sunrise className="w-5 h-5" />
+            <p>Ngày mai</p>
+          </div>
+          <div
+            onClick={chooseNextWeek}
+            className="flex gap-2 items-center border border-gray-200 hover:bg-gray-300 px-2 py-2 rounded cursor-pointer"
+          >
+            <ArrowRight className="w-5 h-5" />
+            <p>Tuần sau</p>
           </div>
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        <Calendar
+          locale={vi}
+          required={true}
+          selected={selectedDate ?? new Date()}
+          mode="single"
+          onSelect={setSelectedDate}
+          weekStartsOn={1}
+          showOutsideDays
+          month={new Date(year, month)}
+          onMonthChange={(month) => {
+            setMonth(month.getMonth());
+            setYear(month.getFullYear());
+          }}
+          className={cn("p-0 [--cell-size:clamp(1.75rem,10vw,2.5rem)] w-full")}
+          modifiers={{
+            endDate: (date) => {
+              return dayjs(selectedEndDate).isSame(date, "day");
+            },
+            UtilDate: (date) => {
+              return dayjs(repeat?.until).isSame(date, "day");
+            },
+            startDate: (date) => {
+              return (
+                dayjs(selectedDate).isSame(date, "day") && !!selectedEndDate
+              );
+            },
+            notInRange: (date) =>
+              date <= selectedDate! ||
+              date.getTime() < Date.now() ||
+              !selectedEndDate ||
+              selectedEndDate <= date,
+            InRange: (date) => date > selectedDate!,
+            Repeat: (date) => {
+              if (
+                date.getTime() <=
+                  Math.max(selectedDate!.getTime(), Date.now()) ||
+                !repeat.every
+              )
+                return false;
+              const d1 = new Date(
+                date.getFullYear(),
+                date.getMonth(),
+                date.getDate(),
+              );
+
+              const d2 = new Date(
+                selectedDate!.getFullYear(),
+                selectedDate!.getMonth(),
+                selectedDate!.getDate(),
+              );
+
+              return (
+                factoryCalendar(repeat, d2, d1) &&
+                (!repeat.until || date < repeat.until)
+              );
+            },
+
+            selectedDateLessToday: (date) =>
+              selectedDate!.getTime() < Date.now() &&
+              dayjs(date).isSame(dayjs(), "day"),
+          }}
+          modifiersClassNames={{
+            notInRange: "text-gray-500",
+            Repeat: "bg-primary/20 rounded",
+            endDate:
+              "bg-primary! hover:bg-primary! text-white! hover:text-white! rounded-r-full!",
+            startDate:
+              "bg-primary! hover:bg-primary! text-white hover:text-white rounded-l-full!",
+            UtilDate:
+              "bg-primary! hover:bg-primary! text-white! hover:text-white! rounded-r-full!",
+          }}
+          classNames={{
+            day_button:
+              "mx-auto size-(--cell-size) max-w-full p-0 group-data-[focused=true]/day:ring-[1px] group-data-[focused=true]/day:ring-gray-200 !rounded-full cursor-pointer",
+            today: "rounded-full! text-primary! bg-primary/10!",
+          }}
+          components={{
+            MonthCaption: CustomMonthCaption,
+            Nav(props) {
+              return <></>;
+            },
+          }}
+        />
+
+        <div className="w-full grid grid-cols-1 py-2 gap-2 justify-center items-center border-gray-200">
+          <div className="flex gap-2">
+            <TimeRangePicker
+              endTimer={endTimer}
+              onChange={(value) => {
+                setEndTimer(value.endTimer ?? undefined);
+                setTimer(value.timer ?? undefined);
+              }}
+              timer={timer}
+              className=""
+            />
+          </div>
+          <RepeatProvider
+            value={{
+              setRepeat,
+              selectedDate,
+              setDefaultRepeat,
+              defaultRepeat,
+              repeat,
+              setSelectedDate,
+              setSelectedEndDate,
+            }}
+          >
+            <Repeat />
+          </RepeatProvider>
+          <>
+            {repeat?.mode != "none" && (
+              <End
+                placeholder="Ngày dừng lặp"
+                addTitleDate="Ngày dừng lặp"
+                endDate={repeat?.until ?? null}
+                selectedDate={selectedDate ?? new Date()}
+                setEndDate={(selectUtil: Date | null) => {
+                  setRepeat({ ...repeat, until: selectUtil });
+                  setSelectedEndDate(null);
+                }}
+              />
+            )}
+            {repeat?.mode == "none" && (
+              <End
+                placeholder="Ngày kết thúc"
+                addTitleDate="Cho tới ngày"
+                endDate={selectedEndDate}
+                selectedDate={selectedDate ?? new Date()}
+                setEndDate={(endDate) => {
+                  setSelectedEndDate(endDate);
+                  setRepeat({ ...repeat, until: null });
+                }}
+              />
+            )}
+          </>
+        </div>
+
+        <div className="flex gap-2 w-full">
+          <Button
+            className="flex-1 cursor-pointer"
+            variant={"outline"}
+            onClick={handleClear}
+          >
+            Xóa
+          </Button>
+          <Button
+            className="flex-1 cursor-pointer"
+            onClick={() => {
+              onChangeSubmit({
+                ...rule,
+                end_date: selectedEndDate,
+                repeat: repeat,
+                start_date: selectedDate,
+                timer: timer,
+                endTimer: endTimer,
+              });
+              setIsOpen(false);
+            }}
+          >
+            Xác nhận
+          </Button>
+        </div>
+      </div>
+    </ResponsiveCalendarPanel>
   );
 };
 export default CalendarComponent;

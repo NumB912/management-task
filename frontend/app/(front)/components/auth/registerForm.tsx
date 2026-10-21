@@ -85,9 +85,9 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full min-w-md shadow-2xl/20 border-0"> 
-        <CardHeader className="text-center">
+    <div className="flex w-full min-w-0 justify-center">
+      <Card className="w-full min-w-0 min-h-dvh max-w-none break-words rounded-none border-0 shadow-none ring-0 sm:min-h-0 sm:max-w-md sm:rounded-xl sm:shadow-2xl/20 sm:ring-1">
+        <CardHeader className="min-w-0 px-4 text-center sm:px-6">
           <CardTitle className="text-2xl font-bold">
             Tạo tài khoản mới
           </CardTitle>
@@ -96,7 +96,7 @@ export default function RegisterForm() {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="min-w-0 space-y-4 px-4 sm:px-6">
           {error && (
             <div
               role="alert"
@@ -131,7 +131,7 @@ export default function RegisterForm() {
                   placeholder="Nguyễn Văn A"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="p-5 pl-9"
+                  className="h-11 py-2 pl-9"
                   required
                   autoComplete="name"
                   disabled={isLoading}
@@ -148,7 +148,7 @@ export default function RegisterForm() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="p-5 pl-9"
+                  className="h-11 py-2 pl-9"
                   required
                   autoComplete="new-password"
                   disabled={isLoading}
@@ -168,7 +168,7 @@ export default function RegisterForm() {
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="p-5 pl-9"
+                  className="h-11 py-2 pl-9"
                   required
                   autoComplete="new-password"
                   disabled={isLoading}
@@ -178,7 +178,7 @@ export default function RegisterForm() {
 
             <Button
               type="submit"
-              className="w-full p-5"
+              className="h-11 w-full px-4 py-2"
               size="lg"
               disabled={isLoading}
             >
@@ -193,7 +193,7 @@ export default function RegisterForm() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex items-center justify-center gap-2 p-3">
+        <CardFooter className="flex flex-wrap items-center justify-center gap-2 p-4 text-center">
           <p className="text-sm text-muted-foreground">Đã có tài khoản?</p>{" "}
           <Link
             href="/auth/login"

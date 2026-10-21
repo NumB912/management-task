@@ -2,6 +2,9 @@ import { toast } from "sonner";
 import { ITaskModel } from "../../model";
 import { IUpdateTaskDTO } from "../../model/DTO/task.DTO";
 import { useUpdateTask } from "./useTaskMutation.hook";
+import { useWorkspaceStore } from "../store/workspace.state";
+import { buildTagOperations } from "../../utils/taskTagOperations";
+import { taskApi } from "../api/task/task.api";
 
 const ALL_ACTIVE_TAG_REGEX = /#([^\s#]+)/g;
 
@@ -81,14 +84,30 @@ export const useUpdateTaskSubmit = ({
     const onError = (error: unknown) => {
       toast.error(getErrorMessage(error));
     };
-    console.log(confirmedRule);
-    const onSuccess = () => {
+    const onSuccess = async () => {
+      try {
+        const savedTask = await taskApi.getById(taskId);
+        onUpdateTask(taskId, savedTask);
+      } catch (error) {
+        console.error("Không thể tải lại task sau khi cập nhật", error);
+        toast.error("Đã lưu task nhưng chưa tải lại được. Vui lòng làm mới trang.");
+      }
       onSubmitSuccess();
-      onUpdateTask(taskId, task as Partial<ITaskModel>);
     };
     mutate(
       {
-        data: task,
+        data: {
+          ...task,
+          ...(task.rule && Array.isArray(task.rule.tags) ? {
+            rule: {
+              ...task.rule,
+              tags: buildTagOperations(
+                useWorkspaceStore.getState().taskIndex[taskId]?.rule.tags ?? [],
+                task.rule.tags,
+              ),
+            },
+          } : {}),
+        },
         taskId: taskId,
       },
       { onError, onSuccess },

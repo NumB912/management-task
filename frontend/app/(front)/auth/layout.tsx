@@ -1,12 +1,9 @@
-import React from "react";
+import type { ReactNode } from "react";
 
-const layout = ({ children }: { children: React.ReactNode }) => {
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid h-screen overflow-hidden w-screen items-center justify-center bg-neutral-50/40">
-     {children}
+    <div className="flex min-h-dvh w-full min-w-0 flex-col bg-neutral-50/40 sm:px-4 sm:py-6">
+      <div className="w-full min-w-0 self-center sm:my-auto">{children}</div>
     </div>
   );
-};
-
-export default layout;
- 
+}

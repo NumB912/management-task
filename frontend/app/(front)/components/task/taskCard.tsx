@@ -101,7 +101,9 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
     handleDeleteTask,
     handleUpdateRule,
     handleUpdateTags,
+    isUpdatingRule,
     handleUpdateTask,
+    handleTaskUpdated,
     toggleStatus,
   } = useTask(taskId);
 
@@ -467,11 +469,12 @@ export const Task = React.memo(({ taskId, depth }: TaskProp) => {
           listId={task.list}
           setIsEditing={setisOpenTaskEdit}
           isEditing={isOpenTaskEdit}
-          onUpdateTask={handleUpdateTask}
+          onUpdateTask={handleTaskUpdated}
           task={task}
         />
         <TagCombobox
           open={openTagEdit}
+          isPending={isUpdatingRule}
           onOpenChange={setOpenTagEdit}
           selectedTags={task.rule?.tags ?? []}
           onCreateTag={handleCreateTag}

@@ -5,11 +5,11 @@ export class CheckOwnerTagUsecase implements IUsecase<boolean> {
     async execute(user_id: string, tag_id: string): Promise<boolean> {
         try {
             if (!user_id || !tag_id) {
-                throw new AppError("NOT_FOUND", "khÃ´ng cÃ³ dá»¯ liá»‡u vui lÃ²ng thá»­ láº¡i", 404)
+                throw new AppError("NOT_FOUND", "Không tìm thấy dữ liệu vui lòng thử lại", 404)
             }
             const tag = await this.tagRepository.findById(tag_id)
             if (!tag) {
-                throw new AppError("NOT FOUND", "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u", 404)
+                throw new AppError("NOT FOUND", "Không tìm thấy dá»¯ liá»‡u", 404)
             }
             if (tag.user != user_id) {
                 return false

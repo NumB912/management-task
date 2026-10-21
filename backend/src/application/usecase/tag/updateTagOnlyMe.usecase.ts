@@ -16,7 +16,7 @@ export class UpdateTagOnlyMeUsecase implements IUsecase<
     const { userId, name, id, color } = updateTagDTO
     const tagCur = await this.TagRepository.findOne({ id:id, user: userId })
     if (!tagCur) {
-      throw new AppError("NOT_FOUND", `KhÃ´ng tÃ¬m tháº¥y`, 404);
+      throw new AppError("NOT_FOUND", `Không tìm thấy`, 404);
     }
 
     if (name === undefined && color !== undefined) {
@@ -40,12 +40,14 @@ export class UpdateTagOnlyMeUsecase implements IUsecase<
       const lists = await this.ListRepository.getListByTagNameAndUserId({
         userId: userId,
         tagName: [tagCur.name],
+        session:session
       }) ?? []
       const listWithouShare = lists.filter((list) => !list.isShareList)
       const listIds = listWithouShare.map((list) => list.id)
       const rulesOfLists = await this.RuleRepository.getRuleInListAndTags({
         listIds: listIds,
-        nameTags: [tagCur.name]
+        nameTags: [tagCur.name],
+        session:session
       }) ?? []
       const ruleIds = rulesOfLists.flatMap((rule) => rule.rules.map((rule) => rule.id))
       const isShareForAnyList = lists.some((list) => list.isShareList)
@@ -92,7 +94,7 @@ export class UpdateTagOnlyMeUsecase implements IUsecase<
       await this.unitWork.rollBackTransaction()
       throw new AppError(
         "ERROR_UPDATE",
-        `Lá»—i trong quÃ¡ trÃ¬nh cáº­p nháº­t tag:${error}`,
+        `Lỗi trong quá trình thực thi tag:${error}`,
         500,
       );
     }

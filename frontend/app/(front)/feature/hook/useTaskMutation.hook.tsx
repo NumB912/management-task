@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ICreateTaskDTO, ICreateTaskWithSectionDTO, IUpdateTaskDTO } from '../../model/DTO/task.DTO';
 import { taskApi } from '../api/task/task.api';
-import { IRuleModel } from '../../model/rule/rule.model';
+import { IUpdateRuleDTO } from '../../model/DTO/rule.DTO';
+import { useWorkspaceStore } from '../store/workspace.state';
 import { IStatus } from '../../model/type/type';
 import { ITypeColor } from '../../model/color.model';
 
@@ -39,13 +40,29 @@ export const useUpdateTask = (listId: string) => {
   return useMutation({
     mutationFn: ({ data, taskId }: { taskId: string; data: Partial<IUpdateTaskDTO> }) =>
       taskApi.update(taskId, data),
+    onSuccess: async (_data, { taskId }) => {
+      try {
+        const task = await taskApi.getById(taskId);
+        useWorkspaceStore.getState().updateTask(taskId, task);
+      } catch (error) {
+        console.error('Không thể tải lại task sau khi cập nhật', error);
+      }
+    },
   });
 };
 
 export const useUpdateRule = (listId: string) => {
   return useMutation({
-    mutationFn: ({ data, taskId }: { taskId: string; data: Partial<IRuleModel> }) =>
+    mutationFn: ({ data, taskId }: { taskId: string; data: IUpdateRuleDTO }) =>
       taskApi.ruleUpdate(taskId, data),
+    onSuccess: async (_data, { taskId }) => {
+      try {
+        const task = await taskApi.getById(taskId);
+        useWorkspaceStore.getState().updateRule(taskId, task.rule);
+      } catch (error) {
+        console.error('Không thể tải lại rule sau khi cập nhật', error);
+      }
+    },
   });
 };
 

@@ -61,7 +61,7 @@ export class SyncMemberTagsUseCase {
                     name:doc.name,
                     user:doc.user
                 }
-            }))
+            }), session)
         }
 
         return {

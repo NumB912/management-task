@@ -85,7 +85,7 @@ interface IWorkspaceState {
     sectionId: string,
     section: Partial<ISectionModelState>,
   ) => void;
-  removetagIndex: (nameTag: string) => void;
+  removetagIndex: (nameTag: string, withShare?: boolean) => void;
   setfilterIndex: (filterId: string, info: Partial<IFilterModel>) => void;
   removefilterIndex: (filterId: string) => void;
   hasTag: (name: string | null) => boolean;
@@ -876,15 +876,21 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
         },
       };
     }),
-  removetagIndex: (nameTag: string) =>
+  removetagIndex: (nameTag: string, withShare = true) =>
     set((state) => {
       if (!(nameTag in state.tagIndex)) return state;
       const { [nameTag]: _removed, ...restTags } = state.tagIndex;
+      let usedInShared = false;
       let taskChanged = false;
       const taskIndex = { ...state.taskIndex };
       for (const [id, task] of Object.entries(state.taskIndex)) {
         const tags = task.rule?.tags;
         if (!tags?.includes(nameTag)) continue;
+
+        if (!withShare && state.listIndex[task.list]?.isShareList) {
+          usedInShared = true;
+          continue;
+        }
 
         taskChanged = true;
         taskIndex[id] = {
@@ -912,7 +918,9 @@ export const useWorkspaceStore = create<IWorkspaceState>((set, get) => ({
       }
 
       return {
-        tagIndex: restTags,
+        tagIndex: usedInShared
+          ? { ...restTags, [nameTag]: { ...state.tagIndex[nameTag], isShareTag: true } }
+          : restTags,
         taskIndex: taskChanged ? taskIndex : state.taskIndex,
         filterIndex: filterChanged ? filterIndex : state.filterIndex,
       };

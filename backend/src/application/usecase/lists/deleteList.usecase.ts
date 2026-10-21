@@ -38,7 +38,7 @@ export class DeleteListUsecase implements IUsecase<IListWithId | null> {
   async execute(DTO: DeleteListDTO): Promise<IListWithId | null> {
     const { id, userId } = DTO;
     if (!id) {
-      throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u", 404);
+      throw new AppError("NOT_FOUND", "Không tìm thấy dá»¯ liá»‡u", 404);
     }
 
     let list: IListWithId | null;
@@ -49,7 +49,7 @@ export class DeleteListUsecase implements IUsecase<IListWithId | null> {
 
       list = await this.listRepository.findById(id, session);
       if (!list) {
-        throw new AppError("NOT_FOUND", "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u", 404);
+        throw new AppError("NOT_FOUND", "Không tìm thấy dá»¯ liá»‡u", 404);
       }
 
       if (list.name === "Inbox") {

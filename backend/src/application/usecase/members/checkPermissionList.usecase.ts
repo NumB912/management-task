@@ -6,7 +6,7 @@ export class CheckPermissionListUsecase implements IUsecase<boolean> {
     async execute(user_id: string, list_id: string,PermissionMethodMap:PermissionMethodMap,method:HttpMethod): Promise<boolean> {
         try {
             if (!user_id || !list_id) {
-                throw new AppError("NOT_FOUND", "khÃ´ng cÃ³ dá»¯ liá»‡u vui lÃ²ng thá»­ láº¡i", 404)
+                throw new AppError("NOT_FOUND", "Không tìm thấy dữ liệu vui lòng thử lại", 404)
             }
             const [list, member] = await Promise.all([this.listRepository.findById(list_id), this.memberRepository.findOne({
                 list: list_id,

@@ -7,7 +7,7 @@ export class GetAllSectionUsecase implements IUsecase<
   async execute(listId: string,user_id:string): Promise<Partial<ISection>[] | null> {
     try{
       if (!listId) {
-        throw new AppError("NOT_FOUND", `KhÃ´ng tÃ¬m tháº¥y list`, 404);
+        throw new AppError("NOT_FOUND", `Không tìm thấy list`, 404);
       }
       const sections = this.repositories.findSectionByList(listId,user_id);
       return sections;

@@ -11,7 +11,9 @@ import {
 } from "../useTaskMutation.hook";
 import { useCreateTag } from "../useTagMutation.hook";
 import { ITaskModel } from "../../../model";
-import { IRuleModel } from "../../../model/rule/rule.model";
+import { IUpdateRuleDTO, ITagOperationsDTO } from "../../../model/DTO/rule.DTO";
+import { applyTagOperations, buildTagOperations, prepareTaskRuleUpdate } from "../../../utils/taskTagOperations";
+import { IUpdateTaskDTO } from "../../../model/DTO/task.DTO";
 import { IStatus } from "../../../model/type/type";
 import { getNextOccurrence } from "../../../utils/caculateNextDay";
 import { useShallow } from "zustand/react/shallow";
@@ -37,10 +39,10 @@ export function useTask(taskId: string) {
   const updateColorStore = useWorkspaceStore((s)=>s.updateColor)
   const {playBubble} = useAudio()
   const listId = task?.list ?? "";
-  const { mutate: updateRule } = useUpdateRule(listId);
+  const { mutate: updateRule, isPending: isUpdatingRule } = useUpdateRule(listId);
   const { mutate: updateTask } = useUpdateTask(listId);
   const { mutate: deleteTask } = useRemoveTask(listId);
-  const { mutate: createTag } = useCreateTag();
+  const { mutateAsync: createTag } = useCreateTag();
   const { mutate: updateColor } = useUpdateColor();
   const {schedule} = useTaskStatusBatch()
   const handleUpdateColorTask = (id: string, dataColor: string) => {
@@ -61,16 +63,21 @@ export function useTask(taskId: string) {
     );
   };
 
-  const handleUpdateTask = (id: string, data: Partial<ITaskModel>) => {
-    const prev = task;
+  const handleUpdateTask = (id: string, data: Partial<IUpdateTaskDTO>) => {
+    const prev = useWorkspaceStore.getState().taskIndex[id];
     if (!prev) return;
-    const { section, ...rest } = data;
+    const preparedRule = data.rule ? prepareTaskRuleUpdate(prev.rule, data.rule) : undefined;
+    const { section, rule: _rule, ...taskFields } = data;
+    const rest = { ...taskFields, ...(preparedRule ? { rule: preparedRule.rule } : {}) };
     const isMoving = !!section && section !== prev.section;
     const restKeys = Object.keys(rest) as (keyof ITaskModel)[];
     if (isMoving) moveTaskIntoSection(id, section!);
     if (restKeys.length) updateTaskStore(id, rest);
     updateTask(
-      { taskId: id, data },
+      { taskId: id, data: {
+        ...data,
+        ...(preparedRule ? { rule: preparedRule.data } : {}),
+      } },
       {
         onError: () => {
           if (isMoving) moveTaskIntoSection(id, prev.section!);
@@ -86,10 +93,14 @@ export function useTask(taskId: string) {
     );
   };
 
-  const handleUpdateRule = (id: string, data: Partial<IRuleModel>) => {
-    const prev = task;
+  const handleUpdateRule = (id: string, data: IUpdateRuleDTO) => {
+    const prev = useWorkspaceStore.getState().taskIndex[id];
     if (!prev) return;
-    updateTaskStore(id, { rule: { ...prev.rule, ...data } });
+    const { tags, ...rest } = data;
+    updateTaskStore(id, { rule: {
+      ...prev.rule, ...rest,
+      ...(tags !== undefined ? { tags: applyTagOperations(prev.rule.tags ?? [], tags) } : {}),
+    } });
     updateRule(
       { taskId: id, data },
       {
@@ -101,10 +112,18 @@ export function useTask(taskId: string) {
     );
   };
 
-  const handleUpdateTags = (tags: string[]) =>
-    handleUpdateRule(taskId, { tags });
+  const handleTagOperations = (tags: ITagOperationsDTO) => {
+    if (Object.keys(tags).length > 0) handleUpdateRule(taskId, { tags });
+  };
+  const handleUpdateTags = (tags: string[]) => {
+    const current = useWorkspaceStore.getState().taskIndex[taskId]?.rule.tags ?? [];
+    handleTagOperations(buildTagOperations(current, tags));
+  };
 
-  const handleCreateTag = (name: string) => createTag({ name });
+  const handleCreateTag = async (name: string) => {
+    const tag = await createTag({ name });
+    useWorkspaceStore.getState().addTag(tag);
+  };
 
 const handleUpdateStatusTask = (id: string, status: IStatus) => {
   const current = task;
@@ -152,8 +171,11 @@ const handleUpdateStatusTask = (id: string, status: IStatus) => {
     color,
     task,
     handleUpdateTask,
+    handleTaskUpdated: updateTaskStore,
     handleUpdateRule,
     handleUpdateTags,
+    handleTagOperations,
+    isUpdatingRule,
     handleCreateTag,
     handleUpdateStatusTask,
     toggleStatus,

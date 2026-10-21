@@ -100,10 +100,10 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-transparent p-4">
-      <Card className="w-full max-w-md shadow-2xl/20 border-0">
+    <div className="flex w-full min-w-0 justify-center">
+      <Card className="w-full min-w-0 min-h-dvh max-w-none break-words rounded-none border-0 shadow-none ring-0 sm:min-h-0 sm:max-w-md sm:rounded-xl sm:shadow-2xl/20 sm:ring-1">
         <AuthBackLink />
-        <CardHeader className="text-center">
+        <CardHeader className="min-w-0 px-4 text-center sm:px-6">
           <div className="mx-auto mb-4 size-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Lock className="h-6 w-6 text-primary" />
           </div>
@@ -115,7 +115,7 @@ export default function ResetPasswordPage() {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="min-w-0 space-y-4 px-4 sm:px-6">
           {error && (
             <div
               className={cn(
@@ -156,7 +156,7 @@ export default function ResetPasswordPage() {
                     id="email"
                     type="email"
                     value={email}
-                    className="p-5 pl-9"
+                    className="h-11 py-2 pl-9"
                     readOnly
                     disabled
                   />
@@ -173,7 +173,7 @@ export default function ResetPasswordPage() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9"
+                    className="h-11 pl-9"
                     required
                     autoComplete="new-password"
                     disabled={isLoading}
@@ -193,7 +193,7 @@ export default function ResetPasswordPage() {
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-9"
+                    className="h-11 pl-9"
                     required
                     autoComplete="new-password"
                     disabled={isLoading}
@@ -203,7 +203,7 @@ export default function ResetPasswordPage() {
 
               <Button
                 type="submit"
-                className="w-full p-5"
+                className="h-11 w-full px-4 py-2"
                 size="lg"
                 disabled={isLoading}
               >

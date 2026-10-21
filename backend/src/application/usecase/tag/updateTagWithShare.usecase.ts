@@ -18,7 +18,7 @@ export class UpdateTagUsecase implements IUsecase<
 
     const tagCur = await this.TagRepository.findOne({ id: id, user: userId })
     if (!tagCur) {
-      throw new AppError("NOT_FOUND", `KhÃ´ng tÃ¬m tháº¥y`, 404);
+      throw new AppError("NOT_FOUND", `Không tìm thấy`, 404);
     }
 
     if (name === undefined && color !== undefined) {
@@ -31,8 +31,8 @@ export class UpdateTagUsecase implements IUsecase<
 
     if (name != undefined) {
       const isSameName = await this.TagRepository.findTagByName({ name: name, userId: userId })
-      if (isSameName) {
-        throw new AppError("NOT_FOUND", `trÃ¹ng tÃªn rá»“i`, 404);
+      if (isSameName && isSameName.id !== id) {
+        throw new AppError("NOT_FOUND", `Trùng tên rồi`, 404);
       }
     }
     try {
@@ -41,40 +41,36 @@ export class UpdateTagUsecase implements IUsecase<
       const lists = await this.ListRepository.getListByTagNameAndUserId({
         userId: userId,
         tagName: [tagCur.name],
+        session:session
       }) ?? []
       const listIds = lists.map((list) => list.id)
       const rulesOfLists = await this.RuleRepository.getRuleInListAndTags({
         listIds: listIds,
-        nameTags: [tagCur.name]
+        nameTags: [tagCur.name],
+        session:session
       }) ?? []
       const ruleIds = rulesOfLists.flatMap((rule) => rule.rules.map((rule) => rule.id))
-      await Promise.all([this.ListRepository.updateListShareTag({
+      await this.ListRepository.updateListShareTag({
         currentName: tagCur.name,
         newName: name,
-        listIds: listIds,
-        session
-      })
-        , this.RuleRepository.updateRuleTag({
-          currentName: tagCur.name,
-          newName: name,
-          ruleIds: ruleIds,
-          session
-        })
-      ])
-
-      await this.TagRepository.updateByName({
-        name: tagCur.name,
-        userId: userId,
-        data: {
-          ...(name !== undefined ? { name } : {}),
-          ...(color !== undefined ? { color } : {}),
-        }
-      },session)
+        listIds,
+        session,
+      });
+      await this.RuleRepository.updateRuleTag({
+        currentName: tagCur.name,
+        newName: name,
+        ruleIds,
+        session,
+      });
+      await this.TagRepository.update(id, {
+        name,
+        ...(color !== undefined ? { color } : {}),
+      }, session);
 
       await this.addTagsForMember.execute({
-        newTags: [tagCur.name],
-        listIds: listIds,
-      },session)
+        newTags: [name],
+        listIds,
+      }, session);
 
       await this.unitWork.commitTransaction()
       return true
@@ -84,7 +80,7 @@ export class UpdateTagUsecase implements IUsecase<
       console.error(error);
       throw new AppError(
         "ERROR_UPDATE",
-        `Lá»—i trong quÃ¡ trÃ¬nh cáº­p nháº­t tag:${error}`,
+        `Lỗi trong quá trình thực thi tag:${error}`,
         500,
       );
     }

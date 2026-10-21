@@ -18,7 +18,7 @@ export class ConfirmOtpUsecase implements IUsecase<string> {
     try {
       const [token] = await Promise.all([this.TokenService.generateToken({ email: email }, "7m"), this.otpService.verify(email, otp),])
       if (!token) {
-        throw new AppError("UNVALID", "KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i dÃ¹ng", 400);
+        throw new AppError("UNVALID", "Không tìm thấy ngÆ°á»i dÃ¹ng", 400);
       }
       await this.RedisService.set(`register:${email}`, token, 60 * 7);
       return token;

@@ -1,4 +1,6 @@
 import { TYPES } from '@/infrastructure/types/dependency.type.js';
+import { IPublisher } from '@/domain';
+import { NotifySharedTagChangeUsecase } from '@/application/usecase/tag/notifySharedTagChange.usecase';
 import {
   MemberRepository,
   FilterRepository,
@@ -19,6 +21,12 @@ import { UpdateTagOnlyMeUsecase } from '@/application/usecase/tag/updateTagOnlyM
 import { UpdateTagUsecase } from '@/application/usecase/tag/updateTagWithShare.usecase.js';
 
 export const tagsProviders = [
+  {
+    provide: NotifySharedTagChangeUsecase,
+    inject: [TYPES.TagRepository, TYPES.ListRepository, TYPES.MemberRepository, TYPES.Publisher],
+    useFactory: (tags: TagRepository, lists: ListRepository, members: MemberRepository, publisher: IPublisher) =>
+      new NotifySharedTagChangeUsecase(tags, lists, members, publisher),
+  },
   {
     provide: TYPES.AddTagsForMemberUsecase,
     inject: [TYPES.MemberRepository, TYPES.SynsMemberTagUsecase],

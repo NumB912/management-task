@@ -32,7 +32,7 @@ export class DeleteTagOnlyMeUsecase implements IUsecase<boolean> {
       const session = this.unitWork.getSession();
 
       const listByUser =
-        (await this.ListRepository.getListByUser({ userId })) ?? [];
+        (await this.ListRepository.getListByUser({ userId, session })) ?? [];
       const shareListTag = listByUser.filter((list) =>
         list.shared_tags?.some(
           (shareTag) =>
@@ -46,14 +46,14 @@ export class DeleteTagOnlyMeUsecase implements IUsecase<boolean> {
         (await this.RuleRepository.getRuleInListAndTags({
           listIds,
           nameTags: [tag.name],
+          session,
         })) ?? [];
       const ruleIds = ruleData.flatMap((rule) => rule.rules.map((r) => r.id));
       await this.ListRepository.pullTagsOutOfList({
         listIds,
         nameTags: [tag.name],
         session,
-      });
-
+      })
       await this.RuleRepository.pullTagsOutOfRule({
         nameTags: [tag.name],
         ruleIds,
@@ -69,16 +69,7 @@ export class DeleteTagOnlyMeUsecase implements IUsecase<boolean> {
           session,
         );
       } else {
-        await this.TagRepository.updateByName(
-          {
-            name: tag.name,
-            userId: userId,
-            data: {
-              isShareTag: true,
-            },
-          },
-          session,
-        );
+        await this.TagRepository.update(tag.id, { isShareTag: true }, session);
       }
       await this.unitWork.commitTransaction();
       return true;

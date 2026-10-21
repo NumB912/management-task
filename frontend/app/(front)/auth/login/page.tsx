@@ -48,6 +48,7 @@ export default function LoginPage() {
     const url = new URL(window.location.href)
     const error = url.searchParams.get("google_error")
     if (!error) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGoogleError(error === "email_exists"
       ? "Email này đã có tài khoản. Hãy đăng nhập bằng mật khẩu, sau đó mở Profile để liên kết Google."
       : error === "unavailable"
@@ -67,6 +68,7 @@ export default function LoginPage() {
     }
     console.log(apiUrl)
     setGooglePending(true)
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(`${apiUrl.replace(/\/$/, "")}/auth/google`)
   }
 
@@ -99,18 +101,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center p-4">
-      <Card className={cn("w-full min-w-md shadow-2xl/20 border-0")}>
-        <CardHeader className="text-center pt-5 px-10">
-          <CardTitle className="text-3xl font-bold">Đăng nhập</CardTitle>
+    <div className="flex w-full min-w-0 justify-center">
+      <Card className={cn("w-full min-w-0 min-h-dvh max-w-none wrap-break-word rounded-none border-0 shadow-none ring-0 sm:min-h-0 sm:max-w-md sm:rounded-xl sm:shadow-2xl/20 sm:ring-1")}>
+        <CardHeader className="text-center pt-3 px-4 sm:pt-5 sm:px-6 ">
+          <CardTitle className="text-2xl font-bold sm:text-3xl">Đăng nhập</CardTitle>
           <CardDescription className="mt-2">
             Đăng nhập để tiếp tục sử dụng ứng dụng
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4 pt-5 px-10">
+        <CardContent className="min-w-0 space-y-4 pt-3 px-4 sm:pt-5 sm:px-6 ">
           {googleError && <p role="alert" className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">{googleError}</p>}
-          <Button type="button" variant="outline" className="w-full" onClick={loginGoogle} disabled={isPending || googlePending}>
+          <Button type="button" variant="outline" className="h-11 w-full" onClick={loginGoogle} disabled={isPending || googlePending}>
             {googlePending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <Image src="/google.svg" alt="" width={20} height={20} /> Tiếp tục với Google
           </Button>
@@ -141,7 +143,7 @@ export default function LoginPage() {
                     setEmail(e.target.value)
                     clearError()
                   }}
-                  className="p-5 pl-9"
+                  className="h-11 py-2 pl-9"
                   required
                   autoComplete="email"
                   disabled={isPending}
@@ -150,7 +152,7 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <Label htmlFor="password">Mật khẩu</Label>
                 <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
                   Quên mật khẩu?
@@ -167,7 +169,7 @@ export default function LoginPage() {
                     setPassword(e.target.value)
                     clearError()
                   }}
-                  className="p-5 pl-9"
+                  className="h-11 py-2 pl-9"
                   required
                   autoComplete="current-password"
                   disabled={isPending}
@@ -177,7 +179,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full p-5 focus:transition-all focus:scale-95"
+              className="h-11 w-full px-4 py-2 focus:transition-all focus:scale-95"
               size="lg"
               disabled={isPending}
             >
@@ -193,7 +195,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
 
-        <CardFooter className="flex flex-col items-center gap-2 bg-primary/5">
+        <CardFooter className="flex flex-col items-center gap-2 bg-primary/5 px-4 text-center sm:px-6">
           <p className="text-sm text-muted-foreground">
             Chưa có tài khoản?{" "}
             <Link href="/auth/send-register" className="text-primary hover:underline font-medium">

@@ -34,6 +34,24 @@ export class TagRepository
   ) {
     super(db.Tag);
   }
+  async deleteSharedTagsInLists(
+    DTO: { name: string; listIds: string[] },
+    session?: ClientSession,
+  ): Promise<void> {
+    if (DTO.listIds.length === 0) return;
+    const lists = await this.db.List.aggregate([
+      { $match: { _id: { $in: DTO.listIds.map((id) => new Types.ObjectId(id)) } } },
+      { $lookup: { from: 'members', localField: 'members', foreignField: '_id', as: 'membersData' } },
+      { $project: { users: '$membersData.user' } },
+    ]).session(session ?? null);
+    const userIds = lists.flatMap((list) => list.users ?? []).filter(Boolean);
+    await this.db.Tag.deleteMany({
+      name: DTO.name,
+      user: { $in: userIds },
+      isShareTag: true,
+    }, { session, collation: { locale: 'vi', strength: 2 } });
+  }
+
   async updateByName(DTO: {
     name: string;
     userId: string;
@@ -118,7 +136,7 @@ export class TagRepository
     }).collation({
       locale: 'vi',
       strength: 2,
-    });
+    }).session(session ?? null);
 
     return findTags.map((tag) => this.TagMapper.toDomain(tag));
   }
@@ -192,7 +210,7 @@ export class TagRepository
   ): Promise<ITagWithId[]> {
     const {tagNames, userId } = DTO;
     const doc = await this.db.Tag.find({
-      user: userId,
+      user: new Types.ObjectId(userId),
       name: {
         $in: tagNames,
       },

@@ -5,11 +5,11 @@ export class CheckOwnerUsecase implements IUsecase<boolean> {
     async execute(user_id: string, list_id: string): Promise<boolean> {
         try {
             if (!user_id || !list_id) {
-                throw new AppError("NOT_FOUND", "khÃ´ng cÃ³ dá»¯ liá»‡u vui lÃ²ng thá»­ láº¡i", 404)
+                throw new AppError("NOT_FOUND", "Không tìm thấy dữ liệu vui lòng thử lại", 404)
             }
             const list = await this.listRepository.findById(list_id)
             if (!list) {
-                throw new AppError("NOT FOUND", "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u", 404)
+                throw new AppError("NOT FOUND", "Không tìm thấy dá»¯ liá»‡u", 404)
             }
 
             if (list.user != user_id) {

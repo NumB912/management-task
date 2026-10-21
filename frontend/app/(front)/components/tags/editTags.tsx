@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +18,7 @@ import { Label } from "../ui/label";
 import ColorPicker from "../color/colorPicker.component";
 import { DEFAULT_COLORS } from "../../model/mod/color.config";
 import { useWorkspaceStore } from "../../feature/store/workspace.state";
+import { useTagInSharedList } from "../../feature/hook/useTagInSharedList.hook";
 import {
   useUpdateTagOnlyMe,
   useUpdateTagWithShare,
@@ -43,6 +43,7 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
   const editTagWithShare = useWorkspaceStore((state) => state.editTagWithShare);
   const editTagOnlyMe = useWorkspaceStore((state) => state.editTagWithOnly);
   const isPending = isPendingOnlyMe || isPendingShare;
+  const isTagInSharedList = useTagInSharedList(tag?.name);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,8 +67,13 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
       return;
     }
 
-    if (!tag) return;
-    if (isEditShareTag) {
+    if (isTagInSharedList && !confirm) {
+      setOpenEdit(false);
+      setConfirm(true);
+      return;
+    }
+
+    if (isTagInSharedList && isEditShareTag) {
       editTagWithShare(tag.name, {
         ...(nameChanged ? { name: trimmed } : {}), color,
       });
@@ -88,15 +94,17 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
       onClose();
     }
     setOpenEdit(false);
-    setConfirm(nameChanged);
+    setConfirm(false);
   };
 
   useEffect(() => {
     if (tag) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(tag.name);
       setColor(tag.color ?? DEFAULT_COLORS[0]);
 
-      setIsEditShareTag(tag?.isShareTag ?? false);
+      setIsEditShareTag(false);
+      setConfirm(false);
       setOpenEdit(true);
     } else {
       setOpenEdit(false);
@@ -181,13 +189,13 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
                 &quot;.
               </span>
               <div className="font-medium mt-5">
-                "{tag?.name}" Đổi thành "{name}"
+                {tag?.name} Đổi thành {name}
               </div>
             </DialogDescription>
           </DialogHeader>
 
-          {tag.isShareTag == true && (
-            <div className="flex gap-2 py-2 bg-black items-center">
+          {isTagInSharedList && (
+            <div className="flex gap-2 py-2 items-center">
               <Checkbox
                 id="edit-with-share"
                 checked={isEditShareTag}
@@ -213,7 +221,7 @@ export function EditTagDialog({ tag, onClose }: Readonly<EditTagDialogProps>) {
             >
               Quay lại
             </Button>
-            <Button type="submit" disabled={isPending} className="rounded-sm!">
+            <Button type="button" onClick={handleSubmit} disabled={isPending} className="rounded-sm!">
               {isPending ? "Đang cập nhật..." : "Xác nhận"}
             </Button>
           </DialogFooter>

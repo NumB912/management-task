@@ -35,7 +35,7 @@ export interface IListRepository extends IRepository<IListWithId, string> {
     session?: unknown;
   }): Promise<void>;
   pushTagsIntoList(DTO: {
-    share_tags: { tag: string; created_by: string }[];
+    share_tags: string[];
     listId: string;
     session?: unknown;
   }): Promise<void>;
@@ -57,10 +57,11 @@ export interface IListRepository extends IRepository<IListWithId, string> {
   ): Promise<{
     lists: IList[];
   }>;
-  getListByUser(DTO: { userId: string }): Promise<IListWithId[]>;
+  getListByUser(DTO: { userId: string; session?: unknown }): Promise<IListWithId[]>;
   getListByTagNameAndUserId(DTO: {
     tagName: string[];
-    userId: string;
+    userId: string,
+    session?:unknown
   }): Promise<IListWithId[]>;
   updateListShareTag(DTO: {
     currentName: string;

@@ -35,10 +35,10 @@ export default function SendRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-2xl/20 border-0">
+    <div className="flex w-full min-w-0 justify-center">
+      <Card className="w-full min-w-0 min-h-dvh max-w-none break-words rounded-none border-0 shadow-none ring-0 sm:min-h-0 sm:max-w-md sm:rounded-xl sm:shadow-2xl/20 sm:ring-1">
         <AuthBackLink />
-        <CardHeader className="text-center">
+        <CardHeader className="min-w-0 px-4 text-center sm:px-6">
           <CardTitle className="text-2xl font-bold">Gửi yêu cầu đăng ký</CardTitle>
           <CardDescription className="mt-2">
             {success
@@ -47,7 +47,7 @@ export default function SendRegisterPage() {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="min-w-0 space-y-4 px-4 sm:px-6">
           {error && (
             <div className={cn("flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg")}>
               <AlertCircle className="h-4 w-4 shrink-0" />
@@ -71,7 +71,7 @@ export default function SendRegisterPage() {
                     placeholder="nhap@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="p-5 pl-9"
+                    className="h-11 py-2 pl-9"
                     required
                     autoComplete="email"
                     disabled={isLoading}
@@ -79,7 +79,7 @@ export default function SendRegisterPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full p-5 focus:transition-all focus:scale-95" size="lg" disabled={isLoading}>
+              <Button type="submit" className="h-11 w-full px-4 py-2 focus:transition-all focus:scale-95" size="lg" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

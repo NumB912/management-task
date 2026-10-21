@@ -9,7 +9,7 @@ export interface IRuleRepository extends IRepository<IRuleWithId> {
       ruleIds: string[];
       session?: unknown;
     }):Promise<{ matchedCount: number; modifiedCount: number}>
-    getRuleInListAndTags(DTO: { listIds: string[]; nameTags: string[] }):Promise<{
+    getRuleInListAndTags(DTO: { listIds: string[]; nameTags: string[]; session?: unknown }):Promise<{
   _id:string,
   rules:IRuleWithId[]
 }[]>

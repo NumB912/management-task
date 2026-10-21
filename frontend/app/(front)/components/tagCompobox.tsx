@@ -15,14 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { ITagModel } from "../model";
 import { useWorkspaceStore } from "../feature/store/workspace.state";
-import { useShallow } from "zustand/react/shallow";
+import { toast } from "sonner";
 
 export interface TagComboboxProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedTags: string[];
   onConfirm: (tags: string[]) => void;
-  onCreateTag?: (name: string) => void;
+  onCreateTag?: (name: string) => void | Promise<void>;
   isPending?: boolean;
   trigger?: ReactNode;
   placeholder?: string;
@@ -52,13 +52,13 @@ const TagCombobox = ({
 }: TagComboboxProps) => {
   const [search, setSearch] = useState("");
   const [pendingTags, setPendingTags] = useState<string[]>(selectedTags);
-  const getTagsWithName = useWorkspaceStore(
-    useShallow((state) => state.getTagsWithName)
-  );
+  const [isCreating, setIsCreating] = useState(false);
+  const tagIndex = useWorkspaceStore((state) => state.tagIndex);
+  const busy = isPending || isCreating;
 
 const allTags: ITagModel[] = useMemo(
-  () => getTagsWithName(search),
-  [getTagsWithName, search]
+  () => Object.values(tagIndex).filter((tag) => tag.name.toLowerCase().includes(search.toLowerCase())),
+  [tagIndex, search]
 );
   useEffect(() => {
     if (open) {
@@ -68,6 +68,7 @@ const allTags: ITagModel[] = useMemo(
   }, [open]);
 
   const toggleTag = (tag: string) => {
+    if (busy) return;
     setPendingTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
@@ -75,14 +76,24 @@ const allTags: ITagModel[] = useMemo(
 
   const removeTag = (e: React.MouseEvent, tag: string) => {
     e.stopPropagation();
+    if (busy) return;
     setPendingTags((prev) => prev.filter((t) => t !== tag));
   };
 
-  const handleAddTag = () => {
+  const handleAddTag = async () => {
+    if (busy) return;
     const name = search.trim();
-    onCreateTag?.(name);
-    toggleTag(name);
-    setSearch("");
+    if (!name || !onCreateTag) return;
+    setIsCreating(true);
+    try {
+      await onCreateTag(name);
+      setPendingTags((previous) => previous.includes(name) ? previous : [...previous, name]);
+      setSearch("");
+    } catch {
+      toast.error("Không thể tạo thẻ. Vui lòng thử lại.");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const hasChanges =
@@ -90,6 +101,7 @@ const allTags: ITagModel[] = useMemo(
     pendingTags.some((t) => !selectedTags.includes(t));
 
   const handleConfirm = () => {
+    if (busy) return;
     onConfirm(pendingTags);
     onOpenChange(false)
   };
@@ -112,6 +124,7 @@ const allTags: ITagModel[] = useMemo(
     <DropdownMenu
       open={open}
       onOpenChange={(next) => {
+        if (busy) return;
         if (!next) setPendingTags(selectedTags);
         onOpenChange(next);
       }}
@@ -152,6 +165,7 @@ const allTags: ITagModel[] = useMemo(
                 const isSelected = pendingTags.includes(tag.name);
                 return (
                   <CommandItem
+                    disabled={busy}
                     key={tag.name}
                     value={tag.name}
                     onSelect={() => toggleTag(tag.name)}
@@ -168,7 +182,7 @@ const allTags: ITagModel[] = useMemo(
                 );
               })}
               {canCreate && (
-                <CommandItem value={search} onSelect={handleAddTag}>
+                <CommandItem disabled={busy} value={search} onSelect={handleAddTag}>
                   <Tag className="mr-2 h-4 w-4" />
                   {createTagText(search.trim())}
                 </CommandItem>
@@ -183,7 +197,7 @@ const allTags: ITagModel[] = useMemo(
               size="sm"
               className="flex-1"
               onClick={handleCancel}
-              disabled={isPending}
+              disabled={busy}
             >
               {cancelText}
             </Button>
@@ -192,7 +206,7 @@ const allTags: ITagModel[] = useMemo(
               size="sm"
               className="flex-1"
               onClick={handleConfirm}
-              disabled={isPending || !hasChanges}
+              disabled={busy || !hasChanges}
             >
               {confirmText}
             </Button>

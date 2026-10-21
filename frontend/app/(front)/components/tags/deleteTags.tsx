@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "../ui/label";
 import { useRemoveTagOnlyMe, useRemoveTagWithShare } from "../../feature/hook/useTagMutation.hook";
 import { useWorkspaceStore } from "../../feature/store/workspace.state";
+import { useTagInSharedList } from "../../feature/hook/useTagInSharedList.hook";
 
 interface DeleteTagDialogProps {
   tag: ITagModel | null;
@@ -26,23 +27,21 @@ export function DeleteTagDialog({ tag, onClose }: Readonly<DeleteTagDialogProps>
   const { mutate: removeOnlyMe, isPending: isPendingOnlyMe } = useRemoveTagOnlyMe();
   const { mutate: removeWithShare, isPending: isPendingShare } = useRemoveTagWithShare();
   const removeTag = useWorkspaceStore((state) => state.removetagIndex);
-  const addTag = useWorkspaceStore((state) => state.addTag);
   const isPending = isPendingOnlyMe || isPendingShare;
+  const isTagInSharedList = useTagInSharedList(tag?.name);
 
   const handleRemoveTag = () => {
     if (!tag) return;
-    const prevTag = tag;
-    removeTag(tag.id);
-    if (isShareDeleteTag) {
+    if (isTagInSharedList && isShareDeleteTag) {
       removeWithShare(tag.id,{
-        onError(error, variables, onMutateResult, context) {
-          addTag(prevTag);
+        onSuccess() {
+          removeTag(tag.name, true);
         },
       });
     } else {
       removeOnlyMe(tag.id,{
-        onError(error, variables, onMutateResult, context) {
-          addTag(prevTag);
+        onSuccess() {
+          removeTag(tag.name, false);
         },
       });
     }
@@ -59,11 +58,13 @@ export function DeleteTagDialog({ tag, onClose }: Readonly<DeleteTagDialogProps>
         <DialogHeader>
           <DialogTitle className="text-lg">Xóa thẻ &quot;{tag.name}&quot;?</DialogTitle>
           <DialogDescription>
-            Thẻ sẽ xóa ra khỏi toàn bộ nhiệm vụ mà bạn đã gắn vào
+            {isTagInSharedList && isShareDeleteTag
+              ? "Xóa thẻ khỏi các danh sách, nhiệm vụ và thẻ chia sẻ liên quan."
+              : "Xóa thẻ cá nhân. Thẻ trong danh sách chia sẻ được giữ nguyên."}
           </DialogDescription>
         </DialogHeader>
 
-        {tag.isShareTag && (
+        {isTagInSharedList && (
           <div className="flex gap-2 py-2 items-center">
             <Checkbox
               id="delete-with-share"

@@ -11,6 +11,7 @@ const {
   taskRemove,
   taskUpdate,
   ruleUpdate,
+  sharedTagChanges,
   sseRoute,
   sectionCreate,
   sectionUpdate,
@@ -31,6 +32,7 @@ await taskRemove.execute();
 await taskUpdate.execute();
 await taskUpdateStatus.execute();
 await ruleUpdate.execute();
+await sharedTagChanges.execute();
 await sectionCreate.execute();
 await sectionRemove.execute();
 await sectionUpdate.execute();

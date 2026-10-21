@@ -1,6 +1,7 @@
 import { CheckAccountStatusMiddleware } from '@/infrastructure/middleware/auth/checkAccountStatus.middleware.js';
 import { TYPES } from '@/infrastructure/types/dependency.type.js';
 import { PersistenceModule } from '@/modules/platform/persistence.module.js';
+import { MessagingModule } from '@/modules/platform/messaging.module';
 import { SecurityModule } from '@/modules/security/security.module.js';
 import { tagsProviders } from './tags.providers.js';
 import { VerifyTokenMiddleware } from '@/infrastructure/middleware/auth/verifyToken.middleware.js';
@@ -14,7 +15,7 @@ import {
 import { TagsController } from './http/tags.controller.js';
 
 @Module({
-  imports: [PersistenceModule, SecurityModule],
+  imports: [PersistenceModule, SecurityModule, MessagingModule],
   providers: tagsProviders,
   exports: [TYPES.AddTagsForMemberUsecase, TYPES.SynsMemberTagUsecase],
   controllers: [TagsController],

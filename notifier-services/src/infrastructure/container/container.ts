@@ -16,12 +16,14 @@ import {
 } from "@application/usecase/taskNotification.usecase.js";
 import { SSERealtimeGateway } from "@infrastructure/gateway/realtime.js";
 import Consumer from "@infrastructure/service/message/consumer.message.js";
+import { SharedTagNotificationUsecase } from '@application/usecase/sharedTagNotification.usecase.js';
 import { createSSERoute } from "@infrastructure/sse/sseRealTime.js";
 
 export async function buildContainer() {
   const consumer = await Consumer.create();
 
   const realtimeGateway = new SSERealtimeGateway();
+  const sharedTagChanges = new SharedTagNotificationUsecase(consumer, realtimeGateway);
   const notifierUsecase = new NotifiterUsecase(consumer, realtimeGateway);
   const sectionCreate = new SectionCreateNotificationUsecase(
     consumer,
@@ -67,6 +69,7 @@ export async function buildContainer() {
   const exitMember = new ExitMemberNotificationUsecase(consumer,realtimeGateway)
   const removeOwnMember = new RemoveMemberOwnNotificationUsecase(consumer,realtimeGateway)
   return {removeOwnMember,
+    sharedTagChanges,
     acceptStatusMember,
     denyStatusMember,
     listUpdate,

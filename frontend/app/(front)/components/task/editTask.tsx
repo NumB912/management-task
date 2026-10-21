@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { IRuleModel, ITaskModel } from "../../model";
 import { useTaskInputEditor } from "../../feature/hook/useTaskInputEditor.hook";
 import { useUpdateTaskSubmit } from "../../feature/hook/useUpdateTaskSubmit.hook";
-import { ICreateRuleDTO, IUpdateRuleDTO } from "../../model/DTO/rule.DTO";
 import TaskInputEditor from "./TaskInputEditor";
 import TaskAttributesBar from "./TaskAttributesBar";
 import TaskActions from "./taskAction";
@@ -15,7 +14,7 @@ interface EditTaskProp {
   onUpdateTask: (id:string,task: Partial<ITaskModel>) => void;
 }
 
-const buildRuleFromTask = (task: ITaskModel): IUpdateRuleDTO => ({
+const buildRuleFromTask = (task: ITaskModel): Partial<IRuleModel> => ({
   repeat: task.rule?.repeat ?? { mode: "none", every: 0 },
   end_date: task.rule?.end_date ?? undefined,
   start_date: task.rule?.start_date ?? undefined,

@@ -4,7 +4,9 @@ import { toast } from "sonner";
 import { useTaskWithIds } from "../useTaskQuery.hook";
 import { useNotification } from "../useNotificationQuery.hook";
 import { useNotificationStore } from "../../store/notification/notification.store";
-import { useList } from "../useListQuery.hook";
+import { useList, listKeys } from "../useListQuery.hook";
+import { tagKeys } from "../tagQuery.hook";
+import { workSpaceKeys } from "../useWorkSpaceQuery.hook";
 import { useWorkspaceStore } from "../../store/workspace.state";
 import { INotificationModel } from "@/app/(front)/model/notification.model";
 import { notificationApi } from "../../api/notification/notification.api";
@@ -180,6 +182,15 @@ export default function useNotificationStream() {
       changePositionSection(p.data.startId, p.data.endId),
     );
     on("rule-update", (p) => updateRule(p.data.task, { ...p.data }));
+    const refreshSharedTags = async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: workSpaceKeys.index() }),
+        queryClient.invalidateQueries({ queryKey: tagKeys.all }),
+        queryClient.invalidateQueries({ queryKey: listKeys.all }),
+      ]);
+    };
+    on("tag-update-with-share", refreshSharedTags);
+    on("tag-delete-with-share", refreshSharedTags);
 
     return () => es.close();
   }, [notificationConfig, pushNotification, queryClient]);

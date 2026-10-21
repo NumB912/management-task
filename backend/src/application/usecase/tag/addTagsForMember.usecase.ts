@@ -16,7 +16,8 @@ export class AddTagsForMemberUsecase implements IUsecase<void> {
             const userIds =listMember.flatMap((list)=>list.members.filter((member)=>!!member.user).map((member)=>member.user!))
             await this.SynsMemberTag.execute({
                 tags:newTags,
-                userIds:userIds
+                userIds:[...new Set(userIds)],
+                session,
             })
 
         } catch (error) {

@@ -1,11 +1,12 @@
+import type { IRuleModel } from "../rule/rule.model";
 
-import { IRuleModel } from "../rule/rule.model";
-import { ITaskModel } from "../task.model";
+export interface ICreateRuleDTO extends Pick<IRuleModel, "end_date" | "start_date" | "repeat" | "timer" | "tags" | "priority"> {}
 
-
-export interface ICreateRuleDTO extends Pick<IRuleModel, "end_date" | "start_date" | "repeat" | "timer"|"tags"|"priority">{
+export interface ITagOperationsDTO {
+  add?: string[];
+  delete?: string[];
 }
 
-export interface IUpdateRuleDTO extends Pick<IRuleModel, "end_date" | "start_date" | "repeat" | "timer" | "priority" | "tags" |"list">{
-
-}
+export type IUpdateRuleDTO = Partial<Omit<IRuleModel, "tags">> & {
+  tags?: string[] | ITagOperationsDTO;
+};

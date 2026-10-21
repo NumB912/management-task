@@ -55,55 +55,22 @@ export class RuleRepository extends BaseRepository<IRuleDocument, IRuleWithId, s
   }
 
 
-  async getRuleInListAndTags(DTO: { listIds: string[]; nameTags: string[] }): Promise<{
+  async getRuleInListAndTags(DTO: { listIds: string[]; nameTags: string[]; session?: ClientSession }): Promise<{
     _id: string,
     rules: IRuleWithId[]
   }[]> {
     const { listIds, nameTags } = DTO;
-    const getData = await this.db.List.aggregate([
+    const getData = await this.db.Rule.aggregate([
       {
         $match: {
-          _id: { $in: listIds.map((id) => new Types.ObjectId(id)) },
+          list: { $in: listIds.map((id) => new Types.ObjectId(id)) },
+          tags: { $in: nameTags },
         },
       },
-      {
-        $lookup: {
-          from: "sections",
-          localField: "sections",
-          foreignField: "_id",
-          as: "sectionsData",
-        },
-      },
-      {
-        $lookup: {
-          from: "rules",
-          localField: "sectionsData.tasks",
-          foreignField: "task",
-          as: "rulesData",
-        },
-      }, {
-        $match: {
-          "rulesData.tags": { $in: nameTags },
-        },
-      }, {
-        $project: {
-          rulesData: {
-            $filter: {
-              input: "$rulesData",
-              as: "rule",
-              cond: {
-                $gt: [
-                  { $size: { $setIntersection: ["$$rule.tags", nameTags] } },
-                  0,
-                ],
-              },
-            },
-          },
-        },
-      },
-
+      { $group: { _id: "$list", rulesData: { $push: "$$ROOT" } } },
     ], {
       collation: { locale: "vi", strength: 2 },
+      session: DTO.session,
     }) as unknown as {
       _id: Types.ObjectId,
       rulesData: IRuleDocument[]
@@ -141,7 +108,7 @@ export class RuleRepository extends BaseRepository<IRuleDocument, IRuleWithId, s
   async updateRuleTag(DTO: { ruleIds: string[]; currentName: string; newName: string; session?: ClientSession; }): Promise<void> {
     const { currentName, newName, ruleIds, session } = DTO
      await this.db.Rule.updateMany({
-      tags: currentName.toLocaleLowerCase(),
+      tags: currentName,
       _id: {
         $in: ruleIds.map(ruleId => new Types.ObjectId(ruleId))
       }

@@ -56,7 +56,7 @@ export class UpdateListUsecase
       console.error(error);
       throw new AppError(
         error.code ?? "INTERNAL_SERVER",
-        error.message ?? "Lá»—i trong quÃ¡ trÃ¬nh cáº­p nháº­t list",
+        error.message ?? "Lỗi trong quá trình thực thi list",
         error.status ?? 500,
       );
     }
