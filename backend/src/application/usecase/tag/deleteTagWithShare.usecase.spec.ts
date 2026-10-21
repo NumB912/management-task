@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { DeleteTagWithShareUsecase } from './deleteTagWithShare.usecase.js';
+import type { ITagRepository } from '@/domain';
 
 describe('deleteTagWithShare.usecase', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -8,7 +9,7 @@ describe('deleteTagWithShare.usecase', () => {
     const session = {};
     const tags = {
       findOne: vi.fn().mockResolvedValue({ id: 'tag-1', name: 'Tag' }),
-      deleteBy: vi.fn().mockResolvedValue(true),
+      deleteByName: vi.fn<ITagRepository['deleteByName']>().mockResolvedValue(true),
       deleteSharedTagsInLists: vi.fn().mockResolvedValue(undefined),
     };
     const lists = {
@@ -38,6 +39,7 @@ describe('deleteTagWithShare.usecase', () => {
       { id: 'unrelated', shared_tags: ['Other'], isShareList: true },
     ]);
     await usecase.execute(dto);
+    expect(tags.deleteByName).toHaveBeenCalledWith({ userId: dto.userId, name: 'Tag' }, session);
     expect(lists.pullTagsOutOfList).toHaveBeenCalledWith({ listIds: ['private', 'shared'], nameTags: ['Tag'], session });
     expect(tags.deleteSharedTagsInLists).toHaveBeenCalledWith({ name: 'Tag', listIds: ['private', 'shared'] }, session);
   });
@@ -48,7 +50,7 @@ describe('deleteTagWithShare.usecase', () => {
     await expect(usecase.execute(dto)).resolves.toBe(true);
     expect(tags.findOne).toHaveBeenCalledTimes(2);
     expect(tags.findOne).toHaveBeenCalledWith({ id: dto.id, user: dto.userId }, session);
-    expect(tags.deleteBy).toHaveBeenCalledTimes(2);
+    expect(tags.deleteByName).toHaveBeenCalledTimes(2);
     expect(lists.getListByUser).toHaveBeenCalledWith({ userId: dto.userId, session });
     expect(rules.getRuleInListAndTags).toHaveBeenCalledWith({ listIds: ['list-1'], nameTags: ['Tag'], session });
     expect(unitWork.startTransaction).toHaveBeenCalledTimes(2);
@@ -66,7 +68,7 @@ describe('deleteTagWithShare.usecase', () => {
   it('stops after three transient failures', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { usecase, tags, unitWork } = setup();
-    tags.deleteBy.mockRejectedValue({ errorLabels: ['TransientTransactionError'] });
+    tags.deleteByName.mockRejectedValue({ errorLabels: ['TransientTransactionError'] });
     await expect(usecase.execute(dto)).rejects.toThrow('Lỗi trong quá trình xóa thẻ chia sẻ');
     expect(unitWork.startTransaction).toHaveBeenCalledTimes(3);
     expect(unitWork.rollBackTransaction).toHaveBeenCalledTimes(3);
@@ -76,7 +78,7 @@ describe('deleteTagWithShare.usecase', () => {
   it('does not retry a non-transient failure', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { usecase, tags, unitWork } = setup();
-    tags.deleteBy.mockRejectedValue(new Error('invalid query'));
+    tags.deleteByName.mockRejectedValue(new Error('invalid query'));
     await expect(usecase.execute(dto)).rejects.toThrow();
     expect(unitWork.startTransaction).toHaveBeenCalledTimes(1);
     expect(unitWork.rollBackTransaction).toHaveBeenCalledTimes(1);
@@ -86,7 +88,7 @@ describe('deleteTagWithShare.usecase', () => {
     const { usecase, tags, unitWork } = setup();
     tags.findOne.mockResolvedValue(null);
     await expect(usecase.execute(dto)).rejects.toThrow('Không tìm thấy tag');
-    expect(tags.deleteBy).not.toHaveBeenCalled();
+    expect(tags.deleteByName).not.toHaveBeenCalled();
     expect(unitWork.rollBackTransaction).toHaveBeenCalledTimes(1);
   });
 });
