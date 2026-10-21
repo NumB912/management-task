@@ -26,6 +26,7 @@ import {
   Plus,
   Repeat,
   Folder,
+  File,
   Flag,
   Palette,
   Tag,
@@ -37,7 +38,12 @@ import { TaskComments } from "./task-comments";
 import TagCombobox from "@/app/(front)/components/tagCompobox";
 import PriorityDropdown from "@/app/(front)/components/piorityCombobox";
 import CalendarComponent from "@/app/(front)/components/calendar/calendar.component";
-import ListPicker from "@/app/(front)/components/listCombobox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/(front)/components/ui/dropdown-menu";
 import ColorPicker from "@/app/(front)/components/color/colorPicker.component";
 import { TaskCheckbox } from "@/app/(front)/components/task/taskCard";
 import { useWorkspaceStore } from "@/app/(front)/feature/store/workspace.state";
@@ -78,6 +84,7 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
     handleUpdateColorTask,
   } = useTask(taskId);
   const listIndex = useWorkspaceStore((s) => s.listIndex);
+  const sectionIndex = useWorkspaceStore((s) => s.sectionIndex);
   const [name, setName] = useState(task?.name ?? "");
   const [color, setColor] = useState<string>(
     colorStore ? colorStore.color : task?.color,
@@ -197,6 +204,53 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
     return tagItems;
   });
 
+  const renderListDropdown = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Chuyển task sang danh sách hoặc section"
+          className="flex min-w-0 max-w-full items-center gap-2 rounded-sm border p-1.5 text-left text-sm font-normal text-neutral-700"
+        >
+          <Inbox className="size-3 shrink-0" />
+          <span className="truncate">
+            {listName?.toLocaleLowerCase() === "inbox" ? "Hộp thư" : listName}
+            {task.section && sectionIndex[task.section]
+              ? ` / ${sectionIndex[task.section].name}`
+              : ""}
+          </span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-50 min-w-50 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-none p-0">
+        {Object.values(listIndex).map((list) => (
+          <div key={list.id}>
+            <DropdownMenuItem
+              className="flex cursor-pointer items-center gap-3 rounded-none border-b p-2"
+              onSelect={() => handleUpdateTask(taskId, { list: list.id, section: "" })}
+            >
+              <Folder className="size-3 shrink-0" />
+              <span className="truncate">{list.name.toLocaleLowerCase() === "inbox" ? "Hộp thư" : list.name}</span>
+            </DropdownMenuItem>
+            {list.sections?.map((sectionId) => {
+              const section = sectionIndex[sectionId];
+              if (!section) return null;
+              return (
+                <DropdownMenuItem
+                  key={sectionId}
+                  className="flex cursor-pointer items-center gap-3 rounded-none border-b p-2"
+                  onSelect={() => handleUpdateTask(taskId, { list: list.id, section: sectionId })}
+                >
+                  <File className="ml-3 size-3 shrink-0" />
+                  <span className="truncate">{section.name}</span>
+                </DropdownMenuItem>
+              );
+            })}
+          </div>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   const renderProperty = (property: TaskProperty) => {
     const propertyDate =
       property === "deadline" ? task.rule?.end_date : task.rule?.start_date;
@@ -206,13 +260,7 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
           <>
             <div className="flex flex-col gap-1.5">
               <span className="text-sm font-bold">Danh sách</span>
-              <ListPicker
-                selectedList={task.list}
-                selectedSection={task.section}
-                onSelect={({ list, section }) =>
-                  handleUpdateTask(taskId, { list, section })
-                }
-              />
+              {renderListDropdown()}
             </div>
           </>
         );
@@ -366,17 +414,7 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
       <DialogContent className="m-0 flex h-dvh w-full max-w-none flex-col gap-0 overflow-hidden rounded-none p-0 sm:h-[min(600px,90dvh)] sm:w-[calc(100%-2rem)] sm:max-w-4xl sm:rounded-sm">
         <DialogHeader className="shrink-0 border-b p-3 pr-12">
           <DialogTitle>
-            <button
-              type="button"
-              className="flex min-w-0 max-w-full items-center gap-2 text-left text-sm text-neutral-500"
-            >
-              <Inbox className="h-4 w-4 shrink-0" />
-              <span className="truncate">
-                {listName?.toLocaleLowerCase() === "inbox"
-                  ? "Hộp thư"
-                  : listName}
-              </span>
-            </button>
+            {renderListDropdown()}
           </DialogTitle>
         </DialogHeader>
 
@@ -458,7 +496,6 @@ export default function TaskDetail({ taskId }: Readonly<TaskDetailProps>) {
               />
             </div>
             <div className="hidden sm:block">
-              {" "}
               <TaskComments key={taskId} taskId={taskId} />
             </div>
           </div>

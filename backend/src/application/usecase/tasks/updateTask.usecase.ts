@@ -81,8 +81,6 @@ export class UpdateTaskUsecase implements IUsecase<void> {
           ...data.rule,
           ...(isListChanged ? { list: data.list } : undefined),
         };
-
-        console.log(rulePayload)
         await this.UpdateRuleUsecase.run(id, rulePayload, userId, session);
       }
 

@@ -130,10 +130,10 @@ const HourGrid = ({
   );
 
   const gridColsClass =
-    type === "Week" ? "grid-cols-[56px_repeat(7,1fr)]" : "grid-cols-[56px_1fr]";
+    type === "Week" ? "grid-cols-[var(--time-gutter,3.5rem)_repeat(7,minmax(0,1fr))]" : "grid-cols-[var(--time-gutter,3.5rem)_minmax(0,1fr)]";
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 h-full">
+    <div className="h-full min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
       <div className={`grid ${gridColsClass} relative`}>
         {HOURS.map((hour) => (
           <React.Fragment key={hour}>
@@ -166,12 +166,12 @@ const HourGrid = ({
               height: totalHeight,
               left:
                 type === "Week"
-                  ? `calc(56px + ${colIdx} * ((100% - 56px) / 7))`
-                  : "56px",
+                  ? `calc(var(--time-gutter, 3.5rem) + ${colIdx} * ((100% - var(--time-gutter, 3.5rem)) / 7))`
+                  : "var(--time-gutter, 3.5rem)",
               width:
                 type === "Week"
-                  ? "calc((100% - 56px) / 7)"
-                  : "calc(100% - 56px)",
+                  ? "calc((100% - var(--time-gutter, 3.5rem)) / 7)"
+                  : "calc(100% - var(--time-gutter, 3.5rem))",
             }}
           >
             {columnLayouts[colIdx].map(

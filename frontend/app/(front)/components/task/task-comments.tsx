@@ -1,14 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import axios from "axios";
-import { MessageSquare, RefreshCw, X } from "lucide-react";
+import { ChevronDown, MessageSquare, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { taskCommentApi } from "../../feature/api/task/task-comment.api";
 import type { TaskComment } from "../../model/task-comment.model";
 import useUserState from "../../feature/store/user/user.state";
@@ -23,10 +24,15 @@ function errorMessage(error: unknown) {
 
 export function TaskComments({ taskId }: { taskId: string }) {
   const [draft, setDraft] = useState("");
+  const [isExpanded, setIsExpanded] = useState(true);
   const userId = useUserState((state) => state.user?.id);
   const [replyTarget, setReplyTarget] = useState<TaskComment | null>(null);
   const [openThreads, setOpenThreads] = useState<Set<string>>(new Set());
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const [isOpenComment, setIsOpenComment] = useState(false);
+  useEffect(() => {
+    if (isExpanded && isOpenComment) textarea.current?.focus();
+  }, [isExpanded, isOpenComment, replyTarget?.id]);
   const pending = useRef<{
     body: string;
     clientRequestId: string;
@@ -58,6 +64,7 @@ export function TaskComments({ taskId }: { taskId: string }) {
     onSuccess: async () => {
       setDraft("");
       setReplyTarget(null);
+      setIsOpenComment(false);
       pending.current = null;
       await Promise.all([
         client.invalidateQueries({ queryKey: key }),
@@ -82,17 +89,23 @@ export function TaskComments({ taskId }: { taskId: string }) {
     ).values(),
   ].sort((a, b) => a.id.localeCompare(b.id));
   return (
+    <Collapsible open={isExpanded} onOpenChange={setIsExpanded} asChild>
     <section
-      className="border-t pt-4 space-y-4"
+      className="min-w-0"
       aria-labelledby="task-comments-heading"
     >
       <div className="flex items-center justify-between gap-3">
         <h2
           id="task-comments-heading"
-          className="flex items-center gap-2 font-semibold"
+          className="min-w-0 flex-1 font-semibold"
         >
-          <MessageSquare size={18} />
-          Bình luận
+          <CollapsibleTrigger asChild>
+            <button type="button" className="flex min-h-11 w-full items-center gap-2 rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+              <MessageSquare size={18} aria-hidden="true" />
+              <span>Bình luận</span>
+              <ChevronDown size={16} aria-hidden="true" className={`shrink-0 transition-transform motion-reduce:transition-none ${isExpanded ? "rotate-180" : ""}`} />
+            </button>
+          </CollapsibleTrigger>
         </h2>
         <Button
           type="button"
@@ -105,6 +118,8 @@ export function TaskComments({ taskId }: { taskId: string }) {
           Làm mới
         </Button>
       </div>
+      <CollapsibleContent>
+      <div className="space-y-4 pt-4">
       {query.isPending && (
         <p role="status" className="text-sm text-muted-foreground">
           Đang tải bình luận...
@@ -150,10 +165,11 @@ export function TaskComments({ taskId }: { taskId: string }) {
             }
             onReply={(target) => {
               setReplyTarget(target);
+              setIsOpenComment(true);
+              mutation.reset();
               setOpenThreads((current) =>
                 new Set(current).add(target.parentId ?? target.id),
               );
-              textarea.current?.focus();
             }}
           />
         ))}
@@ -164,9 +180,24 @@ export function TaskComments({ taskId }: { taskId: string }) {
           luận.
         </p>
       )}
-      {canComment && (
+      {canComment && !isOpenComment && (
+        <div className="w-full flex justify-end">        <Button
+          type="button"
+          variant="outline"
+          className="h-11 w-11 justify-center bg-white! rounded-full p-4 text-muted-foreground"
+          aria-expanded={false}
+          onClick={() => {
+            mutation.reset();
+            setIsOpenComment(true);
+          }}
+        >
+          <MessageSquare size={16} />
+        </Button></div>
+      )}
+      {canComment && isOpenComment && (
         <form
-          className="space-y-2"
+          className="space-y-3 rounded-xl border bg-background p-3"
+          aria-label="Viết bình luận"
           onSubmit={(event) => {
             event.preventDefault();
             if (draft.trim() && !mutation.isPending && canComment)
@@ -196,12 +227,8 @@ export function TaskComments({ taskId }: { taskId: string }) {
             aria-label="Nội dung bình luận"
             rows={3}
             maxLength={2000}
-            placeholder={
-              replyTarget
-                ? `Trả lời @${replyTarget.authorName}...`
-                : "Viết bình luận về task..."
-            }
-            className="w-full rounded-md border bg-background p-3 text-sm resize-y"
+            placeholder={replyTarget ? `Trả lời @${replyTarget.authorName}...` : "Viết bình luận về task..."}
+            className="min-h-28 w-full resize-y rounded-md border bg-background p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-primary/30 sm:text-sm"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             disabled={mutation.isPending}
@@ -211,23 +238,31 @@ export function TaskComments({ taskId }: { taskId: string }) {
               {errorMessage(mutation.error)}
             </p>
           )}
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <span className="mr-auto text-xs text-muted-foreground">
               {draft.length}/2.000 ký tự
             </span>
             <Button
-              type="submit"
-              disabled={!canComment || mutation.isPending || !draft.trim()}
+              type="button"
+              variant="outline"
+              disabled={mutation.isPending}
+              onClick={() => {
+                setIsOpenComment(false);
+                setReplyTarget(null);
+                mutation.reset();
+              }}
             >
-              {mutation.isPending
-                ? "Đang gửi..."
-                : replyTarget
-                  ? "Gửi trả lời"
-                  : "Gửi bình luận"}
+              Hủy
+            </Button>
+            <Button type="submit" disabled={!canComment || mutation.isPending || !draft.trim()}>
+              {mutation.isPending ? "Đang gửi..." : replyTarget ? "Gửi trả lời" : "Gửi bình luận"}
             </Button>
           </div>
         </form>
       )}
+      </div>
+      </CollapsibleContent>
     </section>
+    </Collapsible>
   );
 }

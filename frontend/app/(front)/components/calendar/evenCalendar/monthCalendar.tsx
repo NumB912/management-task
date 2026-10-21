@@ -177,8 +177,8 @@ function MonthView({ currentDate, onCreateTask }: MonthViewProp) {
   const taskIndex = useWorkspaceStore(useShallow((state) => state.taskIndex));
   const colorIndex = useWorkspaceStore(useShallow((state)=>state.colorIndex))
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
-      <div className="grid grid-cols-7 border-b border-border/50 shrink-0">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+      <div className="sticky top-0 z-30 grid shrink-0 grid-cols-7 border-b border-border/50 bg-background">
         {WEEKDAYS.map((day) => (
           <div
             key={day}
@@ -189,7 +189,7 @@ function MonthView({ currentDate, onCreateTask }: MonthViewProp) {
         ))}
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         {weeks.map((week, wIdx) => {
           const segmentValues = segments(week, Object.values(taskIndex));
           const visible = segmentValues.filter((v) => v.index < MAX_VISIBLE);
@@ -197,16 +197,17 @@ function MonthView({ currentDate, onCreateTask }: MonthViewProp) {
           return (
             <div
               key={wIdx}
-              className="grid grid-cols-7 relative border-b border-border/50 last:border-b-0 h-full"
+              className="relative grid min-w-0 flex-1 grid-cols-7 border-b border-border/50 last:border-b-0"
             >
-              <div className="absolute left-0 w-full top-10 grid grid-cols-7 gap-1.5 overflow-hidden z-20 pointer-events-none">
+              <div className="pointer-events-none absolute left-0 top-9 z-20 grid w-full grid-cols-7 gap-0.5 overflow-hidden sm:top-10 sm:gap-1.5">
                 {visible.map((value) => {
                   const color = colorIndex[value.task.id]?colorIndex[value.task.id].color:value.task.color
 
                   return (
                     <div
                       key={`${value.task.id}-${value.colStart}`}
-                      className={`w-full rounded h-fit p-1 hover:bg-accent pointer-events-auto cursor-pointer flex gap-2 text-xs ${value.task.status != "pending" ? "line-through opacity-80" : ""}`}
+                      title={value.task.name}
+                      className={`pointer-events-auto flex h-6 w-full min-w-0 cursor-pointer items-center gap-1 overflow-hidden rounded px-1 text-[10px] hover:bg-accent sm:gap-2 sm:text-xs ${value.task.status != "pending" ? "line-through opacity-80" : ""}`}
                       style={{
                         gridColumn: `${value.colStart + 1} / span ${value.colSpan}`,
                         gridRow: value.index + 1,
@@ -218,8 +219,8 @@ function MonthView({ currentDate, onCreateTask }: MonthViewProp) {
                         router.push("/dashboard/tasks/" + value.task.id);
                       }}
                     >
-                      <span>{value.task.name}</span>
-                      <span>
+                      <span className="min-w-0 flex-1 truncate">{value.task.name}</span>
+                      <span className="hidden shrink-0 lg:inline">
                         {value.task.rule.timer &&
                           formatTimer(value.task.rule.timer)}
 
@@ -246,7 +247,7 @@ function MonthView({ currentDate, onCreateTask }: MonthViewProp) {
                 return (
                   <div
                     key={day.toISOString()}
-                    className="border-r border-border/50 relative last:border-r-0 p-2 flex flex-col gap-1 min-h-50 hover:bg-muted/20 transition-colors cursor-pointer"
+                    className="relative flex min-h-40 min-w-0 cursor-pointer flex-col gap-1 border-r border-border/50 p-1 transition-colors last:border-r-0 hover:bg-muted/20 sm:p-2 md:min-h-44 lg:min-h-50"
                     onClick={() => onCreateTask(day)}
                   >
                     <span

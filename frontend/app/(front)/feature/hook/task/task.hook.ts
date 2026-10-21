@@ -68,7 +68,11 @@ export function useTask(taskId: string) {
     if (!prev) return;
     const preparedRule = data.rule ? prepareTaskRuleUpdate(prev.rule, data.rule) : undefined;
     const { section, rule: _rule, ...taskFields } = data;
-    const rest = { ...taskFields, ...(preparedRule ? { rule: preparedRule.rule } : {}) };
+    const rest = {
+      ...taskFields,
+      ...(section === "" ? { section: "" } : {}),
+      ...(preparedRule ? { rule: preparedRule.rule } : {}),
+    };
     const isMoving = !!section && section !== prev.section;
     const restKeys = Object.keys(rest) as (keyof ITaskModel)[];
     if (isMoving) moveTaskIntoSection(id, section!);

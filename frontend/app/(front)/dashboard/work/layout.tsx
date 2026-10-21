@@ -40,6 +40,7 @@ import React, {useMemo, useState } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
+  ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { useWorkspaceStore } from "../../feature/store/workspace.state";
@@ -168,36 +169,46 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
 
           <SidebarGroup className={cn(`gap-2`)}>
             <Collapsible open={openList} onOpenChange={setOpenList}>
-              <CollapsibleTrigger
-                asChild
-                className={cn(
-                  "hover:bg-primary/10! group/list-label rounded-md w-full pl-1! pr-0",
-                )}
-              >
-                <SidebarGroupLabel className="flex justify-between text-xs text-neutral-500 font-bold">
-                  <span className={`flex items-center`}>
-                    <ChevronDown
-                      size={14}
-                      className={cn(
-                        `transition-all ${openList ? "rotate-180" : "rotate-0"} group-hover/list-label:visible! invisible!`,
-                      )}
-                    />
-                    <span>Danh sách</span>
-                  </span>
-                  <Button
-                    variant={"ghost"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenAddList(!openAddList);
-                    }}
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <CollapsibleTrigger
+                    asChild
                     className={cn(
-                      "w-fit rounded aspect-square hover:bg-transparent! hover:text-primary group-hover/list-label:visible! invisible!",
+                      "hover:bg-primary/10! group/list-label rounded-md w-full pl-1! pr-0",
                     )}
                   >
-                    <Plus />
-                  </Button>
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
+                    <SidebarGroupLabel className="flex justify-between text-xs text-neutral-500 font-bold">
+                      <span className={`flex items-center`}>
+                        <ChevronDown
+                          size={14}
+                          className={cn(
+                            `transition-all ${openList ? "rotate-180" : "rotate-0"} group-hover/list-label:visible! invisible!`,
+                          )}
+                        />
+                        <span>Danh sách</span>
+                      </span>
+                      <Button
+                        variant={"ghost"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenAddList(!openAddList);
+                        }}
+                        className={cn(
+                          "w-fit rounded aspect-square hover:bg-transparent! hover:text-primary group-hover/list-label:visible! invisible!",
+                        )}
+                      >
+                        <Plus />
+                      </Button>
+                    </SidebarGroupLabel>
+                  </CollapsibleTrigger>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onSelect={() => setOpenAddList(true)}>
+                    <Plus className="size-4" aria-hidden="true" />
+                    Thêm danh sách
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
 
               <CollapsibleContent>
                 {listEntries.length === 0 && (
@@ -341,36 +352,46 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
             </Collapsible>
 
             <Collapsible open={openFilter} onOpenChange={setOpenFilter}>
-              <CollapsibleTrigger
-                asChild
-                className={cn(
-                  "hover:bg-primary/10! group/list-label rounded-md w-full pl-1!",
-                )}
-              >
-                <SidebarGroupLabel className="flex justify-between text-xs text-neutral-500 font-bold">
-                  <span className={`flex items-center`}>
-                    <ChevronDown
-                      size={14}
-                      className={cn(
-                        `transition-all ${openFilter ? "rotate-180" : "rotate-0"} group-hover/list-label:visible! invisible!`,
-                      )}
-                    />
-                    <span>Bộ lọc</span>
-                  </span>
-                  <Button
-                    variant={"ghost"}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenAddFilter((prev) => !prev);
-                    }}
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <CollapsibleTrigger
+                    asChild
                     className={cn(
-                      "rounded p-0.5 aspect-square hover:bg-transparent! hover:text-primary group-hover/list-label:visible! invisible!",
+                      "hover:bg-primary/10! group/list-label rounded-md w-full pl-1!",
                     )}
                   >
-                    <Plus />
-                  </Button>
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
+                    <SidebarGroupLabel className="flex justify-between text-xs text-neutral-500 font-bold">
+                      <span className={`flex items-center`}>
+                        <ChevronDown
+                          size={14}
+                          className={cn(
+                            `transition-all ${openFilter ? "rotate-180" : "rotate-0"} group-hover/list-label:visible! invisible!`,
+                          )}
+                        />
+                        <span>Bộ lọc</span>
+                      </span>
+                      <Button
+                        variant={"ghost"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenAddFilter((prev) => !prev);
+                        }}
+                        className={cn(
+                          "rounded p-0.5 aspect-square hover:bg-transparent! hover:text-primary group-hover/list-label:visible! invisible!",
+                        )}
+                      >
+                        <Plus />
+                      </Button>
+                    </SidebarGroupLabel>
+                  </CollapsibleTrigger>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onSelect={() => setOpenAddFilter(true)}>
+                    <Plus className="size-4" aria-hidden="true" />
+                    Thêm bộ lọc
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
               <CollapsibleContent>
                 {(Object.values(filterIndex) ?? []).length === 0 && (
                   <div className="bg-muted/10 my-2 mx-3 rounded-md text-neutral-500">
@@ -417,36 +438,46 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
             </Collapsible>
 
             <Collapsible open={openTag} onOpenChange={setOpenTag}>
-              <CollapsibleTrigger
-                className={cn(
-                  "hover:bg-primary/10! group/tag-label rounded-md w-full pl-1!",
-                )}
-                asChild
-              >
-                <SidebarGroupLabel className="flex justify-between text-xs text-neutral-500 font-bold">
-                  <span className="flex items-center">
-                    <ChevronDown
-                      size={15}
-                      className={cn(
-                        `transition-all ${openTag ? "rotate-180" : "rotate-0"} group-hover/tag-label:visible invisible`,
-                      )}
-                    />
-                    <span>Thẻ</span>
-                  </span>
-                  <Button
-                    variant={"ghost"}
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <CollapsibleTrigger
                     className={cn(
-                      "rounded p-0.5 aspect-square hover:bg-transparent! hover:text-primary  group-hover/tag-label:visible invisible",
+                      "hover:bg-primary/10! group/tag-label rounded-md w-full pl-1!",
                     )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenAddTag(!openAddTag);
-                    }}
+                    asChild
                   >
-                    <Plus />
-                  </Button>
-                </SidebarGroupLabel>
-              </CollapsibleTrigger>
+                    <SidebarGroupLabel className="flex justify-between text-xs text-neutral-500 font-bold">
+                      <span className="flex items-center">
+                        <ChevronDown
+                          size={15}
+                          className={cn(
+                            `transition-all ${openTag ? "rotate-180" : "rotate-0"} group-hover/tag-label:visible invisible`,
+                          )}
+                        />
+                        <span>Thẻ</span>
+                      </span>
+                      <Button
+                        variant={"ghost"}
+                        className={cn(
+                          "rounded p-0.5 aspect-square hover:bg-transparent! hover:text-primary  group-hover/tag-label:visible invisible",
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenAddTag(!openAddTag);
+                        }}
+                      >
+                        <Plus />
+                      </Button>
+                    </SidebarGroupLabel>
+                  </CollapsibleTrigger>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onSelect={() => setOpenAddTag(true)}>
+                    <Plus className="size-4" aria-hidden="true" />
+                    Thêm thẻ
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
               <CollapsibleContent>
                 {(Object.values(tagIndex) ?? []).length === 0 && (
                   <div className="bg-muted/10 my-2 mx-3 rounded-md text-neutral-500">

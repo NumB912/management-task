@@ -41,8 +41,8 @@ function DayView({ currentDate, onCreateTask }: Readonly<DayViewProps>) {
     : dateTaskNow.slice(0, MAX_VISIBLE);
   const colorIndex = useWorkspaceStore(useShallow((state) => state.colorIndex));
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      <div className="grid grid-cols-[56px_1fr] border-b border-border/50 shrink-0">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden [--time-gutter:2.75rem] sm:[--time-gutter:3.5rem]">
+      <div className="grid shrink-0 grid-cols-[var(--time-gutter)_minmax(0,1fr)] overflow-y-auto border-b border-border/50 [scrollbar-gutter:stable]">
         <div />
         <div className="py-2.5 text-center border-l border-border/50">
           <div className="text-xs font-medium text-muted-foreground">

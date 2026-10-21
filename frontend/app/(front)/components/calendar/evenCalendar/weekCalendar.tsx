@@ -87,8 +87,9 @@ function WeekView({ currentDate,onCreateTask }: DayViewProps) {
   const colorIndex = useWorkspaceStore(useShallow((state)=>state.colorIndex))
   const taskIndex = useWorkspaceStore(useShallow((state)=>state.taskIndex))
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-      <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-border/50 shrink-0 pr-3.5">
+    <div role="region" aria-label="Lịch tuần, cuộn ngang để xem các ngày" tabIndex={0} className="min-h-0 min-w-0 flex-1 overflow-x-auto overscroll-x-contain [--time-gutter:3.5rem]">
+      <div className="flex h-full min-h-0 min-w-[44rem] flex-col md:min-w-[48rem]">
+      <div className="grid shrink-0 grid-cols-[var(--time-gutter)_repeat(7,minmax(0,1fr))] overflow-y-auto border-b border-border/50 [scrollbar-gutter:stable]">
         <div></div>
         {days.map((day) => {
           const today = isToday(day);
@@ -114,7 +115,6 @@ function WeekView({ currentDate,onCreateTask }: DayViewProps) {
         })}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
         <HourGrid tasks={Object.values(taskIndex)} type="Week" days={days} onHandle={onCreateTask!} colors={colorIndex??{}}/>
       </div>
 

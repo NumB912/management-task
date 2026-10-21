@@ -128,9 +128,6 @@ export class UpdateRuleUsecase implements IUsecase<void> {
     }
     const additions = operations.add ?? [];
     const deletions = operations.delete ?? [];
-
-    console.log('add',additions)
-    console.log('delete',deletions)
     if ([...additions, ...deletions].some((name) => typeof name !== 'string')) {
       throw new AppError('BAD_REQUEST', 'Thao tác tag không hợp lệ', 400);
     }

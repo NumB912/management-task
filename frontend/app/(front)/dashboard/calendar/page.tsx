@@ -117,13 +117,17 @@ const Page = () => {
   };
 
   return (
-    <div className="w-full h-[calc(100vh-4rem)] flex flex-col bg-background">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 shrink-0">
-        <div className="flex items-center gap-3">
+    <div className="flex h-[calc(100dvh-4rem)] min-h-0 w-full min-w-0 flex-col overflow-hidden bg-background">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/50 px-3 py-3 sm:px-5 lg:px-6">
+        <h1 className="w-full min-w-0 text-base font-bold text-foreground xl:order-2 xl:w-auto xl:flex-1 xl:px-2 xl:text-lg">
+          <span className="sm:hidden">{formatDateVi(currentDate, "dd 'tháng' MM, yyyy")}</span>
+          <span className="hidden sm:inline">{formatDateVi(currentDate, "EEEE, dd 'tháng' MM 'năm' yyyy")}</span>
+        </h1>
+        <div className="flex shrink-0 items-center gap-1 sm:gap-3 xl:order-1">
           <Button
             variant="outline"
             size="sm"
-            className="rounded-md"
+            className="h-10 rounded-md px-2.5 sm:px-3"
             onClick={goToday}
           >
             Hôm nay
@@ -132,29 +136,28 @@ const Page = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-md"
+              className="h-10 w-10 rounded-md"
               onClick={goPrev}
-              aria-label="Previous"
+              aria-label="Kỳ trước"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-md"
+              className="h-10 w-10 rounded-md"
               onClick={goNext}
-              aria-label="Next"
+              aria-label="Kỳ tiếp theo"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          <h1 className="text-lg font-bold text-foreground ml-1">{formatDateVi(new Date(currentDate!), "EEEE, dd 'tháng' MM 'năm' yyyy")}</h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 xl:order-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="rounded-md gap-1">
+              <Button variant="outline" size="sm" className="h-10 rounded-md gap-1" aria-label="Chế độ xem lịch">
                 {ViewLabel[View]}
                 <ChevronDown className="w-3.5 h-3.5" />
               </Button>
@@ -174,15 +177,21 @@ const Page = () => {
 
           <Button
             size="sm"
-            className="rounded-md gap-1.5"
+            className="h-10 min-w-10 rounded-md gap-1.5 px-2.5 sm:px-3"
+            aria-label="Tạo nhiệm vụ mới"
             onClick={() => setCreateOpen(true)}
           >
             <Plus className="w-4 h-4" />
-            Tạo mới
+            <span className="hidden sm:inline">Tạo mới</span>
           </Button>
         </div>
       </div>
 
+      {View === "week" && (
+        <p className="shrink-0 border-b border-border/50 px-3 py-1.5 text-xs text-muted-foreground md:hidden">
+          Vuốt ngang để xem các ngày trong tuần
+        </p>
+      )}
       {View === "month" && <MonthView currentDate={currentDate} onCreateTask={handleOpenCreatetask}/> }
       {View === "week" && (
         <WeekView

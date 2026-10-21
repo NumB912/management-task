@@ -146,7 +146,7 @@ export default function TaskDescriptionEditor({ value, onSave }: {
           </Button>
         ))}
       </div>}
-      <div className="relative">
+      <div className="relative min-h-30">
         {empty && <span aria-hidden="true" className="pointer-events-none absolute left-3 top-3 text-sm text-muted-foreground">{editing ? "Nhập mô tả công việc…" : "Thêm mô tả…"}</span>}
         <div ref={editor} contentEditable={editing} suppressContentEditableWarning
           role={editing ? "textbox" : "button"} tabIndex={0} aria-multiline={editing ? true : undefined}

@@ -145,14 +145,19 @@ const allTags: ITagModel[] = useMemo(
               {pendingTags.map((tag) => (
                 <Badge
                   key={tag}
+                  asChild
                   variant="secondary"
-                  className="flex items-center gap-1 text-xs"
+                  className="flex items-center gap-1 text-xs cursor-pointer hover:bg-secondary/80 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {tag}
-                  <X
-                    className="h-3 w-3 cursor-pointer"
+                  <button
+                    type="button"
+                    disabled={busy}
+                    aria-label={`Bỏ chọn tag ${tag}`}
                     onClick={(e) => removeTag(e, tag)}
-                  />
+                  >
+                    {tag}
+                    <X className="h-3 w-3" aria-hidden="true" />
+                  </button>
                 </Badge>
               ))}
             </div>
@@ -169,6 +174,7 @@ const allTags: ITagModel[] = useMemo(
                     key={tag.name}
                     value={tag.name}
                     onSelect={() => toggleTag(tag.name)}
+                    className="bg-white!"
                   >
                     <Tag className="mr-1 h-4 w-4" />
                     {tag.name}
