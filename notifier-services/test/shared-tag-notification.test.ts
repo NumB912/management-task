@@ -20,14 +20,14 @@ for (const operation of ['update', 'delete']) {
       }
     };
     const gateway = new SSERealtimeGateway();
-    const messages = { actor: [], secondTab: [], member: [], unrelated: [] };
+    const messages: Record<string, string[]> = { actor: [], secondTab: [], member: [], unrelated: [] };
     for (const [name, received] of Object.entries(messages)) {
       gateway.register(name === 'secondTab' ? 'actor' : name, { write: (message) => received.push(message) });
     }
     await new SharedTagNotificationUsecase(consumer, gateway).execute();
     await deliver!({ userIds: ['actor', 'member', 'actor'], data: { operation } });
     for (const name of ['actor', 'secondTab', 'member']) {
-      assert.equal(messages[name].length, 1);
+      assert.equal(messages[name]?.length, 1);
       const [header, body] = messages[name][0].split('\ndata:');
       assert.equal(header, `event: tag-${operation}-with-share`);
       assert.deepEqual(JSON.parse(body.trim()).data, { operation });

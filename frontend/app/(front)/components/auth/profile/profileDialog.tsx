@@ -162,6 +162,17 @@ const ProfileDialog = ({
     onOpenChange?.(next);
   }
 
+function formatEmail(email: string): string {
+  const atIndex = email.lastIndexOf("@");
+  if (atIndex <= 0) return email;
+
+  const name = email.slice(0, atIndex);
+  const domain = email.slice(atIndex);
+  const visibleName = name.slice(0, Math.ceil(name.length / 2));
+
+  return `${visibleName}.....${domain}`;
+}
+
   async function handleLogout() {
     if (!onLogout) return;
     setLoggingOut(true);
@@ -227,7 +238,7 @@ const ProfileDialog = ({
 
             <div className="space-y-1.5">
               <span className="font-bold">Email</span>
-              <p className="truncate font-light mt-1">{email}</p>
+              <p className="truncate font-light mt-1">{formatEmail(email)}</p>
             </div>
           </div>
         </div>

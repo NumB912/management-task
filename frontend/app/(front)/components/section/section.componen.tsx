@@ -31,7 +31,7 @@ const Section = ({
 }: SectionProp) => {
   const [isFocusInput, setIsFocusInput] = useState<boolean>(false);
   const [isOnDrag, setIsOnDrag] = useState<boolean>(false);
-  const [isHover, setIsHover] = useState<boolean>(false);
+
   const offSetRef = useRef({ x: 0, y: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const inputWrapper = useRef<HTMLDivElement>(null);
@@ -40,6 +40,13 @@ const Section = ({
   const lastTargetIdRef = useRef<string | null>(null);
   const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wasDraggingRef = useRef(false);
+  const activePointerRef = useRef<{
+    id: number;
+    startX: number;
+    startY: number;
+    handle: HTMLDivElement;
+    dragging: boolean;
+  } | null>(null);
   const [draftName, setDraftName] = useState<string>("");
   const [sectionNameError, setSectionNameError] = useState<string>("");
   const section = useWorkspaceStore(
@@ -73,7 +80,7 @@ const Section = ({
   }, []);
 
   useEffect(() => {
-    function clickOutSide(e: MouseEvent) {
+    function clickOutSide(e: PointerEvent) {
       if (
         inputWrapper.current &&
         !inputWrapper.current.contains(e.target as Node) &&
@@ -82,8 +89,8 @@ const Section = ({
         cancelEdit();
       }
     }
-    addEventListener("mousedown", clickOutSide);
-    return () => removeEventListener("mousedown", clickOutSide);
+    addEventListener("pointerdown", clickOutSide);
+    return () => removeEventListener("pointerdown", clickOutSide);
   }, [isFocusInput, cancelEdit]);
 
   const handleEditSection = useCallback(() => {
@@ -153,26 +160,9 @@ const Section = ({
     sectionRef.current.style.left = `${x}px`;
   }, []);
 
-  const MouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    e.stopPropagation();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const { x, y } = e.currentTarget.getBoundingClientRect();
-
-    dragTimeoutRef.current = setTimeout(() => {
-      offSetRef.current = { x: startX - x, y: startY - y };
-      if (sectionRef.current) {
-        sectionRef.current.style.position = "fixed";
-        sectionRef.current.style.top = `${y}px`;
-        sectionRef.current.style.left = `${x}px`;
-        sectionRef.current.style.zIndex = "999";
-      }
-      setIsOnDrag(true);
-      wasDraggingRef.current = true;
-    }, 300);
-  }, []);
-
   const endDrag = useCallback(() => {
+    const pointer = activePointerRef.current;
+    activePointerRef.current = null;
     if (dragTimeoutRef.current) {
       clearTimeout(dragTimeoutRef.current);
       dragTimeoutRef.current = null;
@@ -181,58 +171,123 @@ const Section = ({
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    if (pointer?.handle.hasPointerCapture(pointer.id)) {
+      pointer.handle.releasePointerCapture(pointer.id);
+    }
     if (sectionRef.current) {
       sectionRef.current.style.position = "";
       sectionRef.current.style.top = "";
       sectionRef.current.style.left = "";
+      sectionRef.current.style.width = "";
       sectionRef.current.style.zIndex = "";
     }
-    if (isHover && lastTargetIdRef.current) {
+    // Persist the visible order, including when the OS interrupts a gesture.
+    if (pointer?.dragging && lastTargetIdRef.current) {
       savePosition(sectionId, lastTargetIdRef.current);
     }
     lastTargetIdRef.current = null;
     setIsOnDrag(false);
-    setIsHover(false);
-    setIsFocusInput(false);
-  }, [sectionId, savePosition, isHover]);
+  }, [sectionId, savePosition]);
+
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.isPrimary || e.button !== 0 || activePointerRef.current) return;
+    if ((e.target as HTMLElement).closest("input, textarea, [contenteditable=true], [data-no-section-drag]")) return;
+    if (!sectionRef.current) return;
+    e.stopPropagation();
+    wasDraggingRef.current = false;
+    const pointer = {
+      id: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      handle: e.currentTarget,
+      dragging: false,
+    };
+    activePointerRef.current = pointer;
+
+    dragTimeoutRef.current = setTimeout(() => {
+      dragTimeoutRef.current = null;
+      const card = sectionRef.current;
+      if (!card || activePointerRef.current !== pointer) return;
+      const { x, y, width } = card.getBoundingClientRect();
+      offSetRef.current = { x: pointer.startX - x, y: pointer.startY - y };
+      card.style.position = "fixed";
+      card.style.top = y + "px";
+      card.style.left = x + "px";
+      card.style.width = width + "px";
+      card.style.zIndex = "999";
+      pointer.dragging = true;
+      pointer.handle.setPointerCapture(pointer.id);
+      wasDraggingRef.current = true;
+      setIsOnDrag(true);
+    }, 300);
+  }, []);
 
   useEffect(() => {
-    if (!isOnDrag) return;
+    function moveSection(clientX: number, clientY: number) {
+      const card = sectionRef.current;
+      if (!card) return;
+      updatePosition(clientX, clientY);
+      const previous = card.style.pointerEvents;
+      card.style.pointerEvents = "none";
+      const aboveElement = document.elementFromPoint(clientX, clientY);
+      card.style.pointerEvents = previous;
+      const targetId = aboveElement?.closest("[data-section]")?.getAttribute("data-section");
+      if (targetId && targetId !== sectionId && targetId !== lastTargetIdRef.current) {
+        lastTargetIdRef.current = targetId;
+        changePosition(sectionId, targetId);
+      }
+    }
 
-    function handleMouseMove(e: MouseEvent) {
-      if (rafRef.current) return;
+    function handlePointerMove(e: PointerEvent) {
+      const pointer = activePointerRef.current;
+      if (!pointer || e.pointerId !== pointer.id) return;
+      if (!pointer.dragging) {
+        // Moving before the hold finishes is not a drag.
+        if (Math.hypot(e.clientX - pointer.startX, e.clientY - pointer.startY) > 8) {
+          endDrag();
+        }
+        return;
+      }
+      e.preventDefault();
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null;
-        updatePosition(e.clientX, e.clientY);
-        const prevPointerEvents = sectionRef.current!.style.pointerEvents;
-        sectionRef.current!.style.pointerEvents = "none";
-        const aboveElement = document.elementFromPoint(e.clientX, e.clientY);
-        sectionRef.current!.style.pointerEvents = prevPointerEvents;
-        const closetElement = aboveElement?.closest("[data-section]");
-        if (closetElement) {
-          const targetId = closetElement.getAttribute("data-section");
-          setIsHover(true);
-          if (targetId) {
-            lastTargetIdRef.current = targetId;
-            changePosition(sectionId, targetId);
-          }
-        }
+        moveSection(e.clientX, e.clientY);
       });
     }
-    function handleMouseUp() {
+    function handlePointerUp(e: PointerEvent) {
+      const pointer = activePointerRef.current;
+      if (!pointer || e.pointerId !== pointer.id) return;
+      if (pointer.dragging) moveSection(e.clientX, e.clientY);
       endDrag();
     }
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    function handlePointerCancel(e: PointerEvent) {
+      if (e.pointerId === activePointerRef.current?.id) endDrag();
+    }
+    // Listen from pointer-down, so a quick release outside the header cancels the timer.
+    window.addEventListener("pointermove", handlePointerMove, { passive: false });
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerCancel);
+    window.addEventListener("lostpointercapture", handlePointerCancel);
+    window.addEventListener("blur", endDrag);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerCancel);
+      window.removeEventListener("lostpointercapture", handlePointerCancel);
+      window.removeEventListener("blur", endDrag);
     };
-  }, [isOnDrag, isHover, sectionId, endDrag, changePosition, updatePosition]);
+  }, [sectionId, endDrag, changePosition, updatePosition]);
+
+  useEffect(() => () => {
+    if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    const pointer = activePointerRef.current;
+    activePointerRef.current = null;
+    if (pointer?.handle.hasPointerCapture(pointer.id)) {
+      pointer.handle.releasePointerCapture(pointer.id);
+    }
+  }, []);
 
   if (!sectionExists) return null;
 
@@ -250,10 +305,15 @@ const Section = ({
         className={cn("ring-0 rounded-0 gap-2 p-2")}
       >
         <CardHeader
-          className="font-bold flex text-md gap-1 justify-between z-50 px-1"
-          onMouseDown={MouseDown}
-          onMouseUp={() => {
-            if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
+          className="font-bold flex text-md gap-1 justify-between z-50 px-1 touch-none select-none"
+          onPointerDown={handlePointerDown}
+          onContextMenu={(e) => { if (activePointerRef.current) e.preventDefault(); }}
+          onClickCapture={(e) => {
+            if (wasDraggingRef.current) {
+              wasDraggingRef.current = false;
+              e.preventDefault();
+              e.stopPropagation();
+            }
           }}
           ref={inputWrapper}
           onClick={(e) => e.stopPropagation()}
@@ -314,7 +374,8 @@ const Section = ({
                       e.stopPropagation();
                       setIsAddTask(!isAddTask)
                     }}
-                    onMouseDown={(e) => e.stopPropagation()}
+                    data-no-section-drag
+                    onPointerDown={(e) => e.stopPropagation()}
                     className="rounded hover:bg-gray-200 p-1 text-neutral-600 cursor-pointer relative bg-transparent"
                   >
                     <Plus />
@@ -324,7 +385,8 @@ const Section = ({
                     <DropdownMenuTrigger asChild>
                       <Button
                         onClick={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
+                        data-no-section-drag
+                        onPointerDown={(e) => e.stopPropagation()}
                         className="rounded hover:bg-gray-200 p-1 text-neutral-600 cursor-pointer relative bg-transparent"
                       >
                         <MoreHorizontal />

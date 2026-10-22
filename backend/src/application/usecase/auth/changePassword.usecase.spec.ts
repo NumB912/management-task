@@ -7,16 +7,5 @@ describe('changePassword.usecase', () => {
   });
 });
 
-describe('ChangePassword.usecase is not found password',()=>{
-
-  const changePwdUC = new ChangePasswordUsecase()
-
-  it('should not found password to change',()=>{
-
-
-
-  })
-
-})
 
 
