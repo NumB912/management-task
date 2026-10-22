@@ -1,4 +1,4 @@
-name: Deploy Docker Compose
+name: Build Docker Compose
 
 on:
   push:
@@ -106,27 +106,3 @@ jobs:
 
             docker compose config --quiet
             bash scripts/build-compose.sh
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    environment: production
-    timeout-minutes: 15
-    steps:
-      - name: Start the built images
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          : ${{ github.sha }}
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          password: ${{ secrets.PASSWORD }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          command_timeout: 10m
-          script: |
-            set -eu
-            cd "$HOME/services/toboco"
-            docker compose up -d --no-build
-            docker compose ps

@@ -105,6 +105,8 @@ jobs:
               notifier-services/.env.production \
               frontend/.env.production
 
+            docker compose -f docker-compose.production.yml build
+
   deploy:
     name: Deploy
     needs: build
@@ -126,3 +128,4 @@ jobs:
             cd "$HOME/services/toboco"
             docker compose -f docker-compose.production.yml up -d --no-build
             docker compose -f docker-compose.production.yml ps
+            docker compose -f docker-compose.production.yml logs -f
