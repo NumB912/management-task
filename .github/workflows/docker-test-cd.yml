@@ -1,0 +1,10 @@
+name: deploy-test
+
+on:
+  push:
+    branches:
+      - "pull"
+jobs:
+  test:
+    name: "test-job"
+    env
