@@ -13,11 +13,12 @@ concurrency:
 
 jobs:
   test:
-    name: Test
+    name: Test (${{ matrix.service }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
         service: [backend, email-services, notifier-services, file-services]
     defaults:
@@ -104,7 +105,7 @@ jobs:
               frontend/.env.local
 
             docker compose config --quiet
-            docker compose build --pull
+            bash scripts/build-compose.sh
 
   deploy:
     name: Deploy

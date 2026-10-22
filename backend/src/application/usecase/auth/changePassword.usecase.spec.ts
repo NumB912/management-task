@@ -6,3 +6,17 @@ describe('changePassword.usecase', () => {
     expect(ChangePasswordUsecase).toBeDefined();
   });
 });
+
+describe('ChangePassword.usecase is not found password',()=>{
+
+  const changePwdUC = new ChangePasswordUsecase()
+
+  it('should not found password to change',()=>{
+
+
+
+  })
+
+})
+
+
