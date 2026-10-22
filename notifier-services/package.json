@@ -7,9 +7,10 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "dev": "npx tsx src/index.ts",
-    "start": "npx tsx src/index.ts"
+    "start": "npx tsx src/index.ts",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "amqplib": "^1.0.3",
@@ -26,6 +27,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/nodemailer": "^8.0.0"
+    "@types/nodemailer": "^8.0.0",
+    "vitest": "^4.1.2"
   }
 }

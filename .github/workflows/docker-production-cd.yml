@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [backend, email-services,notifier-services]
+        service: [backend, email-services, notifier-services, file-services]
     defaults:
       run:
         working-directory: ${{ matrix.service }}
