@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -68,6 +67,7 @@ const ProfileDialog = ({
     const url = new URL(window.location.href);
     const result = url.searchParams.get("google_link");
     if (!result) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGoogleMessage(result === "success" ? "Liên kết Google thành công. Bạn có thể đăng nhập bằng Google."
       : result === "email_mismatch" ? "Vui lòng chọn tài khoản Google có cùng email với hồ sơ."
       : "Liên kết chưa thành công hoặc đã bị hủy. Vui lòng thử lại.");
@@ -76,7 +76,7 @@ const ProfileDialog = ({
     void useUserState.getState().fetchUser();
     url.searchParams.delete("google_link");
     window.history.replaceState(null, "", url.toString());
-  }, []);
+  }, [onOpenChange]);
 
   async function linkGoogle() {
     setLinkingGoogle(true);

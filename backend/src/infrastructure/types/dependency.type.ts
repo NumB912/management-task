@@ -1,3 +1,4 @@
+import { TaskDetailByIdsCache } from "@/application/service/taskByIdsCache.service";
 import { ColorRepository } from "../repositories";
 
 export const TYPES = {
@@ -62,6 +63,7 @@ export const TYPES = {
   GetTaskByIdUsecase: Symbol.for("GetTaskByIdUsecase"),
   CreateTaskUsecase: Symbol.for("CreateTaskUsecase"),
   CreateTaskWithSectionUsecase: Symbol.for("CreateTaskWithSectionUsecase"),
+  TaskDetailByIdsCache:Symbol.for("TaskDetailByIdsCache"),
   UpdateTaskUsecase: Symbol.for("UpdateTaskUsecase"),
   DeleteTaskUsecase: Symbol.for("DeleteTaskUsecase"),
   updateTaskStatusUsecase:Symbol.for("UpdateTaskCompleteUsecase"),

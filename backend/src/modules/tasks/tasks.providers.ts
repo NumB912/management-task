@@ -26,6 +26,8 @@ import { UpdateRuleUsecase } from '@/application/usecase/tasks/updateRule.usecas
 import { UpdateTaskUsecase } from '@/application/usecase/tasks/updateTask.usecase.js';
 import { GetAllTasksWithIdsUsecase } from '@/application/usecase/tasks/findManyWithIds.usecase';
 import { UpdateStatusUsecase } from '@/application/usecase/tasks/updateTaskStatus.usecase';
+import { TaskDetailByIdsCache } from '@/application/service/taskByIdsCache.service';
+import { ICache } from '@/domain';
 
 export const tasksProviders = [
   {
@@ -129,9 +131,15 @@ export const tasksProviders = [
   },
   {
     provide: TYPES.GetAllTasksWithIdsUsecase,
-    inject: [TYPES.TaskRepository, TYPES.UnitWork],
-    useFactory: (taskRepo: TaskRepository, unitWork: UnitWorkMongo) =>
-      new GetAllTasksWithIdsUsecase(taskRepo, unitWork),
+    inject: [TYPES.TaskRepository, TYPES.TaskDetailByIdsCache],
+    useFactory: (taskRepo: TaskRepository, taskCacheDetailByIds: TaskDetailByIdsCache) =>
+      new GetAllTasksWithIdsUsecase(taskRepo, taskCacheDetailByIds),
+  }, 
+  {
+    provide: TYPES.TaskDetailByIdsCache,
+    inject: [TYPES.Cache],
+    useFactory: (cache: ICache) =>
+      new TaskDetailByIdsCache(cache),
   },
   {
     provide: TYPES.GetAllTaskUsecase,

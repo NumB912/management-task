@@ -8,7 +8,7 @@ export class GetTaskByIdUsecase implements IUsecase<Partial<ITask> | null> {
       return taskById;
     } catch (error) {
       console.error(error);
-      throw new AppError("ERROR", "Lá»—i trong quÃ¡ trÃ¬nh láº¥y task", 500);
+      throw new AppError("ERROR", "Lỗi trong quá trình thực thi", 500);
     }
   }
 }

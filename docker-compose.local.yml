@@ -88,12 +88,10 @@ services:
 
   notifier-services:
     <<: *worker
-    command: sh -c "npm ci --include=dev && npm install --no-save --package-lock=false tsx@4.23.15 && ./node_modules/.bin/tsx watch src/index.ts"
     env_file:
       - path: ./notifier-services/.env.local
     environment:
       NODE_ENV: local
-      RABBITMQ_URI: amqp://taskdev:taskdev@rabbitmq:5672
     ports:
       - "3005:3005"
     depends_on:

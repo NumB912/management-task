@@ -2,7 +2,7 @@ FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json package-lock.json ./
-RUN npm ci --include=dev && npm install --no-save tsx@^4.23.15
+RUN npm ci
 COPY tsconfig.json ./tsconfig.json
 COPY src ./src
 EXPOSE 3005
