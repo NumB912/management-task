@@ -585,7 +585,11 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
                           <EntityRow
                             key={tag.id}
                             link={`/dashboard/work/tags/${tag.name}`}
-                            icon={<Tag data-icon="inline-start" size={16} />}
+                            icon={                    <Tag
+                          data-icon="inline-start"
+                          className={cn("w-3! h-3!")}
+                          style={{ color: tag.color ?? "#3B82F6" }}
+                        />}
                             name={tag.name}
                             count={getTaskQuantityWithTag(tag.name)}
                             color={tag.color ?? ""}

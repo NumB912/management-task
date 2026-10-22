@@ -60,12 +60,6 @@ const allTags: ITagModel[] = useMemo(
   () => Object.values(tagIndex).filter((tag) => tag.name.toLowerCase().includes(search.toLowerCase())),
   [tagIndex, search]
 );
-  useEffect(() => {
-    if (open) {
-      setPendingTags(selectedTags);
-      setSearch("");
-    }
-  }, [open, selectedTags]);
 
   const toggleTag = (tag: string) => {
     if (busy) return;
