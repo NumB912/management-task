@@ -24,6 +24,7 @@ import useUserState from "@/app/(front)/feature/store/user/user.state";
 import { MAX_VALUE_REG } from "recharts/types/util/ChartUtils";
 import AvatarEditor from "../../avatar.component";
 import { axiosInstance } from "@/app/(front)/lib/axios";
+import { useIsMobile } from "@/hooks/use-mobile";
 export function getInitials(name: string, email: string) {
   const parts = (name.trim() || email).split(/\s+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -61,6 +62,7 @@ const ProfileDialog = ({
   const [loggingOut, setLoggingOut] = useState(false);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
   const [googleMessage, setGoogleMessage] = useState("");
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -184,11 +186,13 @@ function formatEmail(email: string): string {
     }
   }
 
+  const classDialog = !isMobile?"min-w-0 w-full rounded-none h-screen sm:h-fit sm:max-w-xl shadow-2xs":"fixed inset-0 top-0 left-0 translate-x-0 translate-y-0 m-0 h-dvh max-h-dvh w-screen max-w-none sm:max-w-none rounded-none overflow-y-auto"
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
 
-      <DialogContent className="sm:max-w-xl shadow-2xs">
+      <DialogContent className={classDialog}>
         <DialogHeader>
           <DialogTitle className="sr-only">Hồ sơ</DialogTitle>
           <DialogDescription className="sr-only">
@@ -196,7 +200,7 @@ function formatEmail(email: string): string {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-10 py-2">
+        <div className="flex sm:items-center flex-col sm:flex-row p-4 gap-10 py-2">
           <div className="flex flex-col gap-2 items-center">
             <div className="w-full">
               <AvatarEditor

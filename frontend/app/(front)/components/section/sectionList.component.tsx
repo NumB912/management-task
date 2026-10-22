@@ -14,7 +14,8 @@ import { ISectionModelState } from "../../model";
 import { SectionCard } from "../sectionCard.component";
 import AddTask from "../task/addTask";
 import { TaskList } from "../task/taskList.component";
-import Section from "./section.componen";
+import { previewSectionOrder, getSectionDropTarget } from "../../utils/sectionReorder";
+import Section from "./section.component";
 import AddSection from "./addSection.component";
 import ObjectID from "bson-objectid";
 import { DEFAULT_COLORS } from "../../model/mod/color.config";
@@ -46,50 +47,58 @@ const SectionList = React.memo(
 
 
     const reorderSnapshotRef = useRef<string[] | null>(null);
+    const previewOrderRef = useRef<string[]>(sections);
     const removeSnapshotRef = useRef<string[] | null>(null);
+    useEffect(() => {
+      if (!reorderSnapshotRef.current) previewOrderRef.current = sections;
+    }, [sections]);
+
+    const cancelOrderPosition = useCallback(() => {
+      const original = reorderSnapshotRef.current;
+      if (original) {
+        previewOrderRef.current = original;
+        setSections(original);
+      }
+      reorderSnapshotRef.current = null;
+    }, []);
+
     const changePosition = useCallback((startId: string, changeId: string) => {
-      setSections((prev) => {
-        const findStartIndex = prev.findIndex((section) => startId === section);
-        const findEndIndex = prev.findIndex((section) => changeId === section);
-        if (
-          findStartIndex === -1 ||
-          findEndIndex === -1 ||
-          findStartIndex === findEndIndex
-        ) {
-          return prev;
-        }
-
-        reorderSnapshotRef.current ??= prev;
-
-        const result = [...prev];
-        const [removed] = result.splice(findStartIndex, 1);
-        result.splice(findEndIndex, 0, removed);
-        return result;
-      });
+      const current = previewOrderRef.current;
+      const next = previewSectionOrder(current, startId, changeId);
+      if (next === current) return;
+      reorderSnapshotRef.current ??= current;
+      previewOrderRef.current = next;
+      setSections(next);
     }, []);
 
     const saveOrderPosition = useCallback(
-      (startId: string, changeId: string) => {
-        moveSection(startId, changeId);
+      (startId: string) => {
+        const original = reorderSnapshotRef.current;
+        if (!original) return;
+        const targetId = getSectionDropTarget(original, previewOrderRef.current, startId);
+        reorderSnapshotRef.current = null;
+        if (!targetId) return;
+        moveSection(startId, targetId);
         mutate(
-          { fromId: startId, toId: changeId },
+          { fromId: startId, toId: targetId },
           {
             onError: () => {
-              if (reorderSnapshotRef.current) {
-                setSections(reorderSnapshotRef.current);
-              }
+              previewOrderRef.current = original;
+              setSections(original);
+              const state = useWorkspaceStore.getState();
+              const list = state.listIndex[listId];
+              if (list) useWorkspaceStore.setState({
+                listIndex: { ...state.listIndex, [listId]: { ...list, sections: original } },
+              });
               toast.error("Đổi vị trí thất bại, đã khôi phục lại");
             },
             onSuccess: () => {
               toast.success("Đổi vị trí thành công");
             },
-            onSettled: () => {
-              reorderSnapshotRef.current = null;
-            },
           },
         );
       },
-      [mutate],
+      [listId, moveSection, mutate],
     );
 
     const removeSection = useCallback(
@@ -137,7 +146,7 @@ const SectionList = React.memo(
           },
         });
       },
-      [mutateRemoveSection],
+      [mutateRemoveSection, removeSectionStore, sections],
     );
 
     const addSection = useCallback(
@@ -163,19 +172,19 @@ const SectionList = React.memo(
               setSections(snapShotSection);
               removeSectionStore(sectionIdTemp);
             },
-            onSuccess(data, variables, onMutateResult, context) {
+            onSuccess() {
               toast.success("Thêm thành phần thành công");
             },
           },
         );
       },
-      [mutateAddSection],
+      [addSectionState, listId, mutateAddSection, removeSectionStore, sections],
     );
 
     
 
     return (
-      <div className="flex gap-3 py-3 h-fit">
+      <div data-section-board className="flex gap-3 py-3 h-fit">
         {sections.length == 0 ||
           (tasks.length > 0 && (
             <SectionCard
@@ -210,6 +219,7 @@ const SectionList = React.memo(
             removeSection={removeSection}
             listId={listId}
             sectionId={section}
+            cancelPosition={cancelOrderPosition}
             savePosition={saveOrderPosition}
             changePosition={changePosition}
           />
@@ -220,5 +230,7 @@ const SectionList = React.memo(
     );
   },
 );
+
+SectionList.displayName = "SectionList";
 
 export default SectionList;

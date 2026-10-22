@@ -30,7 +30,7 @@ const AvatarEditor = ({
   avatar,
   onUpload,
   onRemove,
-  className = "size-30",
+  className = "size-20",
 }: AvatarEditorProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<"upload" | "remove" | null>(null);

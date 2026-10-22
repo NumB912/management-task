@@ -9,6 +9,7 @@ import { useAddTask } from "../../feature/hook/task/addTask.hook";
 import { Card, CardContent, CardHeader } from "../ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Edit, MoreHorizontal, Plus, Trash } from "lucide-react";
+import { scrollDragAncestors } from "../../utils/dragAutoScroll";
 import AddTask from "../task/addTask";
 import { TaskList } from "../task/taskList.component";
 
@@ -18,6 +19,7 @@ interface SectionProp {
   listId: string;
   changePosition: (starts: string, change: string) => void;
   savePosition: (starts: string, change: string) => void;
+  cancelPosition: () => void;
   removeSection: (id: string) => void;
 }
 const MAX_SECTION_NAME_LENGTH = 50;
@@ -26,6 +28,7 @@ const Section = ({
   sectionId,
   changePosition,
   savePosition,
+  cancelPosition,
   listId,
   removeSection,
 }: SectionProp) => {
@@ -44,7 +47,9 @@ const Section = ({
     id: number;
     startX: number;
     startY: number;
-    handle: HTMLDivElement;
+    clientX: number;
+    clientY: number;
+    handle: HTMLElement;
     dragging: boolean;
   } | null>(null);
   const [draftName, setDraftName] = useState<string>("");
@@ -181,13 +186,10 @@ const Section = ({
       sectionRef.current.style.width = "";
       sectionRef.current.style.zIndex = "";
     }
-    // Persist the visible order, including when the OS interrupts a gesture.
-    if (pointer?.dragging && lastTargetIdRef.current) {
-      savePosition(sectionId, lastTargetIdRef.current);
-    }
     lastTargetIdRef.current = null;
+    if (pointer?.dragging) cancelPosition();
     setIsOnDrag(false);
-  }, [sectionId, savePosition]);
+  }, [cancelPosition]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (!e.isPrimary || e.button !== 0 || activePointerRef.current) return;
@@ -199,7 +201,10 @@ const Section = ({
       id: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
-      handle: e.currentTarget,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      // Capture on the stable board: section nodes move during reorder previews.
+      handle: e.currentTarget.closest<HTMLElement>("[data-section-board]") ?? document.documentElement,
       dragging: false,
     };
     activePointerRef.current = pointer;
@@ -231,53 +236,82 @@ const Section = ({
       card.style.pointerEvents = "none";
       const aboveElement = document.elementFromPoint(clientX, clientY);
       card.style.pointerEvents = previous;
-      const targetId = aboveElement?.closest("[data-section]")?.getAttribute("data-section");
-      if (targetId && targetId !== sectionId && targetId !== lastTargetIdRef.current) {
-        lastTargetIdRef.current = targetId;
+      const targetId = (aboveElement?.closest("[data-section], [data-section-slot]")?.getAttribute("data-section") ?? aboveElement?.closest("[data-section-slot]")?.getAttribute("data-section-slot"));
+      if (targetId === sectionId) return;
+      if (targetId && targetId !== lastTargetIdRef.current) {
         changePosition(sectionId, targetId);
       }
+      lastTargetIdRef.current = targetId ?? null;
     }
 
     function handlePointerMove(e: PointerEvent) {
       const pointer = activePointerRef.current;
       if (!pointer || e.pointerId !== pointer.id) return;
       if (!pointer.dragging) {
-        // Moving before the hold finishes is not a drag.
         if (Math.hypot(e.clientX - pointer.startX, e.clientY - pointer.startY) > 8) {
           endDrag();
         }
         return;
       }
       e.preventDefault();
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        moveSection(e.clientX, e.clientY);
-      });
+      pointer.clientX = e.clientX;
+      pointer.clientY = e.clientY;
     }
     function handlePointerUp(e: PointerEvent) {
       const pointer = activePointerRef.current;
       if (!pointer || e.pointerId !== pointer.id) return;
       if (pointer.dragging) moveSection(e.clientX, e.clientY);
+      const targetId = lastTargetIdRef.current;
+      if (pointer.dragging && targetId) {
+        savePosition(sectionId, targetId);
+        pointer.dragging = false;
+      }
       endDrag();
     }
     function handlePointerCancel(e: PointerEvent) {
       if (e.pointerId === activePointerRef.current?.id) endDrag();
     }
-    // Listen from pointer-down, so a quick release outside the header cancels the timer.
+
+    function handleCaptureLost(e: PointerEvent) {
+      const pointer = activePointerRef.current;
+      // Touch starts with implicit capture on a child. Its release while
+      // transferring capture to the board must not cancel this drag.
+      if (pointer && e.pointerId === pointer.id && e.target === pointer.handle &&
+        !pointer.handle.hasPointerCapture(pointer.id)) {
+        endDrag();
+      }
+    }
+
+    let previousTime = performance.now();
+    function animateDrag(time: number) {
+      const pointer = activePointerRef.current;
+      if (!pointer?.dragging) return;
+      scrollDragAncestors(sectionRef.current?.parentElement ?? null,
+        pointer.clientX, pointer.clientY, time - previousTime);
+      previousTime = time;
+      moveSection(pointer.clientX, pointer.clientY);
+      rafRef.current = requestAnimationFrame(animateDrag);
+    }
+
+
+    if (isOnDrag) rafRef.current = requestAnimationFrame(animateDrag);
     window.addEventListener("pointermove", handlePointerMove, { passive: false });
     window.addEventListener("pointerup", handlePointerUp);
     window.addEventListener("pointercancel", handlePointerCancel);
-    window.addEventListener("lostpointercapture", handlePointerCancel);
+    window.addEventListener("lostpointercapture", handleCaptureLost);
     window.addEventListener("blur", endDrag);
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       window.removeEventListener("pointercancel", handlePointerCancel);
-      window.removeEventListener("lostpointercapture", handlePointerCancel);
+      window.removeEventListener("lostpointercapture", handleCaptureLost);
       window.removeEventListener("blur", endDrag);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     };
-  }, [sectionId, endDrag, changePosition, updatePosition]);
+  }, [isOnDrag, sectionId, endDrag, changePosition, savePosition, updatePosition]);
 
   useEffect(() => () => {
     if (dragTimeoutRef.current) clearTimeout(dragTimeoutRef.current);
@@ -293,6 +327,7 @@ const Section = ({
 
   return (
     <div
+      data-section-slot={sectionId}
       className={
         isOnDrag
           ? "max-w-[min(40vw,500px)] min-w-65 bg-gray-100 rounded-md"
