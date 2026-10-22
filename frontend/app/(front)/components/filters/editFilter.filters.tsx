@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { CalendarIcon, Check, X } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,11 @@ import {
   SelectItem,
 } from "../ui/select";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useWorkspaceStore } from "../../feature/store/workspace.state";
@@ -34,16 +38,10 @@ import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { Calendar } from "../ui/calendar";
 import { filterApi } from "../../feature/api/filters/filter.api";
 import { Label } from "../ui/label";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import TagCombobox from "../tagCompobox";
 import { Badge } from "@/components/ui/badge";
 import { IFilterModel } from "../../model/filter.model";
+import { FilterPropertyItem } from "./filterPropertyItem";
 import ColorPicker from "../color/colorPicker.component";
 import { DEFAULT_COLORS } from "../../model/mod/color.config";
 import { workSpaceKeys } from "../../feature/hook/useWorkSpaceQuery.hook";
@@ -52,16 +50,16 @@ import { filterKeys } from "../../feature/hook/useFilterQuery.hook";
 interface editFilterDialogProps {
   open: boolean;
   onClose: () => void;
-  filter: IFilterModel | null;
+  filter: IFilterModel;
 }
 
-const parseToDate = (dateVal: any): Date | null => {
+const parseToDate = (dateVal: Date | null): Date | null => {
   if (!dateVal) return null;
   const parsed = new Date(dateVal);
   return isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const getSafeTime = (dateVal: any): number | null => {
+const getSafeTime = (dateVal: Date | null): number | null => {
   const d = parseToDate(dateVal);
   return d ? d.getTime() : null;
 };
@@ -76,7 +74,7 @@ export const PRIORITY_OPTIONS: {
     label: "P1",
     className: cn(
       "text-red-600! border-red-300!",
-      "data-[state=on]:bg-red-500! data-[state=on]:text-white!"
+      "data-[state=on]:bg-red-500! data-[state=on]:text-white!",
     ),
   },
   {
@@ -84,7 +82,7 @@ export const PRIORITY_OPTIONS: {
     label: "P2",
     className: cn(
       "text-orange-600! border-orange-300!",
-      "data-[state=on]:bg-orange-500! data-[state=on]:text-white!"
+      "data-[state=on]:bg-orange-500! data-[state=on]:text-white!",
     ),
   },
   {
@@ -92,7 +90,7 @@ export const PRIORITY_OPTIONS: {
     label: "P3",
     className: cn(
       "text-blue-600! border-blue-300!",
-      "data-[state=on]:bg-blue-500! data-[state=on]:text-white!"
+      "data-[state=on]:bg-blue-500! data-[state=on]:text-white!",
     ),
   },
   {
@@ -100,7 +98,7 @@ export const PRIORITY_OPTIONS: {
     label: "P4",
     className: cn(
       "text-muted-foreground border-border",
-      "data-[state=on]:bg-muted-foreground! data-[state=on]:text-white!"
+      "data-[state=on]:bg-muted-foreground! data-[state=on]:text-white!",
     ),
   },
   {
@@ -108,7 +106,7 @@ export const PRIORITY_OPTIONS: {
     label: "Không yêu cầu",
     className: cn(
       "text-gray-500 border-border",
-      "data-[state=on]:bg-gray-800! data-[state=on]:text-white!"
+      "data-[state=on]:bg-gray-800! data-[state=on]:text-white!",
     ),
   },
 ];
@@ -134,54 +132,71 @@ export function EditFilterDialog({
   const [name, setName] = useState(filter?.name ?? "");
   const [color, setColor] = useState(filter?.color ?? DEFAULT_COLORS[0]);
   const [description, setDescription] = useState(filter?.description ?? "");
-  const [priority, setPriority] = useState<Ipriority | null>(filter?.priority??null);
-  const [specials, setSpecials] = useState<ISpecials>(filter?.specials ?? "none");
+  const [priority, setPriority] = useState<Ipriority | null>(
+    filter?.priority ?? null,
+  );
+  const [specials, setSpecials] = useState<ISpecials>(
+    filter?.specials ?? "none",
+  );
   const [status, setStatus] = useState<IStatus>(filter?.status ?? "pending");
-  const [startDate, setStartDate] = useState<Date | null>(() => parseToDate(filter?.start_date ?? null));
-  const [endDate, setEndDate] = useState<Date | null>(() => parseToDate(filter?.end_date ?? null));
+  const [startDate, setStartDate] = useState<Date | null>(() =>
+    parseToDate(filter?.start_date ?? null),
+  );
+  const [endDate, setEndDate] = useState<Date | null>(() =>
+    parseToDate(filter?.end_date ?? null),
+  );
   const [error, setError] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
-  const [selectedTags, setSelectedTags] = useState<string[]>(filter?.tags ?? []);
+  const [selectedTags, setSelectedTags] = useState<string[]>(
+    filter?.tags ?? [],
+  );
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
   const queryClient = useQueryClient();
-  const tagIndex = useWorkspaceStore(useShallow((s) => s.tagIndex));
-  const updateFilter = useWorkspaceStore((state)=>state.updateFilter)
+  const updateFilter = useWorkspaceStore((state) => state.updateFilter);
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
       Object.values(s.filterIndex)
         .filter((item) => item.id !== filter?.id)
-        .map((item) => item.name.trim().toLowerCase())
-    )
+        .map((item) => item.name.trim().toLowerCase()),
+    ),
   );
 
   useEffect(() => {
     if (filter) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(filter.name);
       setColor(filter.color ?? DEFAULT_COLORS[0]);
       setDescription(filter.description ?? "");
-      setPriority(filter.priority??null);
+      setPriority(filter.priority ?? null);
       setSpecials(filter.specials);
       setStatus(filter.status);
-      setStartDate(parseToDate(filter.start_date));
-      setEndDate(parseToDate(filter.end_date));
+      setStartDate(parseToDate(filter.start_date ?? null));
+      setEndDate(parseToDate(filter.end_date ?? null));
       setSelectedTags(filter.tags ?? []);
       setError(null);
       setDateError(null);
     }
   }, [open, filter]);
 
-  useEffect(()=>{
-    if(!filter){
+  useEffect(() => {
+    if (!filter) {
       return;
     }
-  },[filter])
+  }, [filter]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<IFilterModel> }) =>
-      filterApi.update(id, payload),
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: Partial<IFilterModel>;
+    }) => filterApi.update(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workSpaceKeys.index() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter?.id!) });
+      queryClient.invalidateQueries({
+        queryKey: filterKeys.detail(filter?.id),
+      });
       toast.success("Đã cập nhật filter");
       onClose();
     },
@@ -203,8 +218,8 @@ export function EditFilterDialog({
   };
 
   const validateDateRange = (start?: Date | null, end?: Date | null) => {
-    const startTime = getSafeTime(start);
-    const endTime = getSafeTime(end);
+    const startTime = getSafeTime(start ?? null);
+    const endTime = getSafeTime(end ?? null);
 
     if (startTime && endTime && startTime > endTime) {
       setDateError("Ngày bắt đầu phải trước ngày kết thúc");
@@ -223,20 +238,6 @@ export function EditFilterDialog({
     validateDateRange(startDate, date);
   };
 
-  const toggleTag = (tagName: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagName)
-        ? prev.filter((t) => t !== tagName)
-        : [...prev, tagName]
-    );
-  };
-
-  const removeTag = (e: React.MouseEvent, tagName: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSelectedTags((prev) => prev.filter((t) => t !== tagName));
-  };
-
   const buildChangedPayload = (): Partial<IFilterModel> => {
     const payload: Partial<IFilterModel> = {};
     if (!filter) return {};
@@ -248,24 +249,24 @@ export function EditFilterDialog({
     if (color !== (filter.color ?? DEFAULT_COLORS[0])) payload.color = color;
 
     if (trimmedDesc !== (filter.description ?? "")) {
-      payload.description = (trimmedDesc || null) as any;
+      payload.description = trimmedDesc || undefined;
     }
 
     if (priority !== filter.priority) {
-      payload.priority = (priority ?? null) as any;
+      payload.priority = priority ?? null;
     }
 
     if (specials !== filter.specials) payload.specials = specials;
     if (status !== filter.status) payload.status = status;
 
     const currentStartTime = getSafeTime(startDate);
-    const initialStartTime = getSafeTime(filter.start_date);
+    const initialStartTime = getSafeTime(filter.start_date ?? null);
     if (currentStartTime !== initialStartTime) {
       payload.start_date = startDate;
     }
 
     const currentEndTime = getSafeTime(endDate);
-    const initialEndTime = getSafeTime(filter.end_date);
+    const initialEndTime = getSafeTime(filter.end_date ?? null);
     if (currentEndTime !== initialEndTime) {
       payload.end_date = endDate;
     }
@@ -293,19 +294,23 @@ export function EditFilterDialog({
       onClose();
       return;
     }
-    updateFilter(filter?.id!,changed)
-    onClose()
-    mutate({ id: filter?.id!, payload: changed },{
-      onSuccess(data, variables, onMutateResult, context) {
-        toast.success("Chỉnh sửa thành công")
+    updateFilter(filter?.id, changed);
+    onClose();
+    mutate(
+      { id: filter?.id, payload: changed },
+      {
+        onSuccess(data, variables, onMutateResult, context) {
+          toast.success("Chỉnh sửa thành công");
+        },
+        onError(error, variables, onMutateResult, context) {
+          toast.error("Lỗi trong quá trình chỉnh sửa bộ lộc");
+        },
       },
-      onError(error, variables, onMutateResult, context) {
-        toast.error("Lỗi trong quá trình chỉnh sửa bộ lộc")
-      },
-    });
+    );
   };
 
   const handleClose = () => {
+    setTagPopoverOpen(false);
     setError(null);
     setDateError(null);
     onClose();
@@ -317,23 +322,27 @@ export function EditFilterDialog({
 
   return (
     <Dialog open={!!open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="min-w-2xl">
-        <form onSubmit={handleSubmit}>
+      <DialogContent className="h-dvh max-h-dvh w-full min-w-0 max-w-none content-start overflow-y-auto rounded-none p-4 sm:h-auto sm:max-h-[90dvh] sm:w-[calc(100%-2rem)] sm:max-w-2xl sm:rounded-xl sm:p-6">
+        <form onSubmit={handleSubmit} className="min-w-0">
           <DialogHeader>
             <DialogTitle className={cn("font-bold!")}>Sửa filter</DialogTitle>
             <DialogDescription>
-              Cập nhật bộ lọc "{filter.name}".
+              Cập nhật bộ lọc {filter.name}.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex gap-5 py-4">
-            <div className="flex flex-col gap-3 w-full">
+          <div className="grid min-w-0 grid-cols-1 gap-5 py-4 sm:grid-cols-2">
+            <div className="flex min-w-0 flex-col gap-3 w-full">
+              <FilterPropertyItem label="Màu filter" value={color}>
+                <div className="grid gap-2">
+                  <Label className="font-bold">Màu filter</Label>
+                  <ColorPicker value={color} onChange={setColor} />
+                </div>
+              </FilterPropertyItem>
               <div className="grid gap-2">
-                <Label className="font-bold">Màu filter</Label>
-                <ColorPicker value={color} onChange={setColor} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="name" className="font-bold">Tên filter</Label>
+                <Label htmlFor="name" className="font-bold">
+                  Tên filter
+                </Label>
                 <Input
                   id="name"
                   value={name}
@@ -342,7 +351,9 @@ export function EditFilterDialog({
                   maxLength={100}
                   placeholder="Tên filter"
                   aria-invalid={!!error}
-                  className={cn(`rounded! px-3! py-5! ${error && "border-destructive!"}`)}
+                  className={cn(
+                    `rounded! px-3! py-5! ${error && "border-destructive!"}`,
+                  )}
                 />
                 {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
@@ -360,233 +371,244 @@ export function EditFilterDialog({
               </div>
             </div>
 
-            <div className="min-w-xs flex flex-col gap-5">
-              <div className="grid gap-2">
-                <Label className="font-bold">Độ ưu tiên</Label>
-                <ToggleGroup
-                  type="single"
-                  value={priority?.toString() ?? "none"}
-                  onValueChange={(v) =>
-                    setPriority(v !== "none" ? (Number(v) as Ipriority) : null)
-                  }
+            <div className="flex min-w-0 flex-wrap gap-2 sm:flex-col sm:gap-5">
+              <FilterPropertyItem
+                label="Độ ưu tiên"
+                value={priority == null ? undefined : PRIORITY_OPTIONS.find((option) => option.value === priority)?.label}
+              >
+                <div className="grid gap-2">
+                  <Label className="font-bold">Độ ưu tiên</Label>
+                  <ToggleGroup
+                    type="single"
+                    className="flex w-full flex-wrap gap-1"
+                    value={priority?.toString() ?? "none"}
+                    onValueChange={(v) =>
+                      setPriority(
+                        v !== "none" ? (Number(v) as Ipriority) : null,
+                      )
+                    }
+                  >
+                    {PRIORITY_OPTIONS.map((p) => (
+                      <ToggleGroupItem
+                        key={p.label}
+                        value={p.value?.toString() ?? "none"}
+                        className={cn("border! rounded!", p.className)}
+                      >
+                        {p.label}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+                </div>
+              </FilterPropertyItem>
+
+              <FilterPropertyItem
+                label="Thẻ"
+                value={selectedTags.length ? selectedTags.join(", ") : undefined}
+              >
+                <div className="grid gap-2">
+                  <Label className="font-bold">Thẻ</Label>
+                  <TagCombobox
+                    open={tagPopoverOpen}
+                    onOpenChange={setTagPopoverOpen}
+                    selectedTags={selectedTags}
+                    onConfirm={setSelectedTags}
+                    isPending={isPending}
+                    placeholder="Tìm thẻ..."
+                    emptyText="Không tìm thấy thẻ nào."
+                    className="w-(--radix-dropdown-menu-trigger-width) max-w-[calc(100vw-2rem)] p-0"
+                    trigger={
+                      <button
+                        type="button"
+                        aria-label="Chọn thẻ"
+                        aria-expanded={tagPopoverOpen}
+                        disabled={isPending}
+                        className={cn(
+                          "border-input rounded! w-full min-h-9 flex flex-wrap items-center gap-1 px-3 py-1.5 text-sm text-left border cursor-pointer",
+                          "focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none disabled:opacity-50",
+                          selectedTags.length === 0 && "text-muted-foreground",
+                        )}
+                      >
+                        {selectedTags.length === 0
+                          ? "Chọn thẻ"
+                          : selectedTags.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="max-w-full whitespace-normal wrap-anywhere rounded!"
+                              >
+                                {tag}
+                              </Badge>
+                            ))}
+                      </button>
+                    }
+                  />
+                </div>
+              </FilterPropertyItem>
+
+              <FilterPropertyItem
+                label="Thời gian đặc biệt"
+                value={specials === "none" ? undefined : SPECIALS_OPTIONS.find((option) => option.value === specials)?.label}
+              >
+                <div className="grid gap-2">
+                  <Label className="font-bold">Thời gian đặc biệt</Label>
+                  <Select
+                    value={specials}
+                    onValueChange={(v) => setSpecials(v as ISpecials)}
+                  >
+                    <SelectTrigger className={cn("rounded! w-full")}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SPECIALS_OPTIONS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FilterPropertyItem>
+
+              <FilterPropertyItem
+                label="Trạng thái"
+                value={STATUS_OPTIONS.find((option) => option.value === status)?.label}
+              >
+                <div className="grid gap-2">
+                  <Label className="font-bold">Trạng thái</Label>
+                  <Select
+                    value={status}
+                    onValueChange={(v) => setStatus(v as IStatus)}
+                  >
+                    <SelectTrigger className={cn("rounded! w-full")}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FilterPropertyItem>
+
+              <div className="contents sm:grid sm:grid-cols-1 sm:gap-3">
+                <FilterPropertyItem
+                  label="Ngày bắt đầu"
+                  value={startDate ? format(startDate, "dd/MM/yyyy", { locale: vi }) : undefined}
                 >
-                  {PRIORITY_OPTIONS.map((p) => (
-                    <ToggleGroupItem
-                      key={p.label}
-                      value={p.value?.toString() ?? "none"}
-                      className={cn("border! rounded!", p.className)}
-                    >
-                      {p.label}
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              </div>
-
-              <div className="grid gap-2">
-                <Label className="font-bold">Thẻ</Label>
-                <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <div
-                      role="combobox"
-                      aria-expanded={tagPopoverOpen}
-                      tabIndex={0}
-                      className={cn(
-                        "border-input rounded! w-full min-h-9 flex flex-wrap items-center gap-1 px-3 py-1.5 text-sm border cursor-pointer",
-                        "focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none",
-                        selectedTags.length === 0 && "text-muted-foreground"
-                      )}
-                    >
-                      {selectedTags.length === 0 ? (
-                        "Chọn thẻ"
-                      ) : (
-                        selectedTags.map((tagName) => {
-                          const tag = Object.values(tagIndex).find(
-                            (t) => t.name === tagName
-                          );
-                          if (!tag) return null;
-                          return (
-                            <Badge
-                              key={tagName}
-                              variant="secondary"
-                              className="rounded! gap-1 pr-1"
+                  <div className="grid gap-2">
+                    <Label className="font-bold">Ngày bắt đầu</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "rounded! w-full justify-start text-left font-normal relative pr-8",
+                            !startDate && "text-muted-foreground",
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate
+                            ? format(startDate, "dd/MM/yyyy", { locale: vi })
+                            : "Chọn ngày"}
+                          {startDate && (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleStartDateChange(undefined);
+                              }}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                              aria-label="Xóa ngày bắt đầu"
                             >
-                              {tag.name}
-                              <span
-                                role="button"
-                                tabIndex={0}
-                                onClick={(e) => removeTag(e, tagName)}
-                                className="hover:bg-muted-foreground/20 rounded-full p-0.5"
-                              >
-                                <X className="h-3 w-3" />
-                              </span>
-                            </Badge>
-                          );
-                        })
-                      )}
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Tìm thẻ..." />
-                      <CommandList>
-                        <CommandEmpty>Không tìm thấy thẻ nào.</CommandEmpty>
-                        <CommandGroup>
-                          {Object.values(tagIndex).map((tag) => {
-                            const isSelected = selectedTags.includes(tag.name);
-                            return (
-                              <CommandItem
-                                key={tag.id}
-                                value={tag.name}
-                                onSelect={() => toggleTag(tag.name)}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    isSelected ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {tag.name}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
+                              <X className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={startDate ?? undefined}
+                          onSelect={handleStartDateChange}
+                          locale={vi}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </FilterPropertyItem>
 
-              <div className="grid gap-2">
-                <Label className="font-bold">Thời gian đặc biệt</Label>
-                <Select value={specials} onValueChange={(v) => setSpecials(v as ISpecials)}>
-                  <SelectTrigger className={cn("rounded! w-full")}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SPECIALS_OPTIONS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label className="font-bold">Trạng thái</Label>
-                <Select value={status} onValueChange={(v) => setStatus(v as IStatus)}>
-                  <SelectTrigger className={cn("rounded! w-full")}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="grid gap-2">
-                  <Label className="font-bold">Ngày bắt đầu</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                          "rounded! w-full justify-start text-left font-normal relative pr-8",
-                          !startDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate
-                          ? format(startDate, "dd/MM/yyyy", { locale: vi })
-                          : "Chọn ngày"}
-                        {startDate && (
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              handleStartDateChange(undefined);
-                            }}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-muted-foreground/20 rounded-full p-0.5"
-                            aria-label="Xóa ngày bắt đầu"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startDate ?? undefined}
-                        onSelect={handleStartDateChange}
-                        locale={vi}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label className="font-bold">Ngày kết thúc</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                          "rounded! w-full justify-start text-left font-normal relative pr-8",
-                          !endDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate
-                          ? format(endDate, "dd/MM/yyyy", { locale: vi })
-                          : "Chọn ngày"}
-                        {endDate && (
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              e.preventDefault();
-                              handleEndDateChange(undefined);
-                            }}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-muted-foreground/20 rounded-full p-0.5"
-                            aria-label="Xóa ngày kết thúc"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate ?? undefined}
-                        onSelect={handleEndDateChange}
-                        disabled={(date) => (startDate ? date < startDate : false)}
-                        locale={vi}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <FilterPropertyItem
+                  label="Ngày kết thúc"
+                  value={endDate ? format(endDate, "dd/MM/yyyy", { locale: vi }) : undefined}
+                >
+                  <div className="grid gap-2">
+                    <Label className="font-bold">Ngày kết thúc</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "rounded! w-full justify-start text-left font-normal relative pr-8",
+                            !endDate && "text-muted-foreground",
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {endDate
+                            ? format(endDate, "dd/MM/yyyy", { locale: vi })
+                            : "Chọn ngày"}
+                          {endDate && (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                handleEndDateChange(undefined);
+                              }}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 hover:bg-muted-foreground/20 rounded-full p-0.5"
+                              aria-label="Xóa ngày kết thúc"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="sm:max-w-100!" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={endDate ?? undefined}
+                          onSelect={handleEndDateChange}
+                          disabled={(date) =>
+                            startDate ? date < startDate : false
+                          }
+                          locale={vi}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                </FilterPropertyItem>
                 {dateError && (
-                  <p className="col-span-2 text-sm text-destructive">{dateError}</p>
+                  <p className="text-sm text-destructive">{dateError}</p>
                 )}
               </div>
             </div>
           </div>
 
-          <DialogFooter className={cn("bg-transparent! p-3! border-t-0 mt-3")}>
+          <DialogFooter
+            className={cn(
+              "bg-transparent! p-0! border-t-0 mt-3 gap-2 [&>button]:min-h-10",
+            )}
+          >
             <Button type="button" variant="ghost" onClick={handleClose}>
               Hủy
             </Button>

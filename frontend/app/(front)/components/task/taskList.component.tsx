@@ -9,8 +9,6 @@ import { Task } from "./taskCard";
 import { useWorkspaceStore } from "../../feature/store/workspace.state";
 import { Button } from "@/components/ui/button";
 import { cn } from "cn";
-import { IStatus } from "../../model/type/type";
-
 interface TaskSectionProp {
   tasks: string[];
   className?:string;
@@ -183,3 +181,4 @@ const virtualizer = useVirtualizer({
     </div>
   );
 });
+TaskList.displayName = "TaskList";

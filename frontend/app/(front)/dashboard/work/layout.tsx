@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import React, {useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -76,7 +76,7 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
     getInboxCount,
     filterIndex,
     tagIndex,
-    listIndex
+    listIndex,
   } = useWorkspaceStore();
   const { user } = useUserState();
   const pathName = usePathname();
@@ -132,7 +132,7 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
       count: getNextDayCount(),
     },
   ];
-  const listEntries = useMemo(()=>Object.entries(listIndex),[listIndex]);
+  const listEntries = useMemo(() => Object.entries(listIndex), [listIndex]);
   return (
     <div className="flex h-screen relative overflow-hidden overflow-y-scroll">
       <Sidebar className={cn("absolute left-0")}>
@@ -231,7 +231,12 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
                       icon: <Edit size={16} />,
                       label: "Chỉnh sửa",
                       onSelect: () =>
-                        setEditingList({ id: listId, name: info.name, color: info.color, isShareList: info.isShareList }),
+                        setEditingList({
+                          id: listId,
+                          name: info.name,
+                          color: info.color,
+                          isShareList: info.isShareList,
+                        }),
                       role: ["owner"] as IRoleMember[],
                     },
                     {
@@ -296,11 +301,26 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
                                 style={{ color: info.color ?? "#3B82F6" }}
                               />
                               <span className="flex items-center gap-1 text-sm min-w-0">
-                                <span className="truncate max-w-30" style={{ color: isActive?info.color ?? "#3B82F6":"black" }}>
+                                <span
+                                  className="truncate max-w-30"
+                                  style={{
+                                    color: isActive
+                                      ? (info.color ?? "#3B82F6")
+                                      : "black",
+                                  }}
+                                >
                                   {info.name}
                                 </span>
                                 {info.isShareList && (
-                                  <Users size={12} className="shrink-0" style={{ color: isActive?info.color ?? "#3B82F6":"black" }}/>
+                                  <Users
+                                    size={12}
+                                    className="shrink-0"
+                                    style={{
+                                      color: isActive
+                                        ? (info.color ?? "#3B82F6")
+                                        : "black",
+                                    }}
+                                  />
                                 )}
                               </span>
                             </span>
@@ -406,10 +426,16 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
                     <EntityRow
                       key={filter.id}
                       link={`/dashboard/work/filters/${filter.id}`}
-                      icon={<Filter data-icon="inline-start" size={16} style={{ color: filter.color ?? "#3B82F6" }} />}
+                      icon={
+                        <Filter
+                          data-icon="inline-start"
+                          size={16}
+                          style={{ color: filter.color ?? "#3B82F6" }}
+                        />
+                      }
                       name={filter.name}
                       count={getTaskWithFilter(filter.id).length}
-                      color={filter.color??"#3B82F6"}
+                      color={filter.color ?? "#3B82F6"}
                       actionGroups={[
                         [
                           {
@@ -500,7 +526,7 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
                           style={{ color: tag.color ?? "#3B82F6" }}
                         />
                       }
-                      color={tag.color??"#3B82F6"}
+                      color={tag.color ?? "#3B82F6"}
                       name={tag.name}
                       actionGroups={[
                         [
@@ -562,7 +588,7 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
                             icon={<Tag data-icon="inline-start" size={16} />}
                             name={tag.name}
                             count={getTaskQuantityWithTag(tag.name)}
-                            color={tag.color??""}
+                            color={tag.color ?? ""}
                             actionGroups={[
                               [
                                 {
@@ -611,11 +637,13 @@ const WorkLayout = ({ children }: { children: React.ReactNode }) => {
         open={openAddFilter}
         onClose={() => setOpenAddFilter(false)}
       />
-      <EditFilterDialog
-        open={!!editFilter}
-        filter={editFilter}
-        onClose={() => setEditFilter(null)}
-      />
+      {editFilter && (
+        <EditFilterDialog
+          open={!!editFilter}
+          filter={editFilter}
+          onClose={() => setEditFilter(null)}
+        />
+      )}
       <DeleteFilterDialog
         onClose={() => setdeleteFilter(null)}
         filter={deleteFilter}

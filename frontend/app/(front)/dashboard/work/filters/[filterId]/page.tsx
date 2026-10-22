@@ -16,7 +16,7 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
     if (filterIndex[filterId]) {
       setTitle(`Bộ lọc ${filterIndex[filterId].name}`)
     }
-  }, [filterId, setTitle])
+  }, [filterId, filterIndex, setTitle])
 
   const tasksByList = useMemo(() => {
     const groups = new Map<string, { listId: string; listName: string; tasks: string[] }>()
@@ -35,7 +35,7 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
 
   if (tasksByList.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-16">
+      <div className="flex min-w-0 flex-col items-center justify-center gap-3 px-2 py-12 text-center sm:py-16">
         <FilterX className="size-30 opacity-40 text-primary" strokeWidth={2} />
         <p className="text-sm text-gray-400">Không có task nào phù hợp với bộ lọc này</p>
       </div>
@@ -43,10 +43,11 @@ const FilterDetailPage = ({ params }: { params: Promise<{ filterId: string }> })
   }
 
   return (
-    <div className="flex gap-3 py-2 items-start flex-wrap">
+    <div className="grid w-full min-w-0 grid-cols-1 items-start gap-3 py-2 min-[1100px]:grid-cols-2 min-[1500px]:grid-cols-3">
       {tasksByList.map((group) => (
         <SectionCard
           key={group.listId}
+          responsive
           count={group.tasks.length}
           title={group.listName}
         >

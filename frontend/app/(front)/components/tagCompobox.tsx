@@ -65,7 +65,7 @@ const allTags: ITagModel[] = useMemo(
       setPendingTags(selectedTags);
       setSearch("");
     }
-  }, [open]);
+  }, [open, selectedTags]);
 
   const toggleTag = (tag: string) => {
     if (busy) return;
@@ -133,7 +133,10 @@ const allTags: ITagModel[] = useMemo(
         {trigger ?? <div className="h-0 w-0" />}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className={className} align={align}>
+      <DropdownMenuContent
+        className={cn(className, "min-w-0 max-w-[min(calc(100dvw-1rem),var(--radix-dropdown-menu-content-available-width))]")}
+        align={align}
+      >
         <Command>
           <CommandInput
             placeholder={placeholder}
@@ -147,7 +150,7 @@ const allTags: ITagModel[] = useMemo(
                   key={tag}
                   asChild
                   variant="secondary"
-                  className="flex items-center gap-1 text-xs cursor-pointer hover:bg-secondary/80 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex max-w-full items-center gap-1 whitespace-normal wrap-anywhere text-xs cursor-pointer hover:bg-secondary/80 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <button
                     type="button"
@@ -174,10 +177,10 @@ const allTags: ITagModel[] = useMemo(
                     key={tag.name}
                     value={tag.name}
                     onSelect={() => toggleTag(tag.name)}
-                    className="bg-white!"
+                    className="min-w-0 whitespace-normal wrap-anywhere bg-white!"
                   >
                     <Tag className="mr-1 h-4 w-4" />
-                    {tag.name}
+                    <span className="min-w-0 flex-1 wrap-anywhere">{tag.name}</span>
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",

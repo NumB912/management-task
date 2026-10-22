@@ -7,7 +7,6 @@ export function createSSERoute(gateway: SSERealtimeGateway) {
 
   router.get("/notifications/stream", authMiddleware, (req, res) => {
     const user = req.user;
-    console.log(user)
     if (!user) {
       return res.status(401).json({
         code: "UNAUTHORIZED",

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { CalendarIcon, Check, X } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -34,19 +34,13 @@ import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { Calendar } from "../ui/calendar";
 import { filterApi } from "../../feature/api/filters/filter.api";
 import { Label } from "../ui/label";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import TagCombobox from "../tagCompobox";
 import { Badge } from "@/components/ui/badge";
 import { PRIORITY_OPTIONS, SPECIALS_OPTIONS, STATUS_OPTIONS } from "./editFilter.filters";
 import ObjectID from "bson-objectid";
 import useUserState from "../../feature/store/user/user.state";
 import { IFilterModel } from "../../model/filter.model";
+import { FilterPropertyItem } from "./filterPropertyItem";
 import ColorPicker from "../color/colorPicker.component";
 import { DEFAULT_COLORS } from "../../model/mod/color.config";
 
@@ -71,7 +65,6 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
   const addFilter = useWorkspaceStore((state)=>state.addFilter)
   const {user} = useUserState()
   const queryClient = useQueryClient();
-  const {tagIndex} = useWorkspaceStore();
 
   const existingNames = useWorkspaceStore(
     useShallow((s) =>
@@ -83,6 +76,7 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError(null);
       setDateError(null);
     }
@@ -141,22 +135,9 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
     setStartDate(undefined);
     setEndDate(undefined);
     setSelectedTags([]);
+    setTagPopoverOpen(false);
     setError(null);
     setDateError(null);
-  };
-
-  const toggleTag = (name: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(name)
-        ? prev.filter((t) => t !== name)
-        : [...prev, name]
-    );
-  };
-
-  const removeTag = (e: React.MouseEvent, tagId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSelectedTags((prev) => prev.filter((t) => t !== tagId));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -180,7 +161,7 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
       end_date: endDate,
       tags: selectedTags ?? [],
       id,
-      user:user?.id!
+      user:user?.id??""
     })
     mutate({
       name: trimmed,
@@ -193,7 +174,7 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
       end_date: endDate,
       tags: selectedTags ?? [],
       id,
-      user:user?.id!
+      user:user?.id??""
     });
   };
 
@@ -204,8 +185,8 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="min-w-2xl">
-        <form onSubmit={handleSubmit}>
+      <DialogContent className="h-dvh max-h-dvh w-full min-w-0 max-w-none content-start overflow-y-auto rounded-none p-4 sm:h-auto sm:max-h-[90dvh] sm:w-[calc(100%-2rem)] sm:max-w-2xl sm:rounded-xl sm:p-6">
+        <form onSubmit={handleSubmit} className="min-w-0">
           <DialogHeader>
             <DialogTitle className={cn("font-bold!")}>Thêm filter</DialogTitle>
             <DialogDescription>
@@ -213,12 +194,14 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex gap-5 py-4">
-            <div className="flex flex-col gap-3 py-4 w-full">
-              <div className="grid gap-2">
+          <div className="grid min-w-0 grid-cols-1 gap-5 py-4 sm:grid-cols-2">
+            <div className="flex min-w-0 flex-col gap-3 w-full">
+              <FilterPropertyItem label="Màu filter" value={color}>
+<div className="grid gap-2">
                 <Label>Màu filter</Label>
                 <ColorPicker value={color} onChange={setColor} />
               </div>
+</FilterPropertyItem>
               <div className="grid gap-2">
               <Label htmlFor="name">Tên filter</Label>
               <Input
@@ -247,11 +230,13 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
             </div>
             </div>
 
-            <div className="min-w-xs flex flex-col gap-5">
-                    <div className="grid gap-2">
+            <div className="flex min-w-0 flex-wrap gap-2 sm:flex-col sm:gap-5">
+                    <FilterPropertyItem label="Độ ưu tiên" value={priority == null ? undefined : PRIORITY_OPTIONS.find((option) => option.value === priority)?.label}>
+<div className="grid gap-2">
                       <Label className="font-bold">Độ ưu tiên</Label>
                       <ToggleGroup
                         type="single"
+                        className="flex w-full flex-wrap gap-1"
                         value={priority?.toString() ?? "none"}
                         onValueChange={(v) =>
                           setPriority(v !== "none" ? (Number(v) as Ipriority) : null)
@@ -268,78 +253,49 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
                         ))}
                       </ToggleGroup>
                     </div>
-            <div className="grid gap-2">
+</FilterPropertyItem>
+            <FilterPropertyItem label="Thẻ" value={selectedTags.length ? selectedTags.join(", ") : undefined}>
+<div className="grid gap-2">
               <Label className="font-bold">Thẻ</Label>
-              <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <div
-                    role="combobox"
-                    aria-expanded={tagPopoverOpen}
-                    tabIndex={0}
-                    className={cn(
-                      "border-input rounded! w-full min-h-9 flex flex-wrap items-center gap-1 px-3 py-1.5 text-sm border cursor-pointer",
-                      "focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none",
-                      selectedTags.length === 0 && "text-muted-foreground"
-                    )}
-                  >
-                    {selectedTags.length === 0 ? (
-                      "Chọn thẻ"
-                    ) : (
-                      selectedTags.map((name) => {
-                        const tag = Object.values(tagIndex).find((t) => t.name === name);
-                        if (!tag) return null;
-                        return (
-                          <Badge
-                            key={name}
-                            variant="secondary"
-                            className="rounded! gap-1 pr-1"
-                          >
-                            {tag.name}
-                            <span
-                              role="button"
-                              tabIndex={0}
-                              onClick={(e) => removeTag(e, name)}
-                              className="hover:bg-muted-foreground/20 rounded-full p-0.5"
+              <TagCombobox
+                  open={tagPopoverOpen}
+                  onOpenChange={setTagPopoverOpen}
+                  selectedTags={selectedTags}
+                  onConfirm={setSelectedTags}
+                  isPending={isPending}
+                  placeholder="Tìm thẻ..."
+                  emptyText="Không tìm thấy thẻ nào."
+                  className="w-(--radix-dropdown-menu-trigger-width) max-w-[calc(100vw-2rem)] p-0"
+                  trigger={
+                    <button
+                      type="button"
+                      aria-label="Chọn thẻ"
+                      aria-expanded={tagPopoverOpen}
+                      disabled={isPending}
+                      className={cn(
+                        "border-input rounded! w-full min-h-9 flex flex-wrap items-center gap-1 px-3 py-1.5 text-sm text-left border cursor-pointer",
+                        "focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none disabled:opacity-50",
+                        selectedTags.length === 0 && "text-muted-foreground"
+                      )}
+                    >
+                      {selectedTags.length === 0
+                        ? "Chọn thẻ"
+                        : selectedTags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="max-w-full whitespace-normal wrap-anywhere rounded!"
                             >
-                              <X className="h-3 w-3" />
-                            </span>
-                          </Badge>
-                        );
-                      })
-                    )}
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Tìm thẻ..." />
-                    <CommandList>
-                      <CommandEmpty>Không tìm thấy thẻ nào.</CommandEmpty>
-                      <CommandGroup>
-                        {Object.values(tagIndex).map((tag) => {
-                          const isSelected = selectedTags.includes(tag.name);
-                          return (
-                            <CommandItem
-                              key={tag.id}
-                              value={tag.name}
-                              onSelect={() => toggleTag(tag.name)}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  isSelected ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {tag.name}
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                              {tag}
+                            </Badge>
+                          ))}
+                    </button>
+                  }
+                />
             </div>
-            <div className="grid gap-2">
+</FilterPropertyItem>
+            <FilterPropertyItem label="Thời gian đặc biệt" value={specials === "none" ? undefined : SPECIALS_OPTIONS.find((option) => option.value === specials)?.label}>
+<div className="grid gap-2">
                <Label className="font-bold">Thời gian đặc biệt</Label>
               <Select value={specials} onValueChange={(v) => setSpecials(v as ISpecials)}>
                 <SelectTrigger className={cn("rounded! w-full")}>
@@ -354,8 +310,10 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
                 </SelectContent>
               </Select>
             </div>
+</FilterPropertyItem>
 
-            <div className="grid gap-2">
+            <FilterPropertyItem label="Trạng thái" value={STATUS_OPTIONS.find((option) => option.value === status)?.label}>
+<div className="grid gap-2">
                <Label className="font-bold">Trạng thái</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as IStatus)}>
                 <SelectTrigger className={cn("rounded! w-full")}>
@@ -370,9 +328,11 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
                 </SelectContent>
               </Select>
             </div>
+</FilterPropertyItem>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="grid gap-2">
+            <div className="contents sm:grid sm:grid-cols-1 sm:gap-3">
+              <FilterPropertyItem label="Ngày bắt đầu" value={startDate ? format(startDate, "dd/MM/yyyy", { locale: vi }) : undefined}>
+<div className="grid gap-2">
                  <Label className="font-bold">Ngày bắt đầu</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -400,8 +360,10 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
                   </PopoverContent>
                 </Popover>
               </div>
+</FilterPropertyItem>
 
-              <div className="grid gap-2">
+              <FilterPropertyItem label="Ngày kết thúc" value={endDate ? format(endDate, "dd/MM/yyyy", { locale: vi }) : undefined}>
+<div className="grid gap-2">
                  <Label className="font-bold">Ngày kết thúc</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -430,14 +392,15 @@ export function AddFilterDialog({ open, onClose }: Readonly<addFilterDialogProps
                   </PopoverContent>
                 </Popover>
               </div>
+</FilterPropertyItem>
               {dateError && (
-                <p className="col-span-2 text-sm text-destructive">{dateError}</p>
+                <p className="text-sm text-destructive">{dateError}</p>
               )}
             </div>
             </div>
           </div>
 
-          <DialogFooter className={cn("bg-transparent! p-3! border-t-0 mt-3")}>
+          <DialogFooter className={cn("bg-transparent! p-0! border-t-0 mt-3 gap-2 [&>button]:min-h-10")}>
             <Button type="button" variant="ghost" onClick={handleClose}>
               Hủy
             </Button>
